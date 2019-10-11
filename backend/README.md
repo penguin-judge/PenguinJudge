@@ -1,15 +1,16 @@
 # software
-docker
-docker-py
-sqlalchemy
-psycopg2
-rabbitmq
-erlang
+- docker
+- docker-py
+- sqlalchemy
+- psycopg2
+- rabbitmq
+- erlang
+- pika
 
 # How to run 
-pwd -> ~/judge/backend/worker/admin_scripts
-sudo python3 judge_worker_server.py
+- worker server
+- sudo python3 /judge/backend/worker/admin_scripts/judge_worker_server.py
 
-pwd -> ~/judge/backend/db 
-sudo python3 judge_db_server.py
+- db server
+- sudo python3 /judge/backend/db/judge_db_server.py
 
