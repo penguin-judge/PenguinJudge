@@ -4,11 +4,17 @@ from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
 import time
 from typing import Any, NamedTuple, List, Tuple, Optional
-from model.model import *
 from contextlib import contextmanager
 from typing import Iterator
 import datetime
 import json
+import os
+import sys
+
+script_path = os.path.dirname(os.path.abspath(__file__))
+print(script_path)
+sys.path.append(script_path + '/../')
+from model.model import *
 
 def add_test_user(s):
     test_user = User()

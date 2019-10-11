@@ -10,7 +10,7 @@ from typing import Any, Dict
 import pika
 import docker
 
-script_path = os.path.dirname(__file__)
+script_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_path + '/../../../db')
 from model.model import *
 
