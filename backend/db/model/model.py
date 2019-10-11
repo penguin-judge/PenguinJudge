@@ -89,9 +89,11 @@ class JudgeResult(Base):
 def configure(**kwargs: str) -> None:
     from sqlalchemy import engine_from_config
     drop_all = kwargs.pop('drop_all', None)
+    dbhost = kwargs.pop('host', 'localhost')
+    dbport = kwargs.pop('port', '5432')
     if 'sqlalchemy.url' not in kwargs:
         kwargs['sqlalchemy.url'] = (
-            'postgresql://kaming:kaming@localhost:5432/judge')
+            'postgresql://kaming:kaming@' + dbhost + ':' + dbport + '/judge')
     engine = engine_from_config(kwargs)
     if drop_all:
         Base.metadata.drop_all(engine)

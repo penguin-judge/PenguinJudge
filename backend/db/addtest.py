@@ -31,7 +31,7 @@ def add_test_environment(s):
     test_environment = Environment()
     test_environment.id = 1
     test_environment.name = 'test'
-    test_environment.config = json.loads('{"language" : "C", "compile" : "gcc -o ./a.out main.c", "code" : "main.c", "exec_binary" : "a.out", "exec_script" : "./a.out < input.in > user.out"}')
+    test_environment.config = json.loads('{"language" : "C", "compile_script" : "gcc -o ./a.out main.c", "srcfile_name" : "main.c", "exec_binary" : "a.out", "exec_script" : "./a.out < input.in > user.out"}')
     s.add(test_environment)
 
 def add_test_problem(s):
