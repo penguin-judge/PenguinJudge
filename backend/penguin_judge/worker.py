@@ -10,7 +10,7 @@ from penguin_judge.run_container import run
 
 
 def configure_db(config: Dict[str, str], f: Callable) -> None:
-    configure(**config)
+    #configure(**config)
     f()
 
 
