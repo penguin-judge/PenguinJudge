@@ -8,7 +8,7 @@ from typing import Dict
 import docker  # type: ignore
 
 from penguin_judge.models import (
-    Session, Environment, JudgeStatus, Submission, TestCase, JudgeResult,
+    Environment, JudgeStatus, Submission, TestCase, JudgeResult,
     transaction, scoped_session)
 
 

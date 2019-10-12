@@ -1,10 +1,17 @@
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
+from typing import Callable, Dict
 
 import pika  # type: ignore
 
+from penguin_judge.models import configure, config as db_config
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.run_container import run
+
+
+def configure_db(config: Dict[str, str], f: Callable) -> None:
+    configure(**config)
+    f()
 
 
 def callback(
@@ -13,7 +20,7 @@ def callback(
         method: pika.spec.Basic.Return,
         properties: pika.spec.BasicProperties,
         body: bytes) -> None:
-    executor.submit(run, body)
+    executor.submit(configure_db, db_config, partial(run, body))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 

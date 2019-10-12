@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from enum import IntEnum
-from typing import Iterator
+from typing import Dict, Iterator
 
 from sqlalchemy import (
     Column, DateTime, Integer, String, LargeBinary, JSON, Enum,
@@ -10,6 +10,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 Base = declarative_base()
 Session = scoped_session(sessionmaker())
+config: Dict[str, str] = {}
 
 
 class JudgeStatus(IntEnum):
@@ -114,7 +115,9 @@ class JudgeResult(Base, _JsonExportable):
 
 def configure(**kwargs: str) -> None:
     from sqlalchemy import engine_from_config
+    global config
     drop_all = kwargs.pop('drop_all', None)
+    config = {k: v for k, v in kwargs.items() if k.startswith('sqlalchemy.')}
     engine = engine_from_config(kwargs)
     if drop_all:
         Base.metadata.drop_all(engine)
