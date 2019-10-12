@@ -4,7 +4,7 @@ from flask import Flask, jsonify, abort, request
 from zstandard import ZstdCompressor  # type: ignore
 
 from penguin_judge.models import (
-    configure, transaction,
+    transaction,
     Submission, Contest, Environment, Problem, TestCase,
 )
 
@@ -68,8 +68,3 @@ def submission(contest_id: str, problem_id: str) -> Any:
             user_id='kazuki', code=code, environment_id=env_id))
         # TODO(kazuki): MQに積む
     return b'', 201
-
-
-if __name__ == '__main__':
-    configure()
-    app.run()

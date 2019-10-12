@@ -18,6 +18,7 @@ setup(
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
+            'penguin_judge=penguin_judge.main:main'
         ],
     }
 )

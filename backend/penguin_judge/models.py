@@ -115,9 +115,6 @@ class JudgeResult(Base, _JsonExportable):
 def configure(**kwargs: str) -> None:
     from sqlalchemy import engine_from_config
     drop_all = kwargs.pop('drop_all', None)
-    if 'sqlalchemy.url' not in kwargs:
-        kwargs['sqlalchemy.url'] = (
-            'postgresql://ringo:ringo@localhost:5432/judge')
     engine = engine_from_config(kwargs)
     if drop_all:
         Base.metadata.drop_all(engine)

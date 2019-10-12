@@ -1,0 +1,7 @@
+[DEFAULT]
+sqlalchemy.url = postgresql://user:password@localhost:5432/penguin_judge
+mq.url = amqp://guest:guest@localhost:5672/penguin_judge
+
+[api]
+
+[worker]
