@@ -8,7 +8,8 @@ import pika
 
 script_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_path + '/../../')
-from model.model import *
+from penguin_judge.models import *
+
 
 def callback(ch : pika.channel.Channel,
              method : pika.spec.Basic.Return,

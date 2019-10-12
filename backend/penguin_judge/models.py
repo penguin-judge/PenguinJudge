@@ -65,6 +65,8 @@ class Contest(Base, _JsonExportable):
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
+    start_time = Column(DateTime(timezone=True), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=False)
 
 
 class Problem(Base, _JsonExportable):
@@ -84,8 +86,8 @@ class TestCase(Base, _JsonExportable):
     output = Column(LargeBinary, nullable=False)
 
 
-class Answer(Base, _JsonExportable):
-    __tablename__ = 'answers'
+class Submission(Base, _JsonExportable):
+    __tablename__ = 'submissions'
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
     id = Column(Integer, primary_key=True)
@@ -103,7 +105,7 @@ class JudgeResult(Base, _JsonExportable):
     __tablename__ = 'judge_results'
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
-    answer_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, primary_key=True)
     test_id = Column(String, primary_key=True)
     status = Column(
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,

@@ -12,7 +12,7 @@ import docker
 
 script_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_path + '/../../../db')
-from model.model import *
+from penguin_judge.models import *
 
 def compile(submission : Submission, s : Session,
             dclient : docker.client.DockerClient) -> Dict:
