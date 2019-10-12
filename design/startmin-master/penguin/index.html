@@ -39,7 +39,12 @@
 <div id="wrapper">
 
     <!-- Navigation -->
-    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <nav class="navbar navbar-fixed-top" role="navigation">
+
+        <!-- Top Navigation: Left Menu -->
+        <ul class="nav navbar-nav navbar-left navbar-top-links">
+            <li><a href="#"><img src="../img/penguin.png" style="width:25px;"></a></li>
+        </ul>
         <div class="navbar-header">
             <a class="navbar-brand" href="#">Penguin Judge</a>
         </div>
@@ -51,46 +56,20 @@
             <span class="icon-bar"></span>
         </button>
 
-        <!-- Top Navigation: Left Menu -->
-        <ul class="nav navbar-nav navbar-left navbar-top-links">
-            <li><a href="#"><i class="fa fa-home fa-fw"></i> Website</a></li>
-        </ul>
-
         <!-- Top Navigation: Right Menu -->
         <ul class="nav navbar-right navbar-top-links">
-            <li class="dropdown navbar-inverse">
-                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                    <i class="fa fa-bell fa-fw"></i> <b class="caret"></b>
-                </a>
-                <ul class="dropdown-menu dropdown-alerts">
-                    <li>
-                        <a href="#">
-                            <div>
-                                <i class="fa fa-comment fa-fw"></i> New Comment
-                                <span class="pull-right text-muted small">4 minutes ago</span>
-                            </div>
-                        </a>
-                    </li>
-                    <li class="divider"></li>
-                    <li>
-                        <a class="text-center" href="#">
-                            <strong>See All Alerts</strong>
-                            <i class="fa fa-angle-right"></i>
-                        </a>
-                    </li>
-                </ul>
-            </li>
+
             <li class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     <i class="fa fa-user fa-fw"></i> ringo <b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu dropdown-user">
-                    <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
+                    <li><a href="profile.html"><i class="fa fa-user fa-fw"></i> User Profile</a>
                     </li>
-                    <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
+                    <li><a href="settings.html"><i class="fa fa-gear fa-fw"></i> Settings</a>
                     </li>
                     <li class="divider"></li>
-                    <li><a href="#"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+                    <li><a href="login.html"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>
                 </ul>
             </li>
@@ -117,16 +96,16 @@
                         <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> コンテスト<span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
                             <li>
-                                <a href="flot.html">コンテスト一覧</a>
+                                <a href="contests.html">コンテスト一覧</a>
                             </li>
                             <li>
-                                <a href="morris.html">参加したコンテスト</a>
+                                <a href="contests.html">参加したコンテスト</a>
                             </li>
                         </ul>
                         <!-- /.nav-second-level -->
                     </li>
                     <li>
-                        <a href="tables.html"><i class="fa fa-table fa-fw"></i> ランキング</a>
+                        <a href="ranking.html"><i class="fa fa-table fa-fw"></i> ランキング</a>
                     </li>
                 </ul>
             </div>
@@ -144,6 +123,177 @@
             </div>
 
             <!-- ... Your content goes here ... -->
+            <!-- /.row -->
+            <div class="row">
+                <div class="col-lg-6 col-md-6">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-tasks fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="huge">3</div>
+                                    <div>参加コンテスト</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#">
+                            <div class="panel-footer">
+                                <span class="pull-left">View Details</span>
+                                <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+
+                                <div class="clearfix"></div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6">
+                    <div class="panel panel-green">
+                        <div class="panel-heading">
+                            <div class="row">
+                                <div class="col-xs-3">
+                                    <i class="fa fa-info-circle fa-5x"></i>
+                                </div>
+                                <div class="col-xs-9 text-right">
+                                    <div class="huge">12</div>
+                                    <div>お知らせ</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#">
+                            <div class="panel-footer">
+                                <span class="pull-left">View Details</span>
+                                <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
+
+                                <div class="clearfix"></div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- /.row -->
+            <div class="row">
+              <div class="col-lg-12">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">
+                          <h2>お知らせ</h2>
+                      </div>
+                      <!-- /.panel-heading -->
+                      <div class="panel-body">
+                          <div class="table-responsive">
+                              <table class="table">
+                                  <tbody>
+                                    <tr>
+                                      <td>
+                                        はじめに
+                                      </td>
+                                      <td>
+                                        PenguinJudgeはオンラインで参加できるコンテストのジャッジシステムです。リアルタイムでコンテストを競い合ったらり、過去問にいつでも挑戦することができるシステムです。
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>
+                                        はじめに
+                                      </td>
+                                      <td>
+                                        PenguinJudgeになれてみよう。<a href="contest_detail.html">チュートリアル</a>をやってオンラインコンテストに慣れてみよう。
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>
+                                        2019.10.11
+                                      </td>
+                                      <td>
+                                        2020.01.11にTeam Pengui主催のコンテストを開催します！！
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                              </table>
+                          </div>
+                          <!-- /.table-responsive -->
+                      </div>
+                      <!-- /.panel-body -->
+                  </div>
+                  <!-- /.panel -->
+                  <div class="row">
+                    <div class="col-lg-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h2>最近のコンテスト</h2>
+                            </div>
+                            <!-- /.panel-heading -->
+                            <div class="panel-body">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <tbody>
+                                          <tr>
+                                            <td>
+                                              2019.01.11 10:00-11:30
+                                            </td>
+                                            <td>
+                                              <a href="./contest_detail.html">PenguinJudge006</a>
+                                            </td>
+                                            <td>
+                                              レートあがるよっ！あいうえお。aaaaaaa。かきくけこ。さしすせそ。なにぬねの。
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              2019.10.12 10:00-11:30
+                                            </td>
+                                            <td>
+                                              <a href="./contest_detail.html">PenguinJudge005</a>
+                                            </td>
+                                            <td>
+                                              レートあがるよっ！
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              2019.10.11 10:00-11:30
+                                            </td>
+                                            <td>
+                                              <a href="./contest_detail.html">PenguinJudge004</a>
+                                            </td>
+                                            <td>
+                                              レートあがるよっ！
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              2019.10.10 10:00-11:30
+                                            </td>
+                                            <td>
+                                              <a href="./contest_detail.html">PenguinJudge003</a>
+                                            </td>
+                                            <td>
+                                              レートあがるよっ！
+                                            </td>
+                                          </tr>
+                                          <tr>
+                                            <td>
+                                              2019.10.09 10:00-11:30
+                                            </td>
+                                            <td>
+                                              <a href="./contest_detail.html">PenguinJudge002</a>
+                                            </td>
+                                            <td>
+                                              レートあがるよっ！
+                                            </td>
+                                          </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- /.table-responsive -->
+                            </div>
+                            <!-- /.panel-body -->
+                        </div>
+                        <!-- /.panel -->
+              </div>
+              <!-- /.col-lg-6 -->
+            </div>
+            <!-- /.row -->
 
         </div>
     </div>
