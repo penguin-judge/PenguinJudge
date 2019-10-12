@@ -13,6 +13,7 @@ message['problem_id'] = '1'
 message['submission_id'] = 1
 message['user_id'] = '1'
 
-channel.basic_publish(exchange='', routing_key='worker_queue', body=json.dumps(message))
+channel.basic_publish(exchange='', routing_key='worker_queue',
+                      body=json.dumps(message))
 print(" [x] Sent 'test!'")
 connection.close()

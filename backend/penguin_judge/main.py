@@ -37,7 +37,8 @@ def start_worker(args: Namespace) -> None:
 
 def main() -> None:
     def add_common_args(parser: ArgumentParser) -> ArgumentParser:
-        parser.add_argument('-c', '--config', required=True, help='config path')
+        parser.add_argument('-c', '--config', required=True,
+                            help='config path')
         return parser
 
     parser = ArgumentParser()
