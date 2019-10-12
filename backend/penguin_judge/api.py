@@ -1,13 +1,11 @@
-from contextlib import contextmanager
-import os.path
 from typing import Any
 
 from flask import Flask, jsonify, abort, request
-from zstandard import ZstdCompressor
+from zstandard import ZstdCompressor  # type: ignore
 
 from penguin_judge.models import (
     configure, transaction,
-    Submission, Contest, Environment, Problem, TestCase, JudgeResult,
+    Submission, Contest, Environment, Problem, TestCase,
 )
 
 app = Flask(__name__)
@@ -39,19 +37,20 @@ def get_contest(contest_id: str) -> Any:
         if not ret:
             abort(404)
         ret = ret.to_dict()
-        problems = s.query(Problem).filter(Problem.contest_id == contest_id).all()
+        problems = s.query(Problem).filter(
+            Problem.contest_id == contest_id).all()
         if problems:
             ret['problems'] = [p.to_dict() for p in problems]
     return jsonify(ret)
 
 
 @app.route('/contests/<contest_id>/problems/<problem_id>', methods=['POST'])
-def post_answer(contest_id: str, problem_id: str) -> Any:
+def submission(contest_id: str, problem_id: str) -> Any:
     body = request.json
     code = body.get('code')
     env_id = body.get('environment_id')
     if not (code and env_id):
-        abort(400);
+        abort(400)
 
     cctx = ZstdCompressor()
     code = cctx.compress(code.encode('utf8'))
@@ -64,17 +63,10 @@ def post_answer(contest_id: str, problem_id: str) -> Any:
             TestCase.problem_id == problem_id).all()
         if not tests:
             abort(400)
-        answer = Submission(
+        s.add(Submission(
             contest_id=contest_id, problem_id=problem_id,
-            user_id='kazuki', code=code, environment_id=env_id)
-        s.add(answer)
-        s.flush()
-        for t in tests:
-            s.add(JudgeResult(
-                contest_id=contest_id,
-                problem_id=problem_id,
-                answer_id=answer.id,
-                test_id=t.id))
+            user_id='kazuki', code=code, environment_id=env_id))
+        # TODO(kazuki): MQに積む
     return b'', 201
 
 

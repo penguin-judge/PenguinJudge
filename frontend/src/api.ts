@@ -16,14 +16,14 @@ export interface Contest {
   problems: Array<Problem> | null;
 }
 
-export interface AnswerToPost {
+export interface PartialSubmission {
   contest_id: string;
   problem_id: string;
   code: string;
   environment_id: string;
 }
 
-export interface Answer extends AnswerToPost {
+export interface Submission extends PartialSubmission {
   id: number;
   status: string;
   created: string;
@@ -55,11 +55,11 @@ export class API {
     });
   }
 
-  static post_answer(answer: AnswerToPost): Promise<void> {
-    const contest_id = answer.contest_id;
-    const problem_id = answer.problem_id;
-    delete answer.contest_id;
-    delete answer.problem_id;
+  static submit(submission: PartialSubmission): Promise<void> {
+    const contest_id = submission.contest_id;
+    const problem_id = submission.problem_id;
+    delete submission.contest_id;
+    delete submission.problem_id;
     const path = '/api/contests/' + encodeURIComponent(contest_id)
       + "/problems/" + encodeURIComponent(problem_id);
     const headers = {'Content-Type': 'application/json'};
@@ -67,7 +67,7 @@ export class API {
       fetch(path, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify(answer)
+        body: JSON.stringify(submission)
       }).then(_ => {
         resolve();
       }).catch(reject);
