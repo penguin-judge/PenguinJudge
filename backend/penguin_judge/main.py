@@ -31,11 +31,20 @@ def start_api(args: Namespace) -> None:
 
 
 def start_db_server(args: Namespace) -> None:
-    from penguin_judge.db_server import main
+    from penguin_judge.db_server import main as db_main
     config = _load_config(args, 'db')
     configure(**config)
     configure_mq(**config)
-    main()
+    db_main()
+
+
+def start_worker(args: Namespace) -> None:
+    from penguin_judge.worker import main as worker_main
+    config = _load_config(args, 'worker')
+    configure(**config)
+    configure_mq(**config)
+    max_processes = int(config.get('max_processes', '1'))
+    worker_main(max_processes)
 
 
 def main() -> None:
@@ -54,6 +63,10 @@ def main() -> None:
     db_server_parser = add_common_args(subparsers.add_parser(
         'db-server', help='DB Server'))
     db_server_parser.set_defaults(start=start_db_server)
+
+    worker_parser = add_common_args(subparsers.add_parser(
+        'worker', help='Judge Worker'))
+    worker_parser.set_defaults(start=start_worker)
 
     args = parser.parse_args()
     if hasattr(args, 'start'):
