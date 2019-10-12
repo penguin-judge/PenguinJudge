@@ -1,10 +1,11 @@
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
+from typing import Mapping
 
 from penguin_judge.models import configure
 
 
-def _load_config(args: Namespace, name: str) -> dict:
+def _load_config(args: Namespace, name: str) -> Mapping[str, str]:
     config = ConfigParser()
     if args.config:
         config.read(args.config)
