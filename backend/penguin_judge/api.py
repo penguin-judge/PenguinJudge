@@ -5,9 +5,9 @@ from typing import Any
 from flask import Flask, jsonify, abort, request
 from zstandard import ZstdCompressor
 
-from penguin_judge.db.models import (
+from penguin_judge.models import (
     configure, transaction,
-    Answer, Contest, Environment, Problem, TestCase, JudgeResult,
+    Submission, Contest, Environment, Problem, TestCase, JudgeResult,
 )
 
 app = Flask(__name__)
@@ -64,7 +64,7 @@ def post_answer(contest_id: str, problem_id: str) -> Any:
             TestCase.problem_id == problem_id).all()
         if not tests:
             abort(400)
-        answer = Answer(
+        answer = Submission(
             contest_id=contest_id, problem_id=problem_id,
             user_id='kazuki', code=code, environment_id=env_id)
         s.add(answer)
