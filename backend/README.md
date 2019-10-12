@@ -26,7 +26,7 @@ $ pip install
 
 ```
 $ penguin_judge api -c config.ini
-$ penguin_judge db -c config.ini
+$ penguin_judge db-server -c config.ini
 ```
 ### worker server
 
