@@ -46,12 +46,13 @@ developerの皆様には、pipenvを使った仮想環境をオススメいた�
 ### How to build develop env
 
 ```
-$ pipenv install
+$ pipenv --python 3.7
+$ pipenv install --dev
 $ pipenv shell
 $ pip install -e .
 ```
 
-これで動く環境は一応できます。  
+これで（多分）動く環境は一応できます。  
 注意点として、workerはsudo権限がいる（dockerのため）ために上記のコマンドそのままでは動きません。  
 解決策はいろいろありますが、強硬策は `sudo visudo` に置いて、 `secure_path` の行をコメントアウトします。  
 その上で `sudo -Es` を頭につけた上で実行すれば通ります。（Eかsはどちらかいらないかもしれない）
