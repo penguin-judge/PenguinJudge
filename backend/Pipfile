@@ -10,7 +10,6 @@ sqlalchemy-stubs = "*"
 
 [packages]
 sqlalchemy = "*"
-alembic = "*"
 psycopg2-binary = "*"
 pika = "*"
 flask = "*"
