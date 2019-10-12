@@ -1,14 +1,15 @@
-from argparse import ArgumentParser
-from typing import Any
+from argparse import ArgumentParser, Namespace
 import datetime
 import json
 
-from model.model import (User, Contest, Environment, Problem,
-                         TestCase, Submission, JudgeResult,
-                         JudgeStatus, configure, transaction)
+from penguin_judge.models import (
+    configure, transaction, User, Contest, Environment,
+    Problem, TestCase, Submission, JudgeResult, JudgeStatus,
+    scoped_session)
+from penguin_judge.main import _load_config
 
 
-def add_test_user(s):
+def add_test_user(s: scoped_session) -> None:
     test_user = User()
     test_user.id = '1'
     test_user.name = 'test'
@@ -17,7 +18,7 @@ def add_test_user(s):
     s.add(test_user)
 
 
-def add_test_contest(s):
+def add_test_contest(s: scoped_session) -> None:
     test_contest = Contest()
     test_contest.id = '1'
     test_contest.title = 'test_contest'
@@ -27,7 +28,7 @@ def add_test_contest(s):
     s.add(test_contest)
 
 
-def add_test_environment(s):
+def add_test_environment(s: scoped_session) -> None:
     test_environment = Environment()
     test_environment.id = 1
     test_environment.name = 'test'
@@ -38,7 +39,7 @@ def add_test_environment(s):
     s.add(test_environment)
 
 
-def add_test_problem(s):
+def add_test_problem(s: scoped_session) -> None:
     test_problem = Problem()
     test_problem.id = '1'
     test_problem.contest_id = '1'
@@ -47,7 +48,7 @@ def add_test_problem(s):
     s.add(test_problem)
 
 
-def add_test_testcase(s):
+def add_test_testcase(s: scoped_session) -> None:
     test_testcase = TestCase()
     test_testcase.id = '1'
     test_testcase.contest_id = '1'
@@ -64,7 +65,7 @@ def add_test_testcase(s):
     s.add(test_testcase)
 
 
-def add_test_submission(s):
+def add_test_submission(s: scoped_session) -> None:
     test_submission = Submission()
     test_submission.id = 1
     test_submission.contest_id = '1'
@@ -76,7 +77,7 @@ def add_test_submission(s):
     s.add(test_submission)
 
 
-def add_judge_result(s):
+def add_judge_result(s: scoped_session) -> None:
     judge_result = JudgeResult()
     judge_result.contest_id = '1'
     judge_result.problem_id = '1'
@@ -91,53 +92,56 @@ def add_judge_result(s):
     s.add(judge_result)
 
 
-def run_command(command: str) -> None:
-
-    if command == 'None':
-        configure()
-    elif command == 'clear':
-        configure(drop_all=True)
-    elif command == 'addtest':
-        configure()
-        with transaction() as s:
-            add_test_user(s)
-            add_test_contest(s)
-            add_test_environment(s)
-            add_test_problem(s)
-            add_test_testcase(s)
-            add_test_submission(s)
-    elif command == 'reset':
-        configure(drop_all=True)
-        configure()
-        with transaction() as s:
-            add_test_user(s)
-            add_test_contest(s)
-            add_test_environment(s)
-            add_test_problem(s)
-            add_test_testcase(s)
-            add_test_submission(s)
-    elif command == 'workertest':
-        configure(drop_all=True)
-        configure()
-        with transaction() as s:
-            add_test_user(s)
-            add_test_contest(s)
-            add_test_environment(s)
-            add_test_problem(s)
-            add_test_testcase(s)
-            add_test_submission(s)
-            add_judge_result(s)
+def clear_data(args: Namespace) -> None:
+    config = _load_config(args, 'db')
+    config['drop_all'] = True
+    configure(**config)
 
 
-def get_server_option() -> Any:
-    argparser = ArgumentParser()
-    argparser.add_argument('-c', '--command', type=str,
-                           default='None',
-                           help='The command for judgeDB')
-    return argparser.parse_args()
+def prejudge_data(args: Namespace) -> None:
+    clear_data(args)
+    with transaction() as s:
+        add_test_user(s)
+        add_test_contest(s)
+        add_test_environment(s)
+        add_test_problem(s)
+        add_test_testcase(s)
+        add_test_submission(s)
+
+
+def worker_data(args: Namespace) -> None:
+    prejudge_data(args)
+    with transaction() as s:
+        add_judge_result(s)
+
+
+def main() -> None:
+    def add_common_args(parser: ArgumentParser) -> ArgumentParser:
+        parser.add_argument('-c', '--config', required=True,
+                            help='config path')
+        return parser
+
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    clear_parser = add_common_args(subparsers.add_parser(
+        'clear', help='clear all data'))
+    clear_parser.set_defaults(start=clear_data)
+
+    prejudge_parser = add_common_args(subparsers.add_parser(
+        'prejudge', help='set prejudge data'))
+    prejudge_parser.set_defaults(start=prejudge_data)
+
+    worker_parser = add_common_args(subparsers.add_parser(
+        'worker', help='set prejudge + judge_result data'))
+    worker_parser.set_defaults(start=worker_data)
+    args = parser.parse_args()
+
+    if hasattr(args, 'start'):
+        args.start(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
-    args = get_server_option()
-    print('The command is ' + args.command)
-    run_command(args.command)
+    main()
