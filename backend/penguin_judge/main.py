@@ -3,6 +3,7 @@ from configparser import ConfigParser
 from typing import Mapping
 
 from penguin_judge.models import configure
+from penguin_judge.mq import configure as configure_mq
 
 
 def _load_config(args: Namespace, name: str) -> Mapping[str, str]:
@@ -25,14 +26,25 @@ def start_api(args: Namespace) -> None:
     from penguin_judge.api import app
     config = _load_config(args, 'api')
     configure(**config)
+    configure_mq(**config)
     app.run()
 
 
+def start_db_server(args: Namespace) -> None:
+    from penguin_judge.db_server import main as db_main
+    config = _load_config(args, 'db')
+    configure(**config)
+    configure_mq(**config)
+    db_main()
+
+
 def start_worker(args: Namespace) -> None:
+    from penguin_judge.worker import main as worker_main
     config = _load_config(args, 'worker')
     configure(**config)
-    # TODO(bakaming): workerの起動コードを書く
-    raise NotImplementedError
+    configure_mq(**config)
+    max_processes = int(config.get('max_processes', '1'))
+    worker_main(max_processes)
 
 
 def main() -> None:
@@ -47,6 +59,10 @@ def main() -> None:
     api_parser = add_common_args(subparsers.add_parser(
         'api', help='API Server'))
     api_parser.set_defaults(start=start_api)
+
+    db_server_parser = add_common_args(subparsers.add_parser(
+        'db-server', help='DB Server'))
+    db_server_parser.set_defaults(start=start_db_server)
 
     worker_parser = add_common_args(subparsers.add_parser(
         'worker', help='Judge Worker'))
