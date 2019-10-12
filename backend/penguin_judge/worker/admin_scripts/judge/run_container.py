@@ -1,29 +1,28 @@
-import time
 import json
-import sys
 import tempfile
 import os
 import stat
 from pathlib import Path
-from typing import Any, Dict
+from typing import Dict
 
-import pika
 import docker
 
-script_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(script_path + '/../../../db')
-from penguin_judge.models import *
+from penguin_judge.models import (Session, Environment,
+                                  JudgeStatus, Submission,
+                                  TestCase, JudgeResult,
+                                  configure, transaction)
 
-def compile(submission : Submission, s : Session,
-            dclient : docker.client.DockerClient) -> Dict:
+
+def compile(submission: Submission, s: Session,
+            dclient: docker.client.DockerClient) -> Dict:
     env = s.query(Environment).\
-            filter(Environment.id == submission.environment_id).\
-            all()
-    result = {"status" : "fail", "exec_binary" : b''}
+        filter(Environment.id == submission.environment_id).\
+        all()
+    result = {"status": "fail", "exec_binary": b''}
 
     if len(env) != 1:
         return result
-    
+
     env = env[0]
     code = submission.code
     compile_script = env.config['compile_script']
@@ -39,29 +38,30 @@ def compile(submission : Submission, s : Session,
             f.close()
         try:
             dclient.containers.run('judge',
-                volumes={dname:{'bind':'/judge', 'mode' : 'rw'}},
-                remove=True
-            )
-        except:
+                                   volumes={dname: {'bind': '/judge',
+                                            'mode': 'rw'}},
+                                   remove=True)
+        except Exception:
             submission.status = JudgeStatus.CompilationError
             result["status"] = "fail"
         else:
             result["status"] = "success"
             with open(os.path.join(dname, exec_binary_name), "rb") as f:
-                exec_binary  = f.read()
+                exec_binary = f.read()
                 result["exec_binary"] = exec_binary
     return result
 
-def check_each_test(submission : Submission,
-                    compile_result : Dict,
-                    s : Session,
-                    dclient : docker.client.DockerClient, 
-                    test : TestCase) -> JudgeStatus:
-    
+
+def check_each_test(submission: Submission,
+                    compile_result: Dict,
+                    s: Session,
+                    dclient: docker.client.DockerClient,
+                    test: TestCase) -> JudgeStatus:
+
     result = JudgeStatus.WrongAnswer
     env = s.query(Environment).\
-            filter(Environment.id == submission.environment_id).\
-            all()
+        filter(Environment.id == submission.environment_id).\
+        all()
     if len(env) != 1:
         return result
     env = env[0]
@@ -74,7 +74,7 @@ def check_each_test(submission : Submission,
     if len(judge_result) != 1:
         return result
     judge_result = judge_result[0]
-    
+
     exec_script = env.config["exec_script"]
     exec_binary = compile_result["exec_binary"]
     exec_binary_name = env.config["exec_binary"]
@@ -94,11 +94,11 @@ def check_each_test(submission : Submission,
             f.close()
         try:
             dclient.containers.run('judge',
-                volumes={dname:{'bind':'/judge', 'mode' : 'rw'}},
-                remove=True
-            )
-        except:
-            submit.status = JudgeStatus.RuntimeError
+                                   volumes={dname: {'bind': '/judge',
+                                            'mode': 'rw'}},
+                                   remove=True)
+        except Exception:
+            submission.status = JudgeStatus.RuntimeError
             result = JudgeStatus.RuntimeError
         else:
             user_output = b''
@@ -109,14 +109,15 @@ def check_each_test(submission : Submission,
         judge_result.status = result
     return result
 
-def check_tests(submission : Submission,
-                compile_result : dict,
-                s : Session,
-                dclient : docker.client.DockerClient) -> None:
+
+def check_tests(submission: Submission,
+                compile_result: dict,
+                s: Session,
+                dclient: docker.client.DockerClient) -> None:
     testcases = s.query(TestCase).\
-            filter(TestCase.contest_id == submission.contest_id).\
-            filter(TestCase.problem_id == submission.problem_id).\
-            all()
+        filter(TestCase.contest_id == submission.contest_id).\
+        filter(TestCase.problem_id == submission.problem_id).\
+        all()
     result = JudgeStatus.Accepted
     for test in testcases:
         test_result = check_each_test(submission, compile_result,
@@ -125,9 +126,10 @@ def check_tests(submission : Submission,
             result = test_result
     submission.status = result
 
-def Run(db_hostname : str, db_port : str, 
-        id_information : bytes) -> None:
-    
+
+def Run(db_hostname: str, db_port: str,
+        id_information: bytes) -> None:
+
     id_information = json.loads(id_information)
 
     print("judge start with below id")
@@ -152,9 +154,8 @@ def Run(db_hostname : str, db_port : str,
             result = compile(submission, s, docker_client)
             if result["status"] != "fail":
                 check_tests(submission, result, s, docker_client)
-                    
     print("judge finished")
+
 
 if __name__ == "__main__":
     pass
-
