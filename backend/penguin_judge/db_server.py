@@ -1,10 +1,10 @@
-from argparse import ArgumentParser, Namespace
 import json
 
-import pika
+import pika  # type: ignore
 
-from penguin_judge.models import (transaction, Submission, TestCase,
-                                  JudgeResult, configure)
+from penguin_judge.models import (
+    transaction, Submission, TestCase, JudgeResult)
+from penguin_judge.mq import get_mq_conn_params
 
 
 def callback(ch: pika.channel.Channel,
@@ -16,10 +16,8 @@ def callback(ch: pika.channel.Channel,
 
     print("Ready for judge")
     print(message)
-    configure(host=Args.hostdb, port=Args.portdb)
     with transaction() as s:
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=Args.hostmq, port=Args.portmq))
+        connection = pika.BlockingConnection(get_mq_conn_params())
         channel = connection.channel()
         channel.queue_declare(queue='worker_queue')
 
@@ -57,35 +55,12 @@ def callback(ch: pika.channel.Channel,
     print('judge queue pushed')
 
 
-def get_server_option() -> Namespace:
-    argparser = ArgumentParser()
-    argparser.add_argument('-pmq', '--portmq', type=int,
-                           default=5672,
-                           help='The port number of rabbitmq')
-    argparser.add_argument('-hmq', '--hostmq', type=str,
-                           default="127.0.0.1",
-                           help='The hostname of rabbitmq')
-    argparser.add_argument('-pdb', '--portdb', type=str,
-                           default='5432',
-                           help='The port number of DB')
-    argparser.add_argument('-hdb', '--hostdb', type=str,
-                           default="127.0.0.1",
-                           help='The hostname of DB')
-    return argparser.parse_args()
-
-
 def main() -> None:
-    global Args
-
-    Args = get_server_option()
-
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=Args.hostmq, port=Args.portmq))
+    connection = pika.BlockingConnection(get_mq_conn_params())
     channel = connection.channel()
     channel.queue_declare(queue='judge_queue')
     channel.basic_consume(queue='judge_queue',
                           on_message_callback=callback, auto_ack=True)
-
     print("Start PenguinJudge db server")
 
     try:
@@ -94,7 +69,3 @@ def main() -> None:
         print("Shutdown PenguinJudge db server")
         channel.close()
         connection.close()
-
-
-if __name__ == "__main__":
-    main()
