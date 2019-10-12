@@ -23,7 +23,7 @@ export class AppContestTaskElement extends LitElement {
     if (!this.shadowRoot || !session.contest || !session.task_id) return;
     const env = (<HTMLSelectElement>this.shadowRoot.getElementById("env")).value;
     const code = (<HTMLTextAreaElement>this.shadowRoot.getElementById("code")).value;
-    API.post_answer({
+    API.submit({
       contest_id: session.contest.id,
       problem_id: session.task_id,
       code: code,

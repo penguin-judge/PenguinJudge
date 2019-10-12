@@ -90,7 +90,7 @@ class Submission(Base, _JsonExportable):
     __tablename__ = 'submissions'
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, nullable=False)
     code = Column(LargeBinary, nullable=False)
     environment_id = Column(Integer, nullable=False)
