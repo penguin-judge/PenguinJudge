@@ -14,6 +14,7 @@ alembic = "*"
 psycopg2-binary = "*"
 pika = "*"
 flask = "*"
+zstandard = "*"
 
 [requires]
 python_version = "3.7"
