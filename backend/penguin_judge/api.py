@@ -1,5 +1,7 @@
+import json
 from typing import Any
 
+import pika  # type: ignore
 from flask import Flask, jsonify, abort, request
 from zstandard import ZstdCompressor  # type: ignore
 
@@ -7,6 +9,7 @@ from penguin_judge.models import (
     transaction,
     Submission, Contest, Environment, Problem, TestCase,
 )
+from penguin_judge.mq import get_mq_conn_params
 
 app = Flask(__name__)
 
@@ -63,8 +66,21 @@ def submission(contest_id: str, problem_id: str) -> Any:
             TestCase.problem_id == problem_id).all()
         if not tests:
             abort(400)
-        s.add(Submission(
+        submission = Submission(
             contest_id=contest_id, problem_id=problem_id,
-            user_id='kazuki', code=code, environment_id=env_id))
-        # TODO(kazuki): MQに積む
+            user_id='kazuki', code=code, environment_id=env_id)
+        s.add(submission)
+        s.flush()
+
+        conn = pika.BlockingConnection(get_mq_conn_params())
+        ch = conn.channel()
+        ch.queue_declare(queue='judge_queue')
+        ch.basic_publish(
+            exchange='', routing_key='judge_queue', body=json.dumps({
+                'contest_id': contest_id,
+                'problem_id': problem_id,
+                'submission_id': submission.id,
+                'user_id': 'kazuki'}))
+        ch.close()
+        conn.close()
     return b'', 201
