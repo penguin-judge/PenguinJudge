@@ -86,23 +86,32 @@ def check_each_test(submission: Submission,
         with open(os.path.join(dname, 'exec.sh'), 'w') as f:
             f.write(exec_script)
             f.close()
-        with open(os.path.join(dname, 'input.in'), 'wb') as f:
-            f.write(test.input)
-            f.close()
         try:
-            dclient.containers.run('judge',
-                                   volumes={dname: {'bind': '/judge',
-                                            'mode': 'rw'}},
-                                   remove=True)
-        except Exception:
+            client = docker.APIClient()
+            container = client.create_container(
+                'judge',
+                volumes=['/judge'],
+                detach=True,
+                host_config=client.create_host_config(
+                    binds={dname: {'bind': '/judge',
+                                   'mode': 'rw', }, }),
+                stdin_open=True)
+            client.start(container)
+            original_text_to_send = test.input
+            sock = client.attach_socket(container, params={'stdin': 1,
+                                                           'stream': 1})
+            sock._sock.send(original_text_to_send)
+            client.wait(container, 5)
+            user_output = client.logs(container, stdout=True, stderr=True)
+            client.stop(container)
+            client.remove_container(container)
+        except Exception as e:
+            print(e)
             submission.status = JudgeStatus.RuntimeError
             result = JudgeStatus.RuntimeError
         else:
-            user_output = b''
-            with open(os.path.join(dname, 'user.out'), 'rb') as f:
-                user_output = f.read()
-                if user_output == test.output:
-                    result = JudgeStatus.Accepted
+            if user_output == test.output:
+                result = JudgeStatus.Accepted
         judge_result.status = result
     return result
 
@@ -125,27 +134,28 @@ def check_tests(submission: Submission,
 
 
 def run(id_information: bytes) -> None:
-    id_information = json.loads(id_information)
+    id_info_dict = json.loads(id_information)
 
     print('judge start with below id')
-    print('contest_id : ' + id_information['contest_id'])
-    print('problem_id : ' + id_information['problem_id'])
-    print('submission_id : ' + str(id_information['submission_id']))
-    print('user_id : ' + id_information['user_id'])
+    print('contest_id : ' + id_info_dict['contest_id'])
+    print('problem_id : ' + id_info_dict['problem_id'])
+    print('submission_id : ' + str(id_info_dict['submission_id']))
+    print('user_id : ' + id_info_dict['user_id'])
 
     docker_client = docker.from_env()
 
     with transaction() as s:
         submission = s.query(Submission).\
-            filter(Submission.contest_id == id_information['contest_id']).\
-            filter(Submission.problem_id == id_information['problem_id']).\
-            filter(Submission.id == id_information['submission_id']).\
-            filter(Submission.user_id == id_information['user_id']).\
+            filter(Submission.contest_id == id_info_dict['contest_id']).\
+            filter(Submission.problem_id == id_info_dict['problem_id']).\
+            filter(Submission.id == id_info_dict['submission_id']).\
+            filter(Submission.user_id == id_info_dict['user_id']).\
             all()
-
         if len(submission) == 1:
             submission = submission[0]
+            print("test")
             result = compile(submission, s, docker_client)
+            print("test")
             if result['status'] != 'fail':
                 check_tests(submission, result, s, docker_client)
     print('judge finished')

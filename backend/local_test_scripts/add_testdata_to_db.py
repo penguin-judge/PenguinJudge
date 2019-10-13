@@ -35,7 +35,7 @@ def add_test_environment(s: scoped_session) -> None:
     test_environment.config = json.loads('{"language" : "C", \
                         "compile_script" : "gcc -o ./a.out main.c", \
                         "srcfile_name" : "main.c", "exec_binary" : "a.out", \
-                        "exec_script" : "./a.out < input.in > user.out"}')
+                        "exec_script" : "./a.out"}')
     s.add(test_environment)
 
 
@@ -53,15 +53,15 @@ def add_test_testcase(s: scoped_session) -> None:
     test_testcase.id = '1'
     test_testcase.contest_id = '1'
     test_testcase.problem_id = '1'
-    test_testcase.input = b'1234'
+    test_testcase.input = b'1234\n'
     test_testcase.output = b'1234'
     s.add(test_testcase)
     test_testcase = TestCase()
     test_testcase.id = '2'
     test_testcase.contest_id = '1'
     test_testcase.problem_id = '1'
-    test_testcase.input = b''
-    test_testcase.output = b''
+    test_testcase.input = b'1\n'
+    test_testcase.output = b'1'
     s.add(test_testcase)
 
 
@@ -71,7 +71,9 @@ def add_test_submission(s: scoped_session) -> None:
     test_submission.contest_id = '1'
     test_submission.user_id = '1'
     test_submission.problem_id = '1'
-    test_submission.code = b'int main(){}'
+    test_submission.code = b'#include<stdio.h>\n\
+        int main(){int a; scanf("%d", &a); printf("%d",a);\
+        }'
     test_submission.environment_id = 1
     test_submission.status = JudgeStatus.Waiting
     s.add(test_submission)
