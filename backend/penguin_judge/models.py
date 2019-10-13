@@ -75,6 +75,8 @@ class Problem(Base, _JsonExportable):
     contest_id = Column(String, primary_key=True)
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
+    time_limit = Column(Integer, nullable=False)
+    memory_limit = Column(Integer, nullable=False)
     description = Column(String, nullable=False)
 
 
