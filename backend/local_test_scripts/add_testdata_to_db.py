@@ -74,7 +74,7 @@ def add_test_submission(s: scoped_session) -> None:
     test_submission.user_id = '1'
     test_submission.problem_id = '1'
     test_submission.code = b'#include<stdio.h>\n#include<unistd.h>\n\
-        int main(){ sleep(5);int a; scanf("%d", &a); printf("%d",a);\
+        int main(){ int a; scanf("%d", &a); printf("%d",a);\
         }'
     test_submission.environment_id = 1
     test_submission.status = JudgeStatus.Waiting

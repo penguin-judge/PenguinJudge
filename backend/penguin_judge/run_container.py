@@ -11,6 +11,7 @@ import docker  # type: ignore
 from penguin_judge.models import (
     Environment, JudgeStatus, Submission, TestCase, JudgeResult,
     Problem, transaction, scoped_session)
+from penguin_judge.check_result import equal_binary
 
 
 def compile(submission: Submission, s: scoped_session,
@@ -46,7 +47,8 @@ def compile(submission: Submission, s: scoped_session,
                 stdin_open=True)
             client.start(container)
             client.wait(container['Id'], 30)
-            user_output = client.logs(container, stdout=True, stderr=True)
+            compile_output = client.logs(container, stdout=True, stderr=True)
+            print(compile_output)
             client.stop(container)
             client.remove_container(container)
         except Exception:
@@ -132,7 +134,7 @@ def check_each_test(submission: Submission,
             submission.status = JudgeStatus.RuntimeError
             result = JudgeStatus.RuntimeError
         else:
-            if user_output == test.output:
+            if equal_binary(user_output, test.output):
                 result = JudgeStatus.Accepted
         judge_result.status = result
     return result
