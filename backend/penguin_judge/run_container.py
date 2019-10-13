@@ -35,10 +35,20 @@ def compile(submission: Submission, s: scoped_session,
         with open(os.path.join(dname, 'exec.sh'), 'w') as f:
             f.write(compile_script)
         try:
-            dclient.containers.run('judge',
-                                   volumes={dname: {'bind': '/judge',
-                                            'mode': 'rw'}},
-                                   remove=True)
+            client = docker.APIClient(base_url='unix:///var/run/docker.sock')
+            container = client.create_container(
+                'judge',
+                volumes=['/judge'],
+                detach=True,
+                host_config=client.create_host_config(
+                    binds={dname: {'bind': '/judge',
+                                   'mode': 'rw', }, }),
+                stdin_open=True)
+            client.start(container)
+            client.wait(container['Id'], 30)
+            user_output = client.logs(container, stdout=True, stderr=True)
+            client.stop(container)
+            client.remove_container(container)
         except Exception:
             submission.status = JudgeStatus.CompilationError
             result['status'] = 'fail'
