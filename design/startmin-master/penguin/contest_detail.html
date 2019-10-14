@@ -123,45 +123,149 @@
                         <div class="panel-body">
                             <!-- Nav tabs -->
                             <ul class="nav nav-tabs">
-                                <li class="active"><a href="#home" data-toggle="tab">トップ</a>
+                                <li class="active"><a href="#home" data-toggle="tab"><i class="fa fa-home fa-fw"></i>トップ</a>
                                 </li>
-                                <li><a href="#problem" data-toggle="tab">問題</a>
+                                <li><a href="#problem" data-toggle="tab"><i class="fa fa-tasks fa-fw"></i>問題</a>
                                 </li>
-                                <li><a href="#question" data-toggle="tab">質問</a>
+                                <li><a href="#question" data-toggle="tab"><i class="fa fa-question-circle fa-fw"></i>質問</a>
                                 </li>
-                                <li><a href="#submit" data-toggle="tab">提出</a>
+                                <li><a href="#submit" data-toggle="tab"><i class="fa fa-send-o fa-fw"></i>提出</a>
                                 </li>
-                                <li><a href="#result" data-toggle="tab">提出結果</a>
+                                <li><a href="#result" data-toggle="tab"><i class="fa fa-list fa-fw"></i>提出結果</a>
                                 </li>
-                                <li><a href="#ranking" data-toggle="tab">順位表</a>
+                                <li><a href="#ranking" data-toggle="tab"><i class="fa fa-sort-amount-desc fa-fw"></i>順位表</a>
                                 </li>
-                                <li><a href="#codetest" data-toggle="tab">コードテスト</a>
+                                <li><a href="#codetest" data-toggle="tab"><i class="fa fa-caret-square-o-right fa-fw"></i>コードテスト</a>
                                 </li>
-                                <li><a href="#explain" data-toggle="tab">解説</a>
+                                <li><a href="#explain" data-toggle="tab"><i class="fa fa-info-circle fa-fw"></i>解説</a>
                                 </li>
                             </ul>
 
                             <!-- Tab panes -->
                             <div class="tab-content">
                                 <div class="tab-pane fade in active" id="home">
-                                    <h4>Home Tab</h4>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                    <p class="text-muted">参加対象：ALL　　Rated対象：ALL　　ペナルティ：5分</p>
+                                    <p class="text-danger">コンテスト時間は 90 分です。</p>
+                                    <h3>PenguinJudgeとは？</h3>
+                                    <p class="text-danger">【注意】ペナルティは5分です。</p>
+                                    PenguinJudgeでは時々プログラミングコンテストを開催しています。<br>
+                                    腕に覚えがある人も、まだまだプログラミングは始めたばかりという人も、一度参加されてみてはいかがでしょうか？
+
+                                    <h3>プログラミングコンテストとは？</h3>
+                                    プログラミングコンテストとは、「与えられた問題をいかに素早く、正確に」解くことができるかを競うものです。 初めて参加される方は、こちらで練習してみましょう！
+
+                                    <h3>参加方法</h3>
+                                    コンテストに参加するには、ユーザ登録ページ よりユーザ登録を行ってください。(新規ユーザ様のみ必要) ログイン後に トップページ に上部に表示される参加ボタンを押すことで参加できます。 詳しくは チュートリアル を参照してください。
+
+                                    <h3>ルール</h3>
+                                    コンテストのルールは こちら を参照してください。
+
+                                    <h3>配点</h3>
+                                    ()は部分点を表しています。
+
+                                    <table class="table table-striped table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Task</th>
+                                                <th>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="text-center">
+                                            <tr>
+                                                <td>A</td>
+                                                <td>100</td>
+                                            </tr>
+                                            <tr>
+                                                <td>B</td>
+                                                <td>200</td>
+                                            </tr>
+                                            <tr>
+                                                <td>C</td>
+                                                <td>300</td>
+                                            </tr>
+                                            <tr>
+                                                <td>D</td>
+                                                <td>400</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
                                 </div>
                                 <div class="tab-pane fade" id="problem">
-                                    <h4>Profile Tab</h4>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                    <h3>問題</h3>
+                                    <table class="table table-striped table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>問題名</th>
+                                                <th>実行制限時間</th>
+                                                <th>メモリ制限</th>
+                                                <th>&nbsp;</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                              <td><a href="./problem.html">A</a></td>
+                                              <td><a href="./problem.html">ApplePlusPain</a></td>
+                                              <td class="text-right">2 sec</td>
+                                              <td class="text-right">1024 MB</td>
+                                              <td class="text-center"><a href="#submit">提出</a></td>
+                                            </tr>
+                                            <tr>
+                                              <td><a href="./problem.html">B</a></td>
+                                              <td><a href="./problem.html">BeginerOfPrograming</a></td>
+                                              <td class="text-right">2 sec</td>
+                                              <td class="text-right">102 4MB</td>
+                                              <td class="text-center"><a href="#submit">提出</a></td>
+                                            </tr>
+                                            <tr>
+                                              <td><a href="./problem.html">C</a></td>
+                                              <td><a href="./problem.html">ContinueToStudy</a></td>
+                                              <td class="text-right">2 sec</td>
+                                              <td class="text-right">1024 MB</td>
+                                              <td class="text-center"><a href="#submit">提出</a></td>
+                                            </tr>
+                                            <tr>
+                                              <td><a href="./problem.html">D</a></td>
+                                              <td><a href="./problem.html">DataIsExpensive</a></td>
+                                              <td class="text-right">2 sec</td>
+                                              <td class="text-right">1024 MB</td>
+                                              <td class="text-center"><a href="#submit">提出</a></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                                 <div class="tab-pane fade" id="question">
-                                    <h4>Messages Tab</h4>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                    <h3>質問</h3>
+                                    <p>質問はまだありません。</p>
                                 </div>
                                 <div class="tab-pane fade" id="submit">
-                                    <h4>Settings Tab</h4>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                                </div>
-                                <div class="tab-pane fade" id="question">
-                                    <h4>質問 Tab</h4>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                    <h3>提出</h3>
+
+                                    <div class="form-group">
+                                        <label>問題</label>
+                                        <select class="form-control">
+                                            <option>A - ApplePlusPain</option>
+                                            <option>B - BeginerOfPrograming</option>
+                                            <option>C - ContinueToStudy</option>
+                                            <option>D - DataIsExpensive</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>言語</label>
+                                        <select class="form-control">
+                                            <option>C++(GCC5.1.3)</option>
+                                            <option>Python(2.7.1)</option>
+                                            <option>Python(3.7.3)</option>
+                                            <option>Go(1.6)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ソースコード</label>
+                                        <textarea class="form-control" rows="15"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">提出</button>
                                 </div>
                                 <div class="tab-pane fade" id="result">
                                     <h4>結果 Tab</h4>
