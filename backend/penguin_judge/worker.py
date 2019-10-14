@@ -1,3 +1,4 @@
+import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
 from functools import partial
@@ -5,6 +6,9 @@ from typing import Any
 import pickle
 
 import pika  # type: ignore
+from pika.channel import Channel  # type: ignore
+from pika.exceptions import AMQPError  # type: ignore
+from pika.adapters.asyncio_connection import AsyncioConnection  # type: ignore
 
 from penguin_judge.models import (
     Environment, Problem, Submission, JudgeStatus, JudgeResult, TestCase,
@@ -20,14 +24,14 @@ class Worker(object):
             max_workers=max_processes,
             mp_context=mp.get_context('spawn'),
             initializer=partial(_initializer, db_config))
-        self._conn: pika.BlockingConnection = None
-        self._ch: pika.BlockingChannel = None
+        self._queue_name = 'judge_queue'
+        self._conn: AsyncioConnection = None
+        self._ch: Channel = None
 
     def __enter__(self) -> 'Worker':
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> bool:
-        print('[DEBUG] __exit__')
         self._executor.shutdown(wait=False)
         if self._ch:
             self._ch.close()
@@ -36,23 +40,54 @@ class Worker(object):
         return False
 
     def start(self) -> None:
-        self._conn = pika.BlockingConnection(get_mq_conn_params())
-        self._ch = self._conn.channel()
-        self._ch.queue_declare(queue='judge_queue')
-        self._ch.basic_qos(prefetch_count=self._max_processes)
-        self._ch.basic_consume(queue='judge_queue',
-                               on_message_callback=self._recv_message)
-        print("Start PenguinJudge worker server")
-        self._ch.start_consuming()
+        self._conn = AsyncioConnection(
+            parameters=get_mq_conn_params(),
+            on_open_callback=self._conn_on_open,
+            on_open_error_callback=self._conn_on_open_error,
+            on_close_callback=self._conn_on_close)
+        asyncio.get_event_loop().run_forever()
+
+    def _conn_on_open(self, _: AsyncioConnection) -> None:
+        self._conn.channel(on_open_callback=self._ch_on_open)
+
+    def _conn_on_open_error(self, _: AsyncioConnection,
+                            err: AMQPError) -> None:
+        pass  # TODO
+
+    def _conn_on_close(self, _: AsyncioConnection, reason: AMQPError) -> None:
+        pass  # TODO
+
+    def _ch_on_open(self, ch: Channel) -> None:
+        self._ch = ch
+        ch.add_on_close_callback(self._ch_on_close)
+        ch.queue_declare(
+            queue=self._queue_name, callback=self._on_queue_declared)
+
+    def _ch_on_close(self, ch: Channel, reason: AMQPError) -> None:
+        # TODO
+        try:
+            self._conn.close()
+        except Exception:
+            pass
+
+    def _on_queue_declared(self, method: pika.frame.Method) -> None:
+        self._ch.basic_qos(
+            prefetch_count=self._max_processes, callback=self._on_basic_qos_ok)
+
+    def _on_basic_qos_ok(self, method: pika.frame.Method) -> None:
+        self._start_consuming()
+
+    def _start_consuming(self) -> None:
+        self._ch.basic_consume(
+            self._queue_name, on_message_callback=self._recv_message)
 
     def _recv_message(
             self,
-            ch: pika.channel.Channel,
+            ch: Channel,
             method: pika.spec.Basic.Return,
             properties: pika.spec.BasicProperties,
             body: bytes) -> None:
         def _done(fut: Any) -> None:
-            print('[DEBUG] callback _done')
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         try:
@@ -95,9 +130,11 @@ class Worker(object):
                     test_id=test.id))
                 task['tests'].append(test.to_dict())
 
-        print('submit to child process')
-        future = self._executor.submit(run, task)
-        future.add_done_callback(_done)
+        def _submit() -> None:
+            print('submit to child process')
+            future = self._executor.submit(run, task)
+            future.add_done_callback(_done)
+        asyncio.get_event_loop().call_soon_threadsafe(_submit)
 
 
 def _initializer(db_config: dict) -> None:
