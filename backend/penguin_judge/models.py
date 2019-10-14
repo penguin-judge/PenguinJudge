@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import datetime
 from enum import IntEnum
 from typing import Dict, Iterator
 
@@ -10,7 +11,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 Base = declarative_base()
 Session = scoped_session(sessionmaker())
-config: Dict[str, str] = {}
+_config: Dict[str, str] = {}
 
 
 class JudgeStatus(IntEnum):
@@ -27,7 +28,7 @@ class JudgeStatus(IntEnum):
 
 
 class _JsonExportable(object):
-    VALID_TYPES = (str, int, list, dict, float, bool)
+    VALID_TYPES = (str, int, list, dict, float, bool, bytes, datetime.datetime)
 
     def to_dict(self) -> dict:
         keys = [
@@ -117,14 +118,18 @@ class JudgeResult(Base, _JsonExportable):
 
 def configure(**kwargs: str) -> None:
     from sqlalchemy import engine_from_config
-    global config
+    global _config
     drop_all = kwargs.pop('drop_all', None)
-    config = {k: v for k, v in kwargs.items() if k.startswith('sqlalchemy.')}
+    _config = {k: v for k, v in kwargs.items() if k.startswith('sqlalchemy.')}
     engine = engine_from_config(kwargs)
     if drop_all:
         Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     Session.configure(bind=engine)  # type: ignore
+
+
+def get_db_config() -> Dict[str, str]:
+    return _config
 
 
 @contextmanager
