@@ -45,6 +45,7 @@ class _JsonExportable(object):
 
 class User(Base, _JsonExportable):
     __tablename__ = 'users'
+    __summary_keys__ = ['name', 'created']
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     salt = Column(LargeBinary(32), nullable=False)
@@ -92,6 +93,7 @@ class TestCase(Base, _JsonExportable):
 
 class Submission(Base, _JsonExportable):
     __tablename__ = 'submissions'
+    __summary_keys__ = ['id', 'contest_id', 'problem_id', 'code']
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
     id = Column(Integer, primary_key=True, autoincrement=True)
