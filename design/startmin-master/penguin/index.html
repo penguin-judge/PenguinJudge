@@ -37,25 +37,27 @@
 <body>
 
 <div id="wrapper">
-
     <!-- Navigation -->
     <nav class="navbar navbar-fixed-top" role="navigation">
-
-        <!-- Top Navigation: Left Menu -->
-        <div class="navbar-header">
-            <a class="navbar-brand" href="./index.html">Penguin Judge</a>
-        </div>
-
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-        </button>
-
         <!-- Top Navigation: Right Menu -->
         <ul class="nav navbar-right navbar-top-links">
-
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                  <i class="fa fa-list-ul fa-fw"></i> メニュー <b class="caret"></b>
+              </a>
+              <ul class="dropdown-menu dropdown-user">
+                  <li><a href="index.html"><i class="fa fa-dashboard fa-fw"></i> ホーム</a>
+                  </li>
+                  <li class="divider"></li>
+                  <li><a href="contests.html"><i class="fa fa-bar-chart-o fa-fw"></i> コンテスト一覧</a>
+                  </li>
+                  <li><a href="contests.html"><i class="fa fa-bar-chart-o fa-fw"></i> 参加コンテスト</a>
+                  </li>
+                  <li class="divider"></li>
+                  <li><a href="info.html"><i class="fa fa-info-circle fa-fw"></i> お知らせ</a>
+                  </li>
+              </ul>
+            </li>
             <li class="dropdown">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     <i class="fa fa-user fa-fw"></i> ringo <b class="caret"></b>
@@ -71,39 +73,11 @@
                 </ul>
             </li>
         </ul>
-
-        <div class="navbar-default sidebar" role="navigation">
-            <div class="sidebar-nav navbar-collapse">
-                <ul class="nav" id="side-menu">
-                    <li style="text-align:center;">
-                      <a href="./index.html"><img src="../img/penguin.png" style="width:100px;"></a>
-                    </li>
-                    <li>
-                        <a href="index.html" class="active"><i class="fa fa-dashboard fa-fw"></i> ホーム</a>
-                    </li>
-                    <li>
-                        <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> コンテスト<span class="fa arrow"></span></a>
-                        <ul class="nav nav-second-level">
-                            <li>
-                                <a href="contests.html">コンテスト一覧</a>
-                            </li>
-                            <li>
-                                <a href="contests.html">参加したコンテスト</a>
-                            </li>
-                        </ul>
-                        <!-- /.nav-second-level -->
-                    </li>
-                    <li>
-                        <a href="ranking.html"><i class="fa fa-table fa-fw"></i> ランキング</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
     </nav>
 
     <!-- Page Content -->
-    <div id="page-wrapper">
-        <div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12" style="padding:50px;">
 
             <div class="row">
                 <div class="col-lg-12">
