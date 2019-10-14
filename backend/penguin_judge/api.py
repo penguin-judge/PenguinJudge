@@ -1,5 +1,5 @@
-import json
 from typing import Any
+import pickle
 
 import pika  # type: ignore
 from flask import Flask, jsonify, abort, request
@@ -71,16 +71,14 @@ def submission(contest_id: str, problem_id: str) -> Any:
             user_id='kazuki', code=code, environment_id=env_id)
         s.add(submission)
         s.flush()
+        submission_id = submission.id
 
-        conn = pika.BlockingConnection(get_mq_conn_params())
-        ch = conn.channel()
-        ch.queue_declare(queue='judge_queue')
-        ch.basic_publish(
-            exchange='', routing_key='judge_queue', body=json.dumps({
-                'contest_id': contest_id,
-                'problem_id': problem_id,
-                'submission_id': submission.id,
-                'user_id': 'kazuki'}))
-        ch.close()
-        conn.close()
+    conn = pika.BlockingConnection(get_mq_conn_params())
+    ch = conn.channel()
+    ch.queue_declare(queue='judge_queue')
+    ch.basic_publish(
+        exchange='', routing_key='judge_queue', body=pickle.dumps(
+            (contest_id, problem_id, submission_id)))
+    ch.close()
+    conn.close()
     return b'', 201

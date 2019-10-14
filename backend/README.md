@@ -22,18 +22,18 @@ $ pip install
 
 ## How to run
 
-### api and db server
+### api
 
 ```
 $ penguin_judge api -c config.ini
-$ penguin_judge db-server -c config.ini
 ```
 ### worker server
 
 sudo is required for run containers(docker).
 
 ```
-$ sudo penguin_judge worker -c config.ini
+$ penguin_judge worker -c config.ini (if you belong to a docker group)
+$ sudo penguin_judge worker -c config.ini (otherwise)
 ```
 
 ## for developer information

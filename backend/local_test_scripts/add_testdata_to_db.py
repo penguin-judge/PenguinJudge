@@ -1,12 +1,15 @@
 from argparse import ArgumentParser, Namespace
 import datetime
 import json
+from zstandard import ZstdCompressor
 
 from penguin_judge.models import (
     configure, transaction, User, Contest, Environment,
     Problem, TestCase, Submission, JudgeResult, JudgeStatus,
     scoped_session)
 from penguin_judge.main import _load_config
+
+zctx = ZstdCompressor()
 
 
 def add_test_user(s: scoped_session) -> None:
@@ -55,27 +58,26 @@ def add_test_testcase(s: scoped_session) -> None:
     test_testcase.id = '1'
     test_testcase.contest_id = '1'
     test_testcase.problem_id = '1'
-    test_testcase.input = b'1234\n'
-    test_testcase.output = b'1234'
+    test_testcase.input = zctx.compress(b'1234\n')
+    test_testcase.output = zctx.compress(b'1234')
     s.add(test_testcase)
     test_testcase = TestCase()
     test_testcase.id = '2'
     test_testcase.contest_id = '1'
     test_testcase.problem_id = '1'
-    test_testcase.input = b'1\n'
-    test_testcase.output = b'1'
+    test_testcase.input = zctx.compress(b'1\n')
+    test_testcase.output = zctx.compress(b'1')
     s.add(test_testcase)
 
 
 def add_test_submission(s: scoped_session) -> None:
     test_submission = Submission()
-    test_submission.id = 1
     test_submission.contest_id = '1'
     test_submission.user_id = '1'
     test_submission.problem_id = '1'
-    test_submission.code = b'#include<stdio.h>\n#include<unistd.h>\n\
+    test_submission.code = zctx.compress(b'#include<stdio.h>\n#include<unistd.h>\n\
         int main(){ int a; scanf("%d", &a); printf("%d",a);\
-        }'
+    }')
     test_submission.environment_id = 1
     test_submission.status = JudgeStatus.Waiting
     s.add(test_submission)

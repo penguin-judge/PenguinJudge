@@ -1,39 +1,28 @@
-import json
 import tempfile
 import os
 import stat
 from pathlib import Path
-from typing import Dict
 import requests
 
 import docker  # type: ignore
+from zstandard import ZstdDecompressor  # type: ignore
 
 from penguin_judge.models import (
-    Environment, JudgeStatus, Submission, TestCase, JudgeResult,
-    Problem, transaction, scoped_session)
+    JudgeStatus, Submission, JudgeResult, transaction)
 from penguin_judge.check_result import equal_binary
 
 
-def compile(submission: Submission, s: scoped_session,
-            dclient: docker.DockerClient) -> Dict:
-    env = s.query(Environment).\
-        filter(Environment.id == submission.environment_id).\
-        all()
-    result = {'status': 'fail', 'exec_binary': b''}
-
-    if len(env) != 1:
-        return result
-
-    env = env[0]
-    code = submission.code
-    compile_script = env.config['compile_script']
-    srcfile_name = env.config['srcfile_name']
-    exec_binary_name = env.config['exec_binary']
+def compile(task: dict, dclient: docker.DockerClient) -> dict:
+    result = {'status': JudgeStatus.Running, 'exec_binary': b''}
+    code = task['code']
+    compile_script = task['environment']['config']['compile_script']
+    srcfile_name = task['environment']['config']['srcfile_name']
+    exec_binary_name = task['environment']['config']['exec_binary']
 
     with tempfile.TemporaryDirectory() as dname:
         with open(os.path.join(dname, srcfile_name), 'wb') as f:
             f.write(code)
-        with open(os.path.join(dname, 'exec.sh'), 'w') as f:
+        with open(os.path.join(dname, 'exec.sh'), 'w') as f:  # type: ignore
             f.write(compile_script)
         try:
             client = docker.APIClient(base_url='unix:///var/run/docker.sock')
@@ -52,50 +41,24 @@ def compile(submission: Submission, s: scoped_session,
             client.stop(container)
             client.remove_container(container)
         except Exception:
-            submission.status = JudgeStatus.CompilationError
-            result['status'] = 'fail'
+            result['status'] = JudgeStatus.CompilationError
         else:
-            result['status'] = 'success'
             with open(os.path.join(dname, exec_binary_name), 'rb') as f:
                 exec_binary = f.read()
                 result['exec_binary'] = exec_binary
     return result
 
 
-def check_each_test(submission: Submission,
-                    compile_result: Dict,
-                    s: scoped_session,
-                    dclient: docker.DockerClient,
-                    test: TestCase) -> JudgeStatus:
-
+def check_each_test(
+        task: dict, compile_result: dict,
+        dclient: docker.DockerClient, test: dict) -> JudgeStatus:
     result = JudgeStatus.WrongAnswer
-    env = s.query(Environment).\
-        filter(Environment.id == submission.environment_id).\
-        all()
-    if len(env) != 1:
-        return result
-    env = env[0]
-    judge_result = s.query(JudgeResult).\
-        filter(JudgeResult.contest_id == test.contest_id).\
-        filter(JudgeResult.problem_id == test.problem_id).\
-        filter(JudgeResult.test_id == test.id).\
-        filter(JudgeResult.submission_id == submission.id).\
-        all()
-    if len(judge_result) != 1:
-        return result
-    judge_result = judge_result[0]
+    env = task['environment']
+    problem_info = task['problem']
 
-    problem_info = s.query(Problem).\
-        filter(Problem.contest_id == test.contest_id).\
-        filter(Problem.id == test.problem_id).\
-        all()
-    if len(problem_info) != 1:
-        return result
-    problem_info = problem_info[0]
-
-    exec_script = env.config['exec_script']
+    exec_script = env['config']['exec_script']
     exec_binary = compile_result['exec_binary']
-    exec_binary_name = env.config['exec_binary']
+    exec_binary_name = env['config']['exec_binary']
 
     with tempfile.TemporaryDirectory() as dname:
         exec_path = os.path.join(dname, exec_binary_name)
@@ -104,7 +67,7 @@ def check_each_test(submission: Submission,
             f.close()
         mode = Path(exec_path).stat().st_mode
         Path(exec_path).chmod(mode | stat.S_IXOTH)
-        with open(os.path.join(dname, 'exec.sh'), 'w') as f:
+        with open(os.path.join(dname, 'exec.sh'), 'w') as f:  # type: ignore
             f.write(exec_script)
             f.close()
         try:
@@ -120,64 +83,79 @@ def check_each_test(submission: Submission,
             client.start(container)
             sock = client.attach_socket(container, params={'stdin': 1,
                                                            'stream': 1})
-            sock._sock.send(test.input)
-            client.wait(container['Id'], problem_info.time_limit)
+            sock._sock.send(test['input'])
+            client.wait(container['Id'], problem_info['time_limit'])
             user_output = client.logs(container, stdout=True, stderr=True)
             client.stop(container)
             client.remove_container(container)
         except requests.exceptions.ConnectionError as e:
-            print(type(e))
-            submission.status = JudgeStatus.TimeLimitExceeded
+            print(e)
             result = JudgeStatus.TimeLimitExceeded
         except Exception as e:
-            print(type(e))
-            submission.status = JudgeStatus.RuntimeError
+            print(e)
             result = JudgeStatus.RuntimeError
         else:
-            if equal_binary(user_output, test.output):
+            if equal_binary(user_output, test['output']):
                 result = JudgeStatus.Accepted
-        judge_result.status = result
+
+    with transaction() as s:
+        s.query(JudgeResult).filter(
+            JudgeResult.contest_id == task['contest_id'],
+            JudgeResult.problem_id == task['problem_id'],
+            JudgeResult.submission_id == task['id'],
+            JudgeResult.test_id == test['id'],
+        ).update({JudgeResult.status: result}, synchronize_session=False)
     return result
 
 
-def check_tests(submission: Submission,
-                compile_result: dict,
-                s: scoped_session,
+def check_tests(task: dict, compile_result: dict,
                 dclient: docker.DockerClient) -> None:
-    testcases = s.query(TestCase).\
-        filter(TestCase.contest_id == submission.contest_id).\
-        filter(TestCase.problem_id == submission.problem_id).\
-        all()
     result = JudgeStatus.Accepted
-    for test in testcases:
-        test_result = check_each_test(submission, compile_result,
-                                      s, dclient, test)
+    for test in task['tests']:
+        test_result = check_each_test(task, compile_result, dclient, test)
         if test_result != JudgeStatus.Accepted:
             result = test_result
-    submission.status = result
+    with transaction() as s:
+        s.query(Submission).filter(
+            Submission.contest_id == task['contest_id'],
+            Submission.problem_id == task['problem_id'],
+            Submission.id == task['id']
+        ).update({Submission.status: result}, synchronize_session=False)
 
 
-def run(id_information: bytes) -> None:
-    id_info_dict = json.loads(id_information)
-
+def run(task: dict) -> None:
     print('judge start with below id')
-    print('contest_id : ' + id_info_dict['contest_id'])
-    print('problem_id : ' + id_info_dict['problem_id'])
-    print('submission_id : ' + str(id_info_dict['submission_id']))
-    print('user_id : ' + id_info_dict['user_id'])
+    print('  contest_id: {}'.format(task['contest_id']))
+    print('  problem_id: {}'.format(task['problem_id']))
+    print('  submission_id: {}'.format(task['id']))
+    print('  user_id: {}'.format(task['user_id']))
+
+    zctx = ZstdDecompressor()
+    task['code'] = zctx.decompress(task['code'])
+    for test in task['tests']:
+        test['input'] = zctx.decompress(test['input'])
+        test['output'] = zctx.decompress(test['output'])
 
     docker_client = docker.from_env()
+    result = compile(task, docker_client)
+    if result['status'] != JudgeStatus.Running:
+        with transaction() as s:
+            s.query(Submission).filter(
+                Submission.contest_id == task['contest_id'],
+                Submission.problem_id == task['problem_id'],
+                Submission.id == task['submission_id']
+            ).update({
+                Submission.status: result['status']
+            }, synchronize_session=False)
+            s.query(JudgeResult).filter(
+                JudgeResult.contest_id == task['contest_id'],
+                JudgeResult.problem_id == task['problem_id'],
+                JudgeResult.submission_id == task['submission_id']
+            ).update({
+                Submission.status: result['status']
+            }, synchronize_session=False)
+        print('judge failed: {}'.format(result['status']))
+        return
 
-    with transaction() as s:
-        submission = s.query(Submission).\
-            filter(Submission.contest_id == id_info_dict['contest_id']).\
-            filter(Submission.problem_id == id_info_dict['problem_id']).\
-            filter(Submission.id == id_info_dict['submission_id']).\
-            filter(Submission.user_id == id_info_dict['user_id']).\
-            all()
-        if len(submission) == 1:
-            submission = submission[0]
-            result = compile(submission, s, docker_client)
-            if result['status'] != 'fail':
-                check_tests(submission, result, s, docker_client)
+    check_tests(task, result, docker_client)
     print('judge finished')
