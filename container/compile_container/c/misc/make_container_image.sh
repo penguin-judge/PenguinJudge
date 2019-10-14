@@ -1,0 +1,1 @@
+sudo docker build -t "compile_container_c" $(dirname $0)/..

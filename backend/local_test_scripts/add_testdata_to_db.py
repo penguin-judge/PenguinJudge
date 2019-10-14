@@ -34,11 +34,13 @@ def add_test_contest(s: scoped_session) -> None:
 def add_test_environment(s: scoped_session) -> None:
     test_environment = Environment()
     test_environment.id = 1
-    test_environment.name = 'test'
+    test_environment.name = 'C'
     test_environment.config = json.loads('{"language" : "C", \
                         "compile_script" : "gcc -o ./a.out main.c", \
                         "srcfile_name" : "main.c", "exec_binary" : "a.out", \
-                        "exec_script" : "./a.out"}')
+                        "exec_script" : "./a.out",\
+                        "compile_image_name" : "compile_container_c",\
+                        "judge_image_name" : "judge_container_c"}')
     s.add(test_environment)
 
 

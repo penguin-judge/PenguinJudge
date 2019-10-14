@@ -1,0 +1,1 @@
+timeout 30 g++ -O2 -o /judge/a.out /judge/main.c
