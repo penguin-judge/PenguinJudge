@@ -21,7 +21,7 @@ jobs:
         pip install pipenv
     - name: Install penguin_judge backend
       run: |
-        pip install -p ./backend/
+        pip install ./backend/
     - name: Lint with flake8
       run: |
         pip install flake8
