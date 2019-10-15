@@ -23,7 +23,7 @@ def get_user(user_id: str) -> Any:
         user = s.query(User).filter(User.id == user_id).first()
         if not user:
             abort(404)
-        return user.to_summary_dict()
+        return jsonify(user.to_summary_dict())
 
 
 @app.route('/user', methods=['POST'])
@@ -32,6 +32,7 @@ def create_user() -> Any:
     password = body.get('password')
     id = body.get('id')
     display_name = body.get('name')
+
     if not (password and display_name and id):
         abort(400)
     if not re.match('\w{1,15}', id):
@@ -39,12 +40,13 @@ def create_user() -> Any:
     if not re.match('\S{8,30}', password):
         abort(400)
 
+    salt = os.urandom(16)
+    password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+
     with transaction() as s:
         prev_check = s.query(User).filter(User.id == id).all()
         if prev_check:
-            abort(400)
-        salt = os.urandom(16)
-        password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+            abort(400)    
         user = User(
             id=id, password=password, name=display_name, salt=salt)
         s.add(user)
