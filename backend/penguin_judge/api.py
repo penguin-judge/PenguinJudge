@@ -1,7 +1,8 @@
 from typing import Any
 import pickle
 import hashlib
-import random
+import os
+import re
 
 import pika  # type: ignore
 from flask import Flask, jsonify, abort, request
@@ -18,36 +19,35 @@ app = Flask(__name__)
 
 @app.route('/user/<user_id>')
 def get_user(user_id: str) -> Any:
-    ret = []
     with transaction() as s:
-        users = s.query(User).filter(User.id == user_id).all()
-        if not users:
+        user = s.query(User).filter(User.id == user_id).first()
+        if not user:
             abort(404)
-        for c in users:
-            ret.append(c.to_summary_dict())
-    return jsonify(ret)
+        return user.to_summary_dict()
 
 
 @app.route('/user', methods=['POST'])
 def create_user() -> Any:
     body = request.json
     password = body.get('password')
-    user_name = body.get('name')
-    if not (password and user_name):
+    id = body.get('id')
+    display_name = body.get('name')
+    if not (password and display_name and id):
         abort(400)
+    if not re.match('\w{1,15}', id):
+        abort(400)
+    if not re.match('\S{8,30}', password):
+        abort(400)
+
     with transaction() as s:
-        prev_check = s.query(User).filter(User.name == user_name).all()
+        prev_check = s.query(User).filter(User.id == id).all()
         if prev_check:
             abort(400)
-        id = hashlib.sha1(user_name.encode('utf-8')).hexdigest()[:15]
-        salt = hashlib.sha1(str(random.random()).encode('utf-8')).\
-            hexdigest().encode('utf-8')
-        password = hashlib.sha1((password + salt.decode('utf-8')).
-                                encode('utf-8')).hexdigest().encode('utf-8')
+        salt = os.urandom(16)
+        password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
         user = User(
-            id=id, password=password, name=user_name, salt=salt)
+            id=id, password=password, name=display_name, salt=salt)
         s.add(user)
-        s.flush()
     return b'', 201
 
 
