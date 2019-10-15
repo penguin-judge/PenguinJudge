@@ -75,7 +75,17 @@ def add_test_testcase(s: scoped_session) -> None:
 def add_test_submission(s: scoped_session) -> None:
     test_submission = Submission()
     test_submission.contest_id = '1'
-    test_submission.user_id = '1'
+    test_submission.user_id = 'kazuki'
+    test_submission.problem_id = '1'
+    test_submission.code = zctx.compress(b'#include<stdio.h>\n#include<unistd.h>\n\
+        int main(){ int a; scanf("%d", &a); printf("%d",a);\
+    }')
+    test_submission.environment_id = 1
+    test_submission.status = JudgeStatus.Waiting
+    s.add(test_submission)
+    test_submission = Submission()
+    test_submission.contest_id = '1'
+    test_submission.user_id = 'bakaming'
     test_submission.problem_id = '1'
     test_submission.code = zctx.compress(b'#include<stdio.h>\n#include<unistd.h>\n\
         int main(){ int a; scanf("%d", &a); printf("%d",a);\

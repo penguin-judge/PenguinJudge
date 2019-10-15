@@ -1,17 +1,56 @@
 from typing import Any
 import pickle
+import hashlib
+import os
+import re
 
 import pika  # type: ignore
 from flask import Flask, jsonify, abort, request
-from zstandard import ZstdCompressor  # type: ignore
+from zstandard import ZstdCompressor, ZstdDecompressor  # type: ignore
 
 from penguin_judge.models import (
     transaction,
-    Submission, Contest, Environment, Problem, TestCase,
+    User, Submission, Contest, Environment, Problem, TestCase,
 )
 from penguin_judge.mq import get_mq_conn_params
 
 app = Flask(__name__)
+
+
+@app.route('/user/<user_id>')
+def get_user(user_id: str) -> Any:
+    with transaction() as s:
+        user = s.query(User).filter(User.id == user_id).first()
+        if not user:
+            abort(404)
+        return jsonify(user.to_summary_dict())
+
+
+@app.route('/user', methods=['POST'])
+def create_user() -> Any:
+    body = request.json
+    password = body.get('password')
+    id = body.get('id')
+    display_name = body.get('name')
+
+    if not (password and display_name and id):
+        abort(400)
+    if not re.match('\w{1,15}', id):
+        abort(400)
+    if not re.match('\S{8,30}', password):
+        abort(400)
+
+    salt = os.urandom(16)
+    password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+
+    with transaction() as s:
+        prev_check = s.query(User).filter(User.id == id).all()
+        if prev_check:
+            abort(400)    
+        user = User(
+            id=id, password=password, name=display_name, salt=salt)
+        s.add(user)
+    return b'', 201
 
 
 @app.route('/environments')
@@ -47,8 +86,26 @@ def get_contest(contest_id: str) -> Any:
     return jsonify(ret)
 
 
-@app.route('/contests/<contest_id>/problems/<problem_id>', methods=['POST'])
-def submission(contest_id: str, problem_id: str) -> Any:
+@app.route('/contests/<contest_id>/problems/<problem_id>/submission')
+def get_own_submissions(contest_id: str, problem_id: str) -> Any:
+    ret = []
+    zctx = ZstdDecompressor()
+    with transaction() as s:
+        submissions = s.query(Submission).filter(
+                Submission.contest_id == contest_id,
+                Submission.problem_id == problem_id,
+                Submission.user_id == 'kazuki').all()
+        if not submissions:
+            abort(404)
+        for c in submissions:
+            ret.append(c.to_summary_dict())
+            ret[-1]['code'] = zctx.decompress(ret[-1]['code']).decode('utf-8')
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/submission',
+           methods=['POST'])
+def post_submission(contest_id: str, problem_id: str) -> Any:
     body = request.json
     code = body.get('code')
     env_id = body.get('environment_id')
@@ -82,3 +139,18 @@ def submission(contest_id: str, problem_id: str) -> Any:
     ch.close()
     conn.close()
     return b'', 201
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/submission/all')
+def get_all_submissions(contest_id: str, problem_id: str) -> Any:
+    ret = []
+    zctx = ZstdDecompressor()
+    # TODO(bakaming) : コンテスト時間中は自分の解答だけに絞る
+    with transaction() as s:
+        submissions = s.query(Submission).filter(
+                Submission.contest_id == contest_id,
+                Submission.problem_id == problem_id).all()
+        for c in submissions:
+            ret.append(c.to_summary_dict())
+            ret[-1]['code'] = zctx.decompress(ret[-1]['code']).decode('utf-8')
+    return jsonify(ret)
