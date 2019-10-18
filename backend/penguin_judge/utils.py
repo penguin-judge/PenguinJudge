@@ -7,8 +7,7 @@ import json
 
 class _JsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> str:
-        print(type(o), o)
-        if isinstance(o, (datetime.datetime, datetime.date)):
+        if isinstance(o, datetime.datetime):
             return o.astimezone(tz=datetime.timezone.utc).isoformat()
         if isinstance(o, bytes):
             return b64encode(o).decode('ascii')

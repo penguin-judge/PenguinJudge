@@ -35,12 +35,11 @@ def compile(task: dict, dclient: docker.DockerClient) -> dict:
             print(compile_output)
             client.stop(container)
             client.remove_container(container)
-        except Exception:
-            result['status'] = JudgeStatus.CompilationError
-        else:
             with open(os.path.join(dname, exec_binary_name), 'rb') as f:
                 exec_binary = f.read()
                 result['exec_binary'] = exec_binary
+        except Exception:
+            result['status'] = JudgeStatus.CompilationError
     return result
 
 
@@ -105,7 +104,7 @@ def check_tests(task: dict, compile_result: dict,
                                            test['id']+'.result'),
                               'rb') as f:
                         user_result = f.read()
-                        user_result = str(user_result).split() # type: ignore
+                        user_result = str(user_result).split()  # type: ignore
                         print(user_result)
                 if test_result != JudgeStatus.Accepted:
                     result = test_result
@@ -147,14 +146,14 @@ def run(task: dict) -> None:
             s.query(Submission).filter(
                 Submission.contest_id == task['contest_id'],
                 Submission.problem_id == task['problem_id'],
-                Submission.id == task['submission_id']
+                Submission.id == task['id']
             ).update({
                 Submission.status: result['status']
             }, synchronize_session=False)
             s.query(JudgeResult).filter(
                 JudgeResult.contest_id == task['contest_id'],
                 JudgeResult.problem_id == task['problem_id'],
-                JudgeResult.submission_id == task['submission_id']
+                JudgeResult.submission_id == task['id']
             ).update({
                 Submission.status: result['status']
             }, synchronize_session=False)

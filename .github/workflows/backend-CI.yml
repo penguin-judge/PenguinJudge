@@ -15,14 +15,15 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: Install pip and pipenv
+    - name: Install/Upgrade pip/pipenv/dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pipenv
-    - name: Install penguin_judge backend
-      run: |
-        pip install ./backend/
+        cd ./backend
+        python -m pip install -U pip setuptools pipenv
+        pipenv install --system
+        pipenv install --system -d
     - name: Lint with flake8
       run: |
-        pip install flake8
-        #flake8 ./backend/
+        cd ./backend && flake8 penguin_judge
+    - name: Check typehints
+      run: |
+        cd ./backend && mypy -p penguin_judge
