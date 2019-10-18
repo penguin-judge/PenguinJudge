@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from configparser import ConfigParser
 import json
 
@@ -15,6 +15,7 @@ install_requires = [
 setup(
     name='penguin_judge',
     version='0.0.1',
+    packages=find_packages(),
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
