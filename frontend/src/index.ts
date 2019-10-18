@@ -1,10 +1,14 @@
-import './anchor';
 import './header';
 import './home';
 import './contests';
+import './contest-frame';
 import './contest-top';
 import './contest-tasks';
 import './contest-task';
+import './contest-submission-results';
+import './components/anchor';
+import './components/icon';
+import './components/panel';
 import { HeaderHeight } from './consts';
 import { router, session } from './state';
 
@@ -23,6 +27,7 @@ export class AppRootElement extends LitElement {
       ['contests/:id', 'contest-top', html`<x-contest-top></x-contest-top>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks', 'contest-tasks', html`<x-contest-tasks></x-contest-tasks>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks/:task_id', 'contest-task', html`<x-contest-task></x-contest-task>`, this._wait_fetch_contest_info],
+      ['contests/:id/submissions/me', 'contest-submissions-me', html`<penguin-judge-contest-submission-results />`, this._wait_fetch_contest_info],
       ['', 'home', html`<x-home></x-home>`, null],
     ];
     routes.forEach((v) => {
@@ -42,10 +47,14 @@ export class AppRootElement extends LitElement {
   }
 
   private _route_handler(path: string, body: any, params: {[key: string]: string}) {
-    if (!path.startsWith('contests/'))
+    if (path.startsWith('contests/')) {
+      body = html`<penguin-judge-contest-frame>${body}</penguin-judge-contest-frame>`;
+    } else {
       session.leave_contest();
+    }
     session.task_id = params && params.hasOwnProperty('task_id') ? params['task_id'] : null;
     this.route = body;
+    session.navigated(path);
   }
 
   private _wait_fetch_contest_info(done: any, params: {[key: string]: string}) {
@@ -53,10 +62,26 @@ export class AppRootElement extends LitElement {
   }
 
   render() {
-    return html`<x-header></x-header><div id="container">${this.route}</div>`
+    return html`<penguin-judge-header></penguin-judge-header><div id="container">${this.route}</div>`
   }
 
   static get styles() {
-    return css`#container { margin-top: ${HeaderHeight}; padding: 1ex; };`;
+    return css`
+      * {
+        font-family: sans-serif;
+      }
+      #container {
+        padding-top: ${HeaderHeight};
+        flex-grow: 1;
+        display: flex;
+      }
+      #container > * {
+        flex-grow: 1;
+      }
+      :host {
+        height: 100%;
+        display: flex;
+      }
+    `;
   }
 }

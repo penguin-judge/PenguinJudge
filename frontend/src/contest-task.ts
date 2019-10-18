@@ -46,55 +46,56 @@ export class AppContestTaskElement extends LitElement {
     });
 
     return html`
-      <h1>${task.title}</h1>
-      <h2>問題文</h2>
-      <p>${task.description}</p>
-      <h2>提出</h2>
-      <form>
+      <div id="problem">
+        <div id="title">${task.title}</div>
+        ${task.description}
+      </div>
+      <div id="submission">
         <div>
-          <div class="c1">言語:</div>
-          <div class="c2"><select id="env">${dom_langs}</select></div>
+          <select id="env">${dom_langs}</select>
         </div>
         <div>
-          <div class="c1">ソースコード:</div>
-          <textarea id="code" class="c2"></textarea>
+          <textarea id="code"></textarea>
         </div>
         <div>
-          <div class="c1"></div>
-          <div class="c2">
-            <button @click="${this.post}">提出</button>
-          </div>
+          <button @click="${this.post}">提出</button>
         </div>
-      </form>
+      </div>
     `
   }
 
   static get styles() {
     return css`
-    form {
+    :host {
+      width: 100%;
+      height: 100%;
+      display: flex;
+    }
+    #title {
+      font-size: 120%;
+      font-weight: bold;
+      border-bottom: 1px solid #ddd;
+      margin-right: 1em;
+      margin-bottom: 1em;
+    }
+    #problem {
+      flex-grow: 1;
+    }
+    #submission {
       display: flex;
       flex-direction: column;
-      padding-right: 1em;
+      flex-grow: 1;
     }
-    form > div {
-      display: flex;
-    }
-    form > div:first-child {
-      align-items: center;
-    }
-    form > div:nth-child(2) > div:first-child {
-      padding-top: 0.5ex;
-    }
-    .c1 {
-      width: 7em;
+    #submission > div:last-child {
+      margin-top: 1ex;
       text-align: right;
-      padding-right: 1ex;
     }
-    .c2 {
+    #submission > div:nth-child(2) {
       flex-grow: 1;
     }
     textarea {
-      height: 20em;
+      width: 100%;
+      height: 100%;
     }
     `
   }
