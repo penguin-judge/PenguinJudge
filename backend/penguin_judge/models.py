@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import datetime
-from enum import IntEnum
-from typing import Dict, Iterator
+import enum
+from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
     Column, DateTime, Integer, String, LargeBinary, JSON, Enum,
@@ -14,7 +14,7 @@ Session = scoped_session(sessionmaker())
 _config: Dict[str, str] = {}
 
 
-class JudgeStatus(IntEnum):
+class JudgeStatus(enum.Enum):
     Waiting = 0x00
     Running = 0x01
     Accepted = 0x10
@@ -27,23 +27,23 @@ class JudgeStatus(IntEnum):
     InternalError = 0xFF
 
 
-class _JsonExportable(object):
-    VALID_TYPES = (str, int, list, dict, float, bool, bytes, datetime.datetime)
+class _Exportable(object):
+    VALID_TYPES = (
+        str, int, list, dict, float, bool, bytes, datetime.datetime, enum.Enum)
 
-    def to_dict(self) -> dict:
-        keys = [
-            k for k in dir(self)
-            if (not k.startswith('_') and
-                isinstance(getattr(self, k), self.VALID_TYPES))]
+    def to_dict(self, *, keys: Optional[List[str]] = None) -> dict:
+        if not keys:
+            keys = [
+                k for k in dir(self)
+                if (not k.startswith('_') and
+                    isinstance(getattr(self, k), self.VALID_TYPES))]
         return {k: getattr(self, k) for k in keys}
 
     def to_summary_dict(self) -> dict:
-        if not hasattr(self, '__summary_keys__'):
-            return self.to_dict()
-        return {k: getattr(self, k) for k in getattr(self, '__summary_keys__')}
+        return self.to_dict(keys=getattr(self, '__summary_keys__', None))
 
 
-class User(Base, _JsonExportable):
+class User(Base, _Exportable):
     __tablename__ = 'users'
     __summary_keys__ = ['name', 'created']
     id = Column(String, primary_key=True)
@@ -54,7 +54,7 @@ class User(Base, _JsonExportable):
         DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-class Environment(Base, _JsonExportable):
+class Environment(Base, _Exportable):
     __tablename__ = 'environments'
     __summary_keys__ = ['id', 'name']
     id = Column(Integer, primary_key=True)
@@ -62,9 +62,9 @@ class Environment(Base, _JsonExportable):
     config = Column(JSON)
 
 
-class Contest(Base, _JsonExportable):
+class Contest(Base, _Exportable):
     __tablename__ = 'contests'
-    __summary_keys__ = ['id', 'title']
+    __summary_keys__ = ['id', 'title', 'start_time', 'end_time']
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
@@ -72,7 +72,7 @@ class Contest(Base, _JsonExportable):
     end_time = Column(DateTime(timezone=True), nullable=False)
 
 
-class Problem(Base, _JsonExportable):
+class Problem(Base, _Exportable):
     __tablename__ = 'problems'
     contest_id = Column(String, primary_key=True)
     id = Column(String, primary_key=True)
@@ -82,7 +82,7 @@ class Problem(Base, _JsonExportable):
     description = Column(String, nullable=False)
 
 
-class TestCase(Base, _JsonExportable):
+class TestCase(Base, _Exportable):
     __tablename__ = 'tests'
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
@@ -91,9 +91,10 @@ class TestCase(Base, _JsonExportable):
     output = Column(LargeBinary, nullable=False)
 
 
-class Submission(Base, _JsonExportable):
+class Submission(Base, _Exportable):
     __tablename__ = 'submissions'
-    __summary_keys__ = ['id', 'contest_id', 'problem_id', 'code']
+    __summary_keys__ = ['contest_id', 'problem_id', 'id', 'user_id',
+                        'environment_id', 'status', 'created']
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -107,7 +108,7 @@ class Submission(Base, _JsonExportable):
         DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-class JudgeResult(Base, _JsonExportable):
+class JudgeResult(Base, _Exportable):
     __tablename__ = 'judge_results'
     contest_id = Column(String, primary_key=True)
     problem_id = Column(String, primary_key=True)

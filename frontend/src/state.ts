@@ -6,6 +6,18 @@ import { API, Contest, Environment } from './api';
 export const router: any = new Navigo(null, true, '#!');
 
 class Session {
+  // Path
+  private _path = new BehaviorSubject<string>('/');
+  navigated(path: string): void {
+    this._path.next(path);
+  }
+  get path() {
+    return this._path;
+  }
+  get current_path() {
+    return this._path.value;
+  }
+
   // Authentication
   token: string | null = null;
   get logged_in(): boolean {

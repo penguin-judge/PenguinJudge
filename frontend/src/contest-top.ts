@@ -25,6 +25,6 @@ export class AppContestTopElement extends LitElement {
     if (!session.contest) {
       return html``
     }
-    return html`<h1>${session.contest.title}</h1><p>${session.contest.description}</p>`
+    return html`<p>${session.contest.description}</p>`
   }
 }
