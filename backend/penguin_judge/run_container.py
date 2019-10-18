@@ -104,7 +104,7 @@ def check_tests(task: dict, compile_result: dict,
                                            test['id']+'.result'),
                               'rb') as f:
                         user_result = f.read()
-                        user_result = str(user_result).split() # type: ignore
+                        user_result = str(user_result).split()  # type: ignore
                         print(user_result)
                 if test_result != JudgeStatus.Accepted:
                     result = test_result

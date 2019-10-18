@@ -41,18 +41,19 @@ def create_user() -> Response:
 
     if not (password and display_name and id):
         abort(400)
-    if not re.match('\w{1,15}', id):
+    if not re.match(r'\w{1,15}', id):
         abort(400)
-    if not re.match('\S{8,30}', password):
+    if not re.match(r'\S{8,30}', password):
         abort(400)
 
     salt = os.urandom(16)
-    password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    password = hashlib.pbkdf2_hmac(
+        'sha256', password.encode('utf-8'), salt, 100000)
 
     with transaction() as s:
         prev_check = s.query(User).filter(User.id == id).all()
         if prev_check:
-            abort(400)    
+            abort(400)
         user = User(
             id=id, password=password, name=display_name, salt=salt)
         s.add(user)
