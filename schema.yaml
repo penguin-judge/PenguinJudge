@@ -1,0 +1,275 @@
+openapi: "3.0.0"
+info:
+  title: PenguinJudge API Specification
+  version: "0.0.1"
+paths:
+  /user:
+    get:
+      operationId: getCurrentUser
+      summary: Gets currently authenticated user info (not implemented)
+      responses:
+        '200':
+          description: Responses authenticated user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users:
+    post:
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegistration"
+      responses:
+        '201':
+          description: user registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{user_id}:
+    get:
+      operationId: getUser
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        '200':
+          description: Responses user list 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /environments:
+    get:
+      operationId: listEnvironments
+      summary: List code compile/execute environments
+      responses:
+        '200':
+          description: Responses environment list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Environments"
+  /contests:
+    get:
+      operationId: listContests
+      responses:
+        '200':
+          description: Responses contest list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contests"
+  /contests/{contest_id}:
+    get:
+      operationId: getContest
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: Responses specific contest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contest"
+  /contests/{contest_id}/submissions:
+    get:
+      operationId: listOwnSubmissions
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: Responses own submissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submissions"
+  /contests/{contest_id}/problems/{problem_id}/submission:
+    post:
+      operationId: postSubmission
+      description: "TODO: submissionsにパスを変更する"
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Submission"
+      responses:
+        '201':
+          description: Responses submission info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionSummary"
+    get:
+      operationId: getOwnSubmissionsForProblem
+      description: 実装してあるけど、必要???
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: Responses submission list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submissions"
+  /contests/{contest_id}/problems/{problem_id}/submission/all:
+    get:
+      operationId: getSubmissionsForProblem
+      description: 実装してあるけど、必要???
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: Responses submission list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submissions"
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: "\\w{3,15}"
+        name:
+          type: string
+        created:
+          type: string
+          format: date-time
+    Users:
+      type: array
+      items:
+        $ref: "#/components/schemas/User"
+    UserRegistration:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - required:
+            - id
+            - name
+            - password
+          properties:
+            password:
+              type: string
+              pattern: "\\S{8,}"
+    Environment:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    Environments:
+      type: array
+      items:
+        $ref: "#/components/schemas/Environment"
+    ContestSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+    Contests:
+      type: array
+      items:
+        $ref: "#/components/schemas/ContestSummary"
+    Contest:
+      allOf:
+        - $ref: "#/components/schemas/ContestSummary"
+        - properties:
+            description:
+              type: string
+            problems:
+              $ref: "#/components/schemas/Problems"
+    Problem:
+      type: object
+      properties:
+        id:
+          type: string
+        contest_id:
+          type: string
+        title:
+          type: string
+        time_limit:
+          type: integer
+        memory_limit:
+          type: integer
+        description:
+          type: string
+    Problems:
+      type: array
+      items:
+        $ref: "#/components/schemas/Problem"
+    SubmissionSummary:
+      type: object
+      properties:
+        contest_id:
+          type: string
+        problem_id:
+          type: string
+        id:
+          type: integer
+        user_id:
+          type: string
+        environment_id:
+          type: integer
+        status:
+          type: string
+        created:
+          type: string
+          format: date-time
+    Submissions:
+      type: array
+      items:
+        $ref: "#/components/schemas/SubmissionSummary"
+    Submission:
+      allOf:
+        - $ref: "#/components/schemas/SubmissionSummary"
+        - properties:
+            code:
+              type: string
+          required:
+            - contest_id
+            - problem_id
+            - environment_id
+            - code
+  parameters:
+    UserID:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ContestID:
+      name: contest_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ProblemID:
+      name: problem_id
+      in: path
+      required: true
+      schema:
+        type: string
+    SubmissionID:
+      name: submission_id
+      in: path
+      required: true
+      schema:
+        type: integer
