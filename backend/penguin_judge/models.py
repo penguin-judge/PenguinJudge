@@ -6,6 +6,7 @@ from typing import Dict, Iterator, Optional, List
 from sqlalchemy import (
     Column, DateTime, Integer, String, LargeBinary, JSON, Enum,
     func)
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -127,7 +128,14 @@ def configure(**kwargs: str) -> None:
     engine = engine_from_config(kwargs)
     if drop_all:
         Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    while True:
+        try:
+            Base.metadata.create_all(engine)
+        except (IntegrityError, ProgrammingError):
+            # 同時起動した別プロセスがテーブル作成中なのでリトライ
+            import time
+            import random
+            time.sleep(random.uniform(0.05, 0.1))
     Session.configure(bind=engine)  # type: ignore
 
 
