@@ -45,7 +45,7 @@ class _Exportable(object):
 
 class User(Base, _Exportable):
     __tablename__ = 'users'
-    __summary_keys__ = ['name', 'created']
+    __summary_keys__ = ['id', 'name', 'created']
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     salt = Column(LargeBinary(32), nullable=False)

@@ -23,7 +23,7 @@ def jsonify(resp: Union[dict, list]) -> Response:
         json_dumps(resp), mimetype=app.config["JSONIFY_MIMETYPE"])
 
 
-@app.route('/user/<user_id>')
+@app.route('/users/<user_id>')
 def get_user(user_id: str) -> Response:
     with transaction() as s:
         user = s.query(User).filter(User.id == user_id).first()
@@ -32,7 +32,7 @@ def get_user(user_id: str) -> Response:
         return jsonify(user.to_summary_dict())
 
 
-@app.route('/user', methods=['POST'])
+@app.route('/users', methods=['POST'])
 def create_user() -> Response:
     body = request.json
     password = body.get('password')
