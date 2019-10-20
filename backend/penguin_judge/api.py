@@ -1,26 +1,113 @@
-from typing import Union
+from base64 import b64encode, b64decode
+import datetime
+from typing import Any, Union, Tuple, Optional, Dict
 import pickle
-import hashlib
+from hashlib import pbkdf2_hmac
 import os
-import re
 
 import pika  # type: ignore
 from flask import Flask, abort, request, Response, make_response
 from zstandard import ZstdCompressor, ZstdDecompressor  # type: ignore
+from openapi_core import create_spec  # type: ignore
+from openapi_core.shortcuts import RequestValidator  # type: ignore
+from openapi_core.wrappers.flask import FlaskOpenAPIRequest  # type: ignore
+import yaml
 
 from penguin_judge.models import (
-    transaction,
-    User, Submission, Contest, Environment, Problem, TestCase,
+    transaction, scoped_session,
+    User, Submission, Contest, Environment, Problem, TestCase, Token,
 )
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.utils import json_dumps
 
 app = Flask(__name__)
+with open(os.path.join(os.path.dirname(__file__), 'schema.yaml'), 'r') as f:
+    _spec = create_spec(yaml.safe_load(f))
+_request_validator = RequestValidator(_spec)
 
 
-def jsonify(resp: Union[dict, list]) -> Response:
+def jsonify(resp: Union[dict, list], *,
+            status: Optional[int] = None,
+            headers: Optional[Dict[str, str]] = None) -> Response:
     return app.response_class(
-        json_dumps(resp), mimetype=app.config["JSONIFY_MIMETYPE"])
+        json_dumps(resp), mimetype=app.config["JSONIFY_MIMETYPE"],
+        status=status, headers=headers)
+
+
+def _kdf(password: str, salt: bytes) -> bytes:
+    return pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+
+
+def _validate_request() -> Tuple[dict, Any]:
+    ret = _request_validator.validate(FlaskOpenAPIRequest(request))
+    if ret.errors:
+        abort(400)
+    return ret.parameters, ret.body
+
+
+def _validate_token(
+        s: Optional[scoped_session] = None,
+        required: bool = False) -> Optional[str]:
+    token = request.headers.get('X-Auth-Token')
+    if not token:
+        items = request.headers.get('Authorization', '').split(' ', maxsplit=1)
+        if len(items) == 2 and items[0].lower() == 'bearer':
+            token = items[1]
+    if not token:
+        token = request.cookies.get('AuthToken')
+    if not token:
+        if required:
+            abort(401)
+        return None
+
+    try:
+        token_bytes = b64decode(token)
+    except Exception:
+        abort(401)
+    utc_now = datetime.datetime.now(tz=datetime.timezone.utc)
+
+    def _check(s: scoped_session) -> str:
+        t = s.query(Token).filter(Token.token == token_bytes).first()
+        if not t or t.expires <= utc_now:
+            abort(401)
+        return t.user_id
+    if s:
+        return _check(s)
+    with transaction() as s:
+        return _check(s)
+
+
+@app.route('/auth', methods=['POST'])
+def authenticate() -> Response:
+    _, body = _validate_request()
+    token = os.urandom(32)
+    expires_in = 365 * 24 * 60 * 60
+    expires = datetime.datetime.now(
+        datetime.timezone.utc) + datetime.timedelta(seconds=expires_in)
+    with transaction() as s:
+        u = s.query(User).filter(User.id == body.id).first()
+        if not u:
+            abort(404)
+        if u.password != _kdf(body.password, u.salt):
+            abort(404)
+        s.add(Token(token=token, user_id=body.id, expires=expires))
+    encoded_token = b64encode(token).decode('ascii')
+    headers = {
+        'Set-Cookie': 'AuthToken={}; Max-Age={}'.format(
+            encoded_token, expires_in)}
+    return jsonify({
+        'token': encoded_token, 'expires_in': expires_in}, headers=headers)
+
+
+@app.route('/user')
+def get_current_user() -> Response:
+    with transaction() as s:
+        uid = _validate_token(s)
+        if not uid:
+            abort(401)
+        u = s.query(User).filter(User.id == uid).first()
+        assert u  # 外部キー制約でuがNoneになることは無い
+        return jsonify(u.to_summary_dict())
 
 
 @app.route('/users/<user_id>')
@@ -34,30 +121,17 @@ def get_user(user_id: str) -> Response:
 
 @app.route('/users', methods=['POST'])
 def create_user() -> Response:
-    body = request.json
-    password = body.get('password')
-    id = body.get('id')
-    display_name = body.get('name')
-
-    if not (password and display_name and id):
-        abort(400)
-    if not re.match(r'\w{1,15}', id):
-        abort(400)
-    if not re.match(r'\S{8,30}', password):
-        abort(400)
-
+    _, body = _validate_request()
     salt = os.urandom(16)
-    password = hashlib.pbkdf2_hmac(
-        'sha256', password.encode('utf-8'), salt, 100000)
-
+    password = _kdf(body.password, salt)
     with transaction() as s:
-        prev_check = s.query(User).filter(User.id == id).all()
-        if prev_check:
+        if s.query(User).filter(User.id == body.id).first():
             abort(400)
-        user = User(
-            id=id, password=password, name=display_name, salt=salt)
+        user = User(id=body.id, password=password, name=body.name, salt=salt)
         s.add(user)
-    return make_response((b'', 201))
+        s.flush()
+        resp = user.to_summary_dict()
+    return jsonify(resp, status=201)
 
 
 @app.route('/environments')

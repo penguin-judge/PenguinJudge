@@ -2,11 +2,37 @@ openapi: "3.0.0"
 info:
   title: PenguinJudge API Specification
   version: "0.0.1"
+security:
+  - {}
+  - BearerAuth: []
+  - ApiToken: []
+  - CookieToken: []
 paths:
+  /auth:
+    post:
+      operationId: authenticate
+      security: []
+      summary: Authenticate user with id/password to get token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
+      responses:
+        '200':
+          description: Responses token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
   /user:
     get:
       operationId: getCurrentUser
-      summary: Gets currently authenticated user info (not implemented)
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      summary: Gets currently authenticated user info
       responses:
         '200':
           description: Responses authenticated user info
@@ -17,6 +43,10 @@ paths:
   /users:
     post:
       operationId: registerUser
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       requestBody:
         content:
           application/json:
@@ -134,14 +164,35 @@ paths:
                 $ref: "#/components/schemas/Submissions"
 components:
   schemas:
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_in:
+          type: integer
+    UserID:
+      type: string
+      pattern: '\w{3,15}'
+    Login:
+      type: object
+      required:
+        - id
+        - password
+      properties:
+        id:
+          $ref: "#/components/schemas/UserID"
+        password:
+          type: string
+          pattern: "\\S{8,}"
     User:
       type: object
       properties:
         id:
-          type: string
-          pattern: "\\w{3,15}"
+          $ref: "#/components/schemas/UserID"
         name:
           type: string
+          minLength: 1
         created:
           type: string
           format: date-time
@@ -152,14 +203,9 @@ components:
     UserRegistration:
       allOf:
         - $ref: "#/components/schemas/User"
+        - $ref: "#/components/schemas/Login"
         - required:
-            - id
-            - name
-            - password
-          properties:
-            password:
-              type: string
-              pattern: "\\S{8,}"
+          - name
     Environment:
       type: object
       properties:
@@ -273,3 +319,15 @@ components:
       required: true
       schema:
         type: integer
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+    ApiToken:
+      type: apiKey
+      in: header
+      name: X-Auth-Token
+    CookieToken:
+      type: apiKey
+      in: cookie
+      name: AuthToken
