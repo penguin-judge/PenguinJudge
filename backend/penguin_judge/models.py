@@ -138,6 +138,7 @@ def configure(**kwargs: str) -> None:
     while True:
         try:
             Base.metadata.create_all(engine)
+            break
         except (IntegrityError, ProgrammingError):
             # 同時起動した別プロセスがテーブル作成中なのでリトライ
             import time

@@ -4,19 +4,21 @@ import json
 
 config = ConfigParser()
 config.read('Pipfile')
-packages = list(config['packages'].keys())
 with open('Pipfile.lock', 'r') as f:
-    pipenv_locks = json.load(f)['default']
+    locks = json.load(f)
 install_requires = [
-    name + pipenv_locks[name]['version']
-    for name in packages
-]
+    name + locks['default'][name]['version']
+    for name in config['packages'].keys()]
+dev_requires = [
+    name + locks['develop'][name]['version']
+    for name in config['dev-packages'].keys()]
 
 setup(
     name='penguin_judge',
     version='0.0.1',
     packages=find_packages(exclude=('tests',)),
     install_requires=install_requires,
+    extras_require={'develop': dev_requires},
     package_data={'penguin_judge': ['schema.yaml']},
     entry_points={
         'console_scripts': [

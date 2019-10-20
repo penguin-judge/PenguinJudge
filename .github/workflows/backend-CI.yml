@@ -3,27 +3,72 @@ name: Python package
 on: [push]
 
 jobs:
-  build:
-
+  backend:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-
+    services:
+      db:
+        image: postgres:alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: password
+      mq:
+        image: rabbitmq:alpine
+        ports:
+          - 5672:5672
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: Install/Upgrade pip/pipenv/dependencies
+    - name: Install/Upgrade pip/dependencies
       run: |
         cd ./backend
-        python -m pip install -U pip setuptools pipenv
-        pipenv install --system
-        pipenv install --system -d
+        pip install -U pip setuptools
+        pip install .[develop]
     - name: Lint with flake8
       run: |
-        cd ./backend && flake8 penguin_judge
+        cd ./backend
+        flake8 penguin_judge tests
     - name: Check typehints
       run: |
-        cd ./backend && mypy -p penguin_judge
+        cd ./backend
+        mypy -p penguin_judge
+    - name: Prepare test environments
+      run: |
+        cd .docker-compose
+        sed -i -e 's/db:/localhost:/' config.ini
+        sed -i -e 's/mq:/localhost:/' config.ini
+        python ./prepare.py
+    - name: Execute small tests
+      run: |
+        export PENGUIN_JUDGE_TEST_DB_URL=`grep sql .docker-compose/config.ini | cut -d ' ' -f 3`
+        cd ./backend
+        nose2 -v tests
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup node
+      uses: actions/setup-node@v1
+    - name: Install dependencies
+      run: |
+        cd ./frontend
+        npm ci
+    - name: Build test
+      run: |
+        cd ./frontend
+        webpack -p
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build backend docker image
+      run: |
+        cd ./backend
+        docker build .
+    - name: Build frontend docker image
+      run: |
+        cd ./frontend
+        docker build .
