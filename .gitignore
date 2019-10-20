@@ -6,3 +6,7 @@ node_modules
 /frontend/dist
 
 /backend/*.egg-info
+/backend/.coverage
+/backend/.coverage.*
+/backend/build
+/backend/dist

@@ -7,6 +7,8 @@ verify_ssl = true
 mypy = "*"
 flake8 = "*"
 sqlalchemy-stubs = "*"
+nose2 = {extras = ["coverage_plugin"],version = "*"}
+webtest = "*"
 
 [packages]
 sqlalchemy = "*"
@@ -15,6 +17,8 @@ pika = "*"
 flask = "*"
 zstandard = "*"
 docker = "*"
+openapi-core = "*"
+pyyaml = "*"
 
 [requires]
 python_version = "3.7"

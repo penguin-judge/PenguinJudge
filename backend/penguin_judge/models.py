@@ -4,7 +4,7 @@ import enum
 from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
-    Column, DateTime, Integer, String, LargeBinary, JSON, Enum,
+    Column, ForeignKey, DateTime, Integer, String, LargeBinary, JSON, Enum,
     func)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
@@ -53,6 +53,13 @@ class User(Base, _Exportable):
     password = Column(LargeBinary(32), nullable=False)
     created = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class Token(Base, _Exportable):
+    __tablename__ = 'tokens'
+    token = Column(LargeBinary(32), primary_key=True)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    expires = Column(DateTime(timezone=True), nullable=False)
 
 
 class Environment(Base, _Exportable):
@@ -131,6 +138,7 @@ def configure(**kwargs: str) -> None:
     while True:
         try:
             Base.metadata.create_all(engine)
+            break
         except (IntegrityError, ProgrammingError):
             # 同時起動した別プロセスがテーブル作成中なのでリトライ
             import time

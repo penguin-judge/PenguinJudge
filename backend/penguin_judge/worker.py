@@ -31,13 +31,12 @@ class Worker(object):
     def __enter__(self) -> 'Worker':
         return self
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> bool:
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self._executor.shutdown(wait=False)
         if self._ch:
             self._ch.close()
         if self._conn:
             self._conn.close()
-        return False
 
     def start(self) -> None:
         self._conn = AsyncioConnection(
