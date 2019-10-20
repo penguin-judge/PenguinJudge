@@ -27,7 +27,7 @@ def start_api(args: Namespace) -> None:
     config = _load_config(args, 'api')
     configure(**config)
     configure_mq(**config)
-    app.run()
+    app.run(host='0.0.0.0')
 
 
 def start_worker(args: Namespace) -> None:

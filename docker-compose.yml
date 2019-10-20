@@ -1,0 +1,32 @@
+version: '3'
+services:
+  api:
+    build: backend/
+    ports:
+      - 5000:5000
+    volumes:
+      - ./.docker-compose:/mnt:ro
+    command: /bin/sh -c "python /mnt/prepare.py && penguin_judge api -c /mnt/config.ini"
+    depends_on:
+      - mq
+      - db
+  worker:
+    build: backend/
+    volumes:
+      - ./.docker-compose:/mnt:ro
+    command: /bin/sh -c "python /mnt/prepare.py && penguin_judge worker -c /mnt/config.ini"
+    depends_on:
+      - mq
+      - db
+  gui:
+    build: frontend
+    depends_on:
+      - api
+    ports:
+      - 8080:80
+  mq:
+    image: rabbitmq:alpine
+  db:
+    image: postgres:alpine
+    environment:
+      POSTGRES_PASSWORD: password
