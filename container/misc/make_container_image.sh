@@ -1,1 +1,0 @@
-sudo docker build -t "judge" $(dirname $0)/../../container

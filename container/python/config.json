@@ -1,0 +1,9 @@
+{
+    "test": {
+        "path": "/tmp/test.py",
+        "cmd": "/usr/local/bin/python",
+        "args": [
+            "/tmp/test.py"
+        ]
+    }
+}
