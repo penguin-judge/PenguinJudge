@@ -14,6 +14,9 @@ from penguin_judge.check_result import equal_binary
 
 
 class JudgeDriver(ABC):
+    def prepare(self, task: dict) -> None:
+        pass
+
     @abstractmethod
     def compile(self, task: dict) -> Union[JudgeStatus, bytes]:
         raise NotImplementedError
@@ -21,6 +24,12 @@ class JudgeDriver(ABC):
     @abstractmethod
     def tests(self, task: dict) -> JudgeStatus:
         raise NotImplementedError
+
+    def __enter__(self) -> 'JudgeDriver':
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        pass
 
     def _send(self, strm: RawIOBase, obj: Any) -> None:
         b = msgpack.packb(obj, use_bin_type=True)
@@ -54,15 +63,30 @@ class JudgeDriver(ABC):
 class DockerJudgeDriver(JudgeDriver):
     def __init__(self) -> None:
         self.client = docker.APIClient()
+        self.compile_container = None
+        self.test_container = None
+
+    def prepare(self, task: dict) -> None:
+        if task['environment'].get('compile_image_name'):
+            self.compile_container = self.client.create_container(
+                task['environment'].get('compile_image_name'), stdin_open=True)
+            self.client.start(self.compile_container)
+        self.test_container = self.client.create_container(
+            task['environment']['test_image_name'], stdin_open=True)
+        self.client.start(self.test_container)
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        for c in (self.compile_container, self.test_container):
+            if not c:
+                continue
+            self.client.kill(c)
+            self.client.remove_container(c)
 
     def compile(self, task: dict) -> Union[JudgeStatus, bytes]:
-        compile_image_name = task['environment']['compile_image_name']
-        container = self.client.create_container(
-            compile_image_name, stdin_open=True)
         try:
-            self.client.start(container)
             s = self.client.attach_socket(
-                container, params={'stdin': 1, 'stdout': 1, 'stream': 1})
+                self.compile_container,
+                params={'stdin': 1, 'stdout': 1, 'stream': 1})
             self._send(s, {
                 'type': 'Compilation',
                 'code': task['code'],
@@ -75,15 +99,8 @@ class DockerJudgeDriver(JudgeDriver):
             return JudgeStatus.CompilationError
         except Exception:
             return JudgeStatus.InternalError
-        finally:
-            self.client.stop(container)
-            self.client.remove_container(container)
 
     def tests(self, task: dict) -> JudgeStatus:
-        test_image_name = task['environment']['test_image_name']
-        container = self.client.create_container(
-            test_image_name, stdin_open=True)
-
         def _update_status(test_id: str, st: JudgeStatus) -> None:
             with transaction() as s:
                 s.query(JudgeResult).filter(
@@ -94,9 +111,9 @@ class DockerJudgeDriver(JudgeDriver):
                 ).update({JudgeResult.status: st}, synchronize_session=False)
 
         try:
-            self.client.start(container)
             s = self.client.attach_socket(
-                container, params={'stdin': 1, 'stdout': 1, 'stream': 1})
+                self.test_container,
+                params={'stdin': 1, 'stdout': 1, 'stream': 1})
             self._send(s, {
                 'type': 'Preparation',
                 'code': task['code'],
@@ -137,20 +154,9 @@ class DockerJudgeDriver(JudgeDriver):
             raise RuntimeError  # 未知のkindの場合はInternalError
         except Exception:
             return JudgeStatus.InternalError
-        finally:
-            self.client.stop(container)
-            self.client.remove_container(container)
 
 
 def run(task: dict) -> None:
-    try:
-        _run(task)
-    except Exception as e:
-        print(e, flush=True)
-        raise
-
-
-def _run(task: dict) -> None:
     print('judge start with below id')
     print('  contest_id: {}'.format(task['contest_id']))
     print('  problem_id: {}'.format(task['problem_id']))
@@ -163,31 +169,44 @@ def _run(task: dict) -> None:
         test['input'] = zctx.decompress(test['input'])
         test['output'] = zctx.decompress(test['output'])
 
-    judge = DockerJudgeDriver()
-    if task['environment'].get('compile_image_name'):
-        ret = judge.compile(task)
-        if isinstance(ret, bytes):
-            task['code'] = ret
-        else:
+    with DockerJudgeDriver() as judge:
+        try:
+            judge.prepare(task)
+        except Exception:
             with transaction() as s:
                 s.query(Submission).filter(
                     Submission.contest_id == task['contest_id'],
                     Submission.problem_id == task['problem_id'],
                     Submission.id == task['id']
-                ).update({Submission.status: ret}, synchronize_session=False)
-                s.query(JudgeResult).filter(
-                    JudgeResult.contest_id == task['contest_id'],
-                    JudgeResult.problem_id == task['problem_id'],
-                    JudgeResult.submission_id == task['id']
-                ).update({Submission.status: ret}, synchronize_session=False)
-            print('judge failed: {}'.format(ret), flush=True)
+                ).update({
+                    Submission.status: JudgeStatus.InternalError
+                }, synchronize_session=False)
             return
-
-    ret = judge.tests(task)
-    with transaction() as s:
-        s.query(Submission).filter(
-            Submission.contest_id == task['contest_id'],
-            Submission.problem_id == task['problem_id'],
-            Submission.id == task['id']
-        ).update({Submission.status: ret}, synchronize_session=False)
-    print('judge finished: {}'.format(ret), flush=True)
+        if task['environment'].get('compile_image_name'):
+            ret = judge.compile(task)
+            if isinstance(ret, bytes):
+                task['code'] = ret
+            else:
+                with transaction() as s:
+                    s.query(Submission).filter(
+                        Submission.contest_id == task['contest_id'],
+                        Submission.problem_id == task['problem_id'],
+                        Submission.id == task['id']
+                    ).update({
+                        Submission.status: ret}, synchronize_session=False)
+                    s.query(JudgeResult).filter(
+                        JudgeResult.contest_id == task['contest_id'],
+                        JudgeResult.problem_id == task['problem_id'],
+                        JudgeResult.submission_id == task['id']
+                    ).update({
+                        Submission.status: ret}, synchronize_session=False)
+                print('judge failed: {}'.format(ret), flush=True)
+                return
+        ret = judge.tests(task)
+        with transaction() as s:
+            s.query(Submission).filter(
+                Submission.contest_id == task['contest_id'],
+                Submission.problem_id == task['problem_id'],
+                Submission.id == task['id']
+            ).update({Submission.status: ret}, synchronize_session=False)
+        print('judge finished: {}'.format(ret), flush=True)
