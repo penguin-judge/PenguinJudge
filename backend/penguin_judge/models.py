@@ -75,7 +75,7 @@ class Environment(Base, _Exportable):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     compile_image_name = Column(String, nullable=True)
-    test_image_name = Column(String, nullable=True)
+    test_image_name = Column(String)
 
 
 class Contest(Base, _Exportable):

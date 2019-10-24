@@ -37,14 +37,14 @@ class JudgeDriver(ABC):
         _write_all(b)
 
     def _recv(self, strm: RawIOBase) -> dict:
-        def _read_exact(sz: int) -> bytes:
-            off, buf = 0, bytes(sz)
+        def _read_exact(sz: int) -> bytearray:
+            off, buf = 0, memoryview(bytearray(sz))
             while off < sz:
                 ret = strm.readinto(buf[off:])  # type: ignore
                 if not ret:
                     raise IOError
                 off += ret
-            return buf
+            return buf.obj  # type: ignore
 
         _read_exact(8)  # 何故か8バイトゴミが入ってる...
         sz = struct.unpack('<I', _read_exact(4))[0]
@@ -164,23 +164,25 @@ def _run(task: dict) -> None:
         test['output'] = zctx.decompress(test['output'])
 
     judge = DockerJudgeDriver()
-    ret = judge.compile(task)
-    if isinstance(ret, JudgeStatus):
-        with transaction() as s:
-            s.query(Submission).filter(
-                Submission.contest_id == task['contest_id'],
-                Submission.problem_id == task['problem_id'],
-                Submission.id == task['id']
-            ).update({Submission.status: ret}, synchronize_session=False)
-            s.query(JudgeResult).filter(
-                JudgeResult.contest_id == task['contest_id'],
-                JudgeResult.problem_id == task['problem_id'],
-                JudgeResult.submission_id == task['id']
-            ).update({Submission.status: ret}, synchronize_session=False)
-        print('judge failed: {}'.format(ret), flush=True)
-        return
+    if task['environment'].get('compile_image_name'):
+        ret = judge.compile(task)
+        if isinstance(ret, bytes):
+            task['code'] = ret
+        else:
+            with transaction() as s:
+                s.query(Submission).filter(
+                    Submission.contest_id == task['contest_id'],
+                    Submission.problem_id == task['problem_id'],
+                    Submission.id == task['id']
+                ).update({Submission.status: ret}, synchronize_session=False)
+                s.query(JudgeResult).filter(
+                    JudgeResult.contest_id == task['contest_id'],
+                    JudgeResult.problem_id == task['problem_id'],
+                    JudgeResult.submission_id == task['id']
+                ).update({Submission.status: ret}, synchronize_session=False)
+            print('judge failed: {}'.format(ret), flush=True)
+            return
 
-    task['code'] = ret
     ret = judge.tests(task)
     with transaction() as s:
         s.query(Submission).filter(
