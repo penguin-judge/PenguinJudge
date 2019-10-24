@@ -130,7 +130,7 @@ class Worker(object):
                 task['tests'].append(test.to_dict())
 
         def _submit() -> None:
-            print('submit to child process')
+            print('submit to child process', flush=True)
             future = self._executor.submit(run, task)
             future.add_done_callback(_done)
         asyncio.get_event_loop().call_soon_threadsafe(_submit)
@@ -138,7 +138,7 @@ class Worker(object):
 
 def _initializer(db_config: dict) -> None:
     from penguin_judge.models import configure
-    print('[worker:child] init {}'.format(db_config))
+    print('[worker:child] init {}'.format(db_config), flush=True)
     configure(**db_config)
 
 
