@@ -16,6 +16,7 @@ fn test_rust() {
         println!(\"{}\", x + 1);
     }".as_bytes();
     let code_path = "/tmp/penguin_judge_agent_test.rs";
+    let code_out_path = "/tmp/compiled";
     let exec_path = "/tmp/penguin_judge_agent_test";
     let config_path = "/tmp/penguin_judge_agent_test.config";
     std::env::set_var("PENGUIN_JUDGE_AGENT_CONFIG", config_path);
@@ -24,8 +25,8 @@ fn test_rust() {
             compile: Some(CompilationConfig {
                 path: code_path.to_string(),
                 cmd: "rustc".to_string(),
-                args: vec!["-o".to_string(), exec_path.to_string(), code_path.to_string()],
-                output: exec_path.to_string(),
+                args: vec!["-o".to_string(), code_out_path.to_string(), code_path.to_string()],
+                output: code_out_path.to_string(),
             }),
             test: None
         };
@@ -104,7 +105,7 @@ fn test_rust() {
         pipe.read_exact(&mut output).unwrap();
         let resp = match rmp_serde::from_slice(&output).unwrap() {
             Response::Test(v) => v,
-            Response::Error(e) => panic!("{:?}", e),
+            Response::Error{ kind: k } => panic!("{:?}", k),
             e => panic!(e),
         };
         println!("{:?}", resp);

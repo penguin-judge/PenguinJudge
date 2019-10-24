@@ -1,9 +1,10 @@
 use std::sync::{Arc, Mutex};
 use std::process::{Command, Stdio};
-use std::fs::File;
+use std::fs::{File, Permissions};
 use std::io::{BufReader, BufWriter, Read, Write, Error, ErrorKind, Result};
 use std::time::Duration;
 use std::thread::spawn;
+use std::os::unix::fs::PermissionsExt;
 
 use wait_timeout::ChildExt;
 
@@ -99,12 +100,12 @@ impl<R: Read, W: Write> Agent<R, W> {
                         }
                     }
                 }
-                Ok(Response::Error(ErrorResult::CompilationError))
+                Ok(Response::Error{ kind: ErrorResult::CompilationError})
             },
             None => {
                 child.kill()?;
                 child.wait()?;
-                Ok(Response::Error(ErrorResult::TimeLimitExceeded))
+                Ok(Response::Error{ kind: ErrorResult::TimeLimitExceeded})
             }
         }
     }
@@ -114,6 +115,7 @@ impl<R: Read, W: Write> Agent<R, W> {
         self.time_limit = config.time_limit;
         self.memory_limit = config.memory_limit;
         let mut f = File::create(&test_cfg.path)?;
+        f.set_permissions(Permissions::from_mode(0o755))?;
         f.write_all(&config.code)
     }
 
@@ -154,13 +156,13 @@ impl<R: Read, W: Write> Agent<R, W> {
                         output: output.lock().unwrap().clone()
                     }));
                 }
-                Ok(Response::Error(ErrorResult::RuntimeError))
+                Ok(Response::Error {kind: ErrorResult::RuntimeError})
             },
             None => {
                 child.kill()?;
                 child.wait()?;
                 handler.join().unwrap();
-                Ok(Response::Error(ErrorResult::TimeLimitExceeded))
+                Ok(Response::Error {kind: ErrorResult::TimeLimitExceeded})
             }
         }
     }
@@ -185,7 +187,8 @@ impl<R: Read, W: Write> Agent<R, W> {
             Ok(v) => v,
             Err(e) => return Err(Error::new(ErrorKind::InvalidData, e))
         };
-        self.writer.write_all(&(v.len() as u32).to_le_bytes())?;
+        let size_bytes = (v.len() as u32).to_le_bytes();
+        self.writer.write_all(&size_bytes)?;
         self.writer.write_all(&v)?;
         self.writer.flush()?;
         Ok(())
