@@ -4,7 +4,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread::spawn;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use wait_timeout::ChildExt;
 
@@ -85,14 +85,19 @@ impl<R: Read, W: Write> Agent<R, W> {
         for arg in &compile_cfg.args {
             cmd.arg(arg);
         }
+        let start_time = Instant::now();
         let mut child = cmd.stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
         match child.wait_timeout(timeout)? {
             Some(status) => {
                 if status.success() {
+                    let d = Instant::now().duration_since(start_time);
                     if let Ok(mut f) = File::open(&compile_cfg.output) {
                         let mut bin = Vec::new();
                         if f.read_to_end(&mut bin).is_ok() {
-                            return Ok(Response::Compilation(CompilationResult { binary: bin }));
+                            return Ok(Response::Compilation(CompilationResult {
+                                binary: bin,
+                                time: d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+                            }));
                         }
                     }
                 }
@@ -127,6 +132,7 @@ impl<R: Read, W: Write> Agent<R, W> {
             cmd.arg(arg);
         }
         let output = Arc::new(Mutex::new(Vec::new()));
+        let start_time = Instant::now();
         let mut child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -154,9 +160,11 @@ impl<R: Read, W: Write> Agent<R, W> {
         match child.wait_timeout(timeout)? {
             Some(status) => {
                 handler.join().unwrap();
+                let d = Instant::now().duration_since(start_time);
                 if status.success() {
                     return Ok(Response::Test(TestResult {
                         output: output.lock().unwrap().clone(),
+                        time: d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
                     }));
                 }
                 Ok(Response::Error {

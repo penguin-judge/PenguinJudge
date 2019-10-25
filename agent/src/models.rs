@@ -13,6 +13,7 @@ pub struct Compilation {
 pub struct CompilationResult {
     #[serde(with = "serde_bytes")]
     pub binary: Vec<u8>,
+    pub time: f64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,6 +43,7 @@ pub struct TestRequest {
 pub struct TestResult {
     #[serde(with = "serde_bytes")]
     pub output: Vec<u8>,
+    pub time: f64,
 }
 
 #[derive(Deserialize, Debug)]
