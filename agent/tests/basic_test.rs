@@ -1,9 +1,9 @@
 extern crate penguin_judge_agent;
 
 use std::fs::File;
+use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::thread::spawn;
-use std::io::{Read, Write};
 
 use penguin_judge_agent::*;
 
@@ -14,7 +14,8 @@ fn test_rust() {
         std::io::stdin().read_line(&mut str).unwrap();
         let x = str.trim().parse::<i32>().unwrap();
         println!(\"{}\", x + 1);
-    }".as_bytes();
+    }"
+    .as_bytes();
     let code_path = "/tmp/penguin_judge_agent_test.rs";
     let code_out_path = "/tmp/compiled";
     let exec_path = "/tmp/penguin_judge_agent_test";
@@ -25,10 +26,14 @@ fn test_rust() {
             compile: Some(CompilationConfig {
                 path: code_path.to_string(),
                 cmd: "rustc".to_string(),
-                args: vec!["-o".to_string(), code_out_path.to_string(), code_path.to_string()],
+                args: vec![
+                    "-o".to_string(),
+                    code_out_path.to_string(),
+                    code_path.to_string(),
+                ],
                 output: code_out_path.to_string(),
             }),
-            test: None
+            test: None,
         };
         {
             let f = File::create(config_path).unwrap();
@@ -36,8 +41,7 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(
-                pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
             agent.start().unwrap();
         });
         let mut output = Vec::new();
@@ -47,7 +51,8 @@ fn test_rust() {
             memory_limit: 1024 * 1024 * 1024,
         });
         let req_bytes = rmp_serde::to_vec_named(&req).unwrap();
-        pipe.write_all(&(req_bytes.len() as u32).to_le_bytes()).unwrap();
+        pipe.write_all(&(req_bytes.len() as u32).to_le_bytes())
+            .unwrap();
         pipe.write_all(&req_bytes).unwrap();
         pipe.flush().unwrap();
         let mut sz = [0u8; 4];
@@ -75,8 +80,7 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(
-                pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
             agent.start().unwrap();
         });
         let mut output = Vec::new();
@@ -87,7 +91,8 @@ fn test_rust() {
                 memory_limit: 1024 * 1024 * 1024,
             });
             let req_bytes = rmp_serde::to_vec_named(&req).unwrap();
-            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes()).unwrap();
+            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes())
+                .unwrap();
             pipe.write_all(&req_bytes).unwrap();
         }
         {
@@ -95,7 +100,8 @@ fn test_rust() {
                 input: "1\n".to_string().into_bytes(),
             });
             let req_bytes = rmp_serde::to_vec_named(&req).unwrap();
-            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes()).unwrap();
+            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes())
+                .unwrap();
             pipe.write_all(&req_bytes).unwrap();
         }
         pipe.flush().unwrap();
@@ -105,14 +111,15 @@ fn test_rust() {
         pipe.read_exact(&mut output).unwrap();
         let resp = match rmp_serde::from_slice(&output).unwrap() {
             Response::Test(v) => v,
-            Response::Error{ kind: k } => panic!("{:?}", k),
+            Response::Error { kind: k } => panic!("{:?}", k),
             e => panic!(e),
         };
         println!("{:?}", resp);
         {
             let req = Request::Fin;
             let req_bytes = rmp_serde::to_vec_named(&req).unwrap();
-            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes()).unwrap();
+            pipe.write_all(&(req_bytes.len() as u32).to_le_bytes())
+                .unwrap();
             pipe.write_all(&req_bytes).unwrap();
         }
         handler.join().unwrap();

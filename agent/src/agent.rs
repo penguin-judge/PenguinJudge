@@ -1,15 +1,18 @@
-use std::sync::{Arc, Mutex};
-use std::process::{Command, Stdio};
 use std::fs::{File, Permissions};
-use std::io::{BufReader, BufWriter, Read, Write, Error, ErrorKind, Result};
-use std::time::Duration;
-use std::thread::spawn;
+use std::io::{BufReader, BufWriter, Error, ErrorKind, Read, Result, Write};
 use std::os::unix::fs::PermissionsExt;
+use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
+use std::thread::spawn;
+use std::time::Duration;
 
 use wait_timeout::ChildExt;
 
 use crate::config::Config;
-use crate::models::{Request, Response, TestResult, ErrorResult, TestRequest, Compilation, Preparation, CompilationResult};
+use crate::models::{
+    Compilation, CompilationResult, ErrorResult, Preparation, Request, Response, TestRequest,
+    TestResult,
+};
 
 pub struct Agent<R: Read, W: Write> {
     config: Config,
@@ -51,23 +54,19 @@ impl<R: Read, W: Write> Agent<R, W> {
             Request::Compilation(c) => {
                 let resp = self.process_compile(c)?;
                 return self.send(&resp);
-            },
+            }
             Request::Preparation(p) => {
                 self.process_prepare(p)?;
-            },
+            }
             _ => return Err(Error::new(ErrorKind::InvalidInput, "Invalid First Message")),
         };
         loop {
             let req = match self.recv()? {
                 Request::Fin => {
                     break;
-                },
-                Request::Test(r) => {
-                    r
-                },
-                _ => {
-                    return Err(Error::new(ErrorKind::InvalidInput, "TestRequest required"))
-                },
+                }
+                Request::Test(r) => r,
+                _ => return Err(Error::new(ErrorKind::InvalidInput, "TestRequest required")),
             };
             let res = self.process_test(req)?;
             self.send(&res)?;
@@ -86,26 +85,27 @@ impl<R: Read, W: Write> Agent<R, W> {
         for arg in &compile_cfg.args {
             cmd.arg(arg);
         }
-        let mut child = cmd
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?;
+        let mut child = cmd.stdout(Stdio::null()).stderr(Stdio::null()).spawn()?;
         match child.wait_timeout(timeout)? {
             Some(status) => {
                 if status.success() {
                     if let Ok(mut f) = File::open(&compile_cfg.output) {
                         let mut bin = Vec::new();
                         if f.read_to_end(&mut bin).is_ok() {
-                            return Ok(Response::Compilation(CompilationResult {binary: bin}));
+                            return Ok(Response::Compilation(CompilationResult { binary: bin }));
                         }
                     }
                 }
-                Ok(Response::Error{ kind: ErrorResult::CompilationError})
-            },
+                Ok(Response::Error {
+                    kind: ErrorResult::CompilationError,
+                })
+            }
             None => {
                 child.kill()?;
                 child.wait()?;
-                Ok(Response::Error{ kind: ErrorResult::TimeLimitExceeded})
+                Ok(Response::Error {
+                    kind: ErrorResult::TimeLimitExceeded,
+                })
             }
         }
     }
@@ -145,7 +145,10 @@ impl<R: Read, W: Write> Agent<R, W> {
                     Ok(0) | Err(_) => break,
                     Ok(s) => s,
                 };
-                child_output.lock().unwrap().extend_from_slice(&buf[0..size]);
+                child_output
+                    .lock()
+                    .unwrap()
+                    .extend_from_slice(&buf[0..size]);
             }
         });
         match child.wait_timeout(timeout)? {
@@ -153,16 +156,20 @@ impl<R: Read, W: Write> Agent<R, W> {
                 handler.join().unwrap();
                 if status.success() {
                     return Ok(Response::Test(TestResult {
-                        output: output.lock().unwrap().clone()
+                        output: output.lock().unwrap().clone(),
                     }));
                 }
-                Ok(Response::Error {kind: ErrorResult::RuntimeError})
-            },
+                Ok(Response::Error {
+                    kind: ErrorResult::RuntimeError,
+                })
+            }
             None => {
                 child.kill()?;
                 child.wait()?;
                 handler.join().unwrap();
-                Ok(Response::Error {kind: ErrorResult::TimeLimitExceeded})
+                Ok(Response::Error {
+                    kind: ErrorResult::TimeLimitExceeded,
+                })
             }
         }
     }
@@ -185,7 +192,7 @@ impl<R: Read, W: Write> Agent<R, W> {
     fn send(&mut self, v: &Response) -> Result<()> {
         let v = match rmp_serde::to_vec_named(v) {
             Ok(v) => v,
-            Err(e) => return Err(Error::new(ErrorKind::InvalidData, e))
+            Err(e) => return Err(Error::new(ErrorKind::InvalidData, e)),
         };
         let size_bytes = (v.len() as u32).to_le_bytes();
         self.writer.write_all(&size_bytes)?;

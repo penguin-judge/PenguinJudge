@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize, Serializer};
 use std::io::Write;
-use serde::{Serialize, Deserialize, Serializer};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Compilation {
@@ -59,9 +59,7 @@ pub enum ErrorResult {
 pub enum Response {
     Compilation(CompilationResult),
     Test(TestResult),
-    Error {
-        kind: ErrorResult
-    },
+    Error { kind: ErrorResult },
 }
 
 impl Serialize for ErrorResult {
