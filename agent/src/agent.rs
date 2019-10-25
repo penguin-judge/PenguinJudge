@@ -83,7 +83,7 @@ impl<R: Read, W: Write> Agent<R, W> {
                         if f.read_to_end(&mut bin).is_ok() {
                             return Ok(Response::Compilation(CompilationResult {
                                 binary: bin,
-                                time: d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+                                time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
                             }));
                         }
                     }
@@ -151,7 +151,7 @@ impl<R: Read, W: Write> Agent<R, W> {
                 if status.success() {
                     return Ok(Response::Test(TestResult {
                         output: output.lock().unwrap().clone(),
-                        time: d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+                        time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
                     }));
                 }
                 Ok(Response::Error {
