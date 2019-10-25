@@ -20,3 +20,14 @@
       * 標準入力でテストデータを注入
       * 標準出力と、正答を比較し、一致するかどうかのみを返却
       * RE / TLE
+
+## docker-compose
+
+docker-composeを使った起動方法
+
+```
+$ cd container
+$ cd ./build.sh
+$ cd ..
+$ docker-compose up --build
+```
