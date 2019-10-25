@@ -41,7 +41,11 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(
+                Config::load_from_default_path(),
+                pipe_agent.try_clone().unwrap(),
+                pipe_agent,
+            );
             agent.start().unwrap();
         });
         let mut output = Vec::new();
@@ -80,7 +84,11 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(
+                Config::load_from_default_path(),
+                pipe_agent.try_clone().unwrap(),
+                pipe_agent,
+            );
             agent.start().unwrap();
         });
         let mut output = Vec::new();

@@ -25,13 +25,7 @@ pub struct Agent<R: Read, W: Write> {
 }
 
 impl<R: Read, W: Write> Agent<R, W> {
-    pub fn new(reader: R, writer: W) -> Self {
-        let path = Self::get_config_path();
-        let config: Config = {
-            let file = File::open(path).unwrap();
-            let reader = BufReader::new(file);
-            serde_json::from_reader(reader).unwrap()
-        };
+    pub fn new(config: Config, reader: R, writer: W) -> Self {
         Agent {
             config,
             reader: BufReader::new(reader),
@@ -39,13 +33,6 @@ impl<R: Read, W: Write> Agent<R, W> {
             buf: Vec::new(),
             time_limit: 0,
             memory_limit: 0,
-        }
-    }
-
-    fn get_config_path() -> String {
-        match std::env::var_os("PENGUIN_JUDGE_AGENT_CONFIG") {
-            Some(v) => v.into_string().unwrap(),
-            None => "/config.json".to_string(),
         }
     }
 
