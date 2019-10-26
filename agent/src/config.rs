@@ -6,7 +6,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CompilationConfig {
+    #[serde(default)]
     pub path: String,
+    #[serde(default)]
+    pub ext: String,
+    #[serde(default)]
     pub output: String,
     pub cmd: String,
     #[serde(default)]
@@ -15,7 +19,11 @@ pub struct CompilationConfig {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TestConfig {
+    #[serde(default)]
     pub path: String,
+    #[serde(default)]
+    pub ext: String,
+    #[serde(default)]
     pub cmd: String,
     #[serde(default)]
     pub args: Vec<String>,

@@ -66,8 +66,12 @@ class DockerJudgeDriver(JudgeDriver):
         self.client = docker.APIClient()
         self.compile_container = None
         self.test_container = None
+        self.time_limit = None
+        self.memory_limit = None
 
     def prepare(self, task: dict) -> None:
+        self.time_limit = task['problem']['time_limit']
+        self.memory_limit = task['problem']['memory_limit']
         if task['environment'].get('compile_image_name'):
             self.compile_container = self.client.create_container(
                 task['environment'].get('compile_image_name'), stdin_open=True)
@@ -91,8 +95,8 @@ class DockerJudgeDriver(JudgeDriver):
             self._send(s, {
                 'type': 'Compilation',
                 'code': task['code'],
-                'time_limit': 10,
-                'memory_limit': 10,
+                'time_limit': self.time_limit,  # TODO(*): コンパイルのタイムアウトはどうする？
+                'memory_limit': self.memory_limit,  # TODO(*): コンパイルのメモリ上限はどうする？
             })
             resp = self._recv(s)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
@@ -122,8 +126,8 @@ class DockerJudgeDriver(JudgeDriver):
             self._send(s, {
                 'type': 'Preparation',
                 'code': task['code'],
-                'time_limit': 10,
-                'memory_limit': 10,
+                'time_limit': self.time_limit,
+                'memory_limit': self.memory_limit,
             })
 
             status_set = set()

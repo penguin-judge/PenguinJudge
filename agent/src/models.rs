@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize, Serializer};
 use std::io::Write;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Compilation {
     #[serde(with = "serde_bytes")]
     pub code: Vec<u8>,
@@ -46,7 +46,7 @@ pub struct TestResult {
     pub time: f64,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub enum ErrorResult {
     CompilationError,
     RuntimeError,
