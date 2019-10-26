@@ -92,11 +92,12 @@ class DockerJudgeDriver(JudgeDriver):
             s = self.client.attach_socket(
                 self.compile_container,
                 params={'stdin': 1, 'stdout': 1, 'stream': 1})
+            # TODO(*): コンパイルのタイムアウト/メモリ上限はどうする?
             self._send(s, {
                 'type': 'Compilation',
                 'code': task['code'],
-                'time_limit': self.time_limit,  # TODO(*): コンパイルのタイムアウトはどうする？
-                'memory_limit': self.memory_limit,  # TODO(*): コンパイルのメモリ上限はどうする？
+                'time_limit': self.time_limit,
+                'memory_limit': self.memory_limit,
             })
             resp = self._recv(s)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
