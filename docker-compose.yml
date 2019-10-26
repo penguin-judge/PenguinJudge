@@ -14,6 +14,7 @@ services:
     build: backend/
     volumes:
       - ./.docker-compose:/mnt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     command: /bin/sh -c "python /mnt/prepare.py && penguin_judge worker -c /mnt/config.ini"
     depends_on:
       - mq

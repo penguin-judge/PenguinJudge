@@ -4,8 +4,7 @@ import enum
 from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
-    Column, ForeignKey, DateTime, Integer, String, LargeBinary, JSON, Enum,
-    func)
+    Column, ForeignKey, DateTime, Integer, String, LargeBinary, Enum, func)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -26,6 +25,14 @@ class JudgeStatus(enum.Enum):
     TimeLimitExceeded = 0x31
     OutputLimitExceeded = 0x32
     InternalError = 0xFF
+
+    @staticmethod
+    def from_str(s: str) -> 'JudgeStatus':
+        s = s.lower()
+        for item in JudgeStatus:
+            if item.name.lower() == s:
+                return item
+        raise RuntimeError
 
 
 class _Exportable(object):
@@ -67,7 +74,8 @@ class Environment(Base, _Exportable):
     __summary_keys__ = ['id', 'name']
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    config = Column(JSON)
+    compile_image_name = Column(String, nullable=True)
+    test_image_name = Column(String)
 
 
 class Contest(Base, _Exportable):
@@ -145,6 +153,7 @@ def configure(**kwargs: str) -> None:
             import random
             time.sleep(random.uniform(0.05, 0.1))
     Session.configure(bind=engine)  # type: ignore
+    _insert_debug_data()  # デバッグ用に初期データを投入
 
 
 def get_db_config() -> Dict[str, str]:
@@ -161,3 +170,56 @@ def transaction() -> Iterator[scoped_session]:
         raise
     finally:
         Session.remove()
+
+
+def _insert_debug_data() -> None:
+    import datetime
+    from typing import Any
+    from zstandard import ZstdCompressor  # type: ignore
+
+    def _add(o: Any) -> None:
+        try:
+            with transaction() as s:
+                if isinstance(o, Environment):
+                    if s.query(Environment).filter(
+                            Environment.name == o.name).first():
+                        return
+                s.add(o)
+        except Exception:
+            pass
+
+    ctx = ZstdCompressor()
+
+    _add(Environment(
+        name="C (gcc 8.2)",
+        compile_image_name="penguin_judge_c_compile:8.2",
+        test_image_name="penguin_judge_c_judge:8.2"))
+    _add(Environment(
+        name="Python3 (3.8.0)",
+        test_image_name="penguin_judge_python:3.8"))
+    _add(Contest(
+        id="abc000",
+        title="ABC000",
+        description="# Title\nMarkdown Test\n\n* Item0\n* Item1\n",
+        start_time=datetime.datetime.now(tz=datetime.timezone.utc),
+        end_time=datetime.datetime.now(
+            tz=datetime.timezone.utc) + datetime.timedelta(days=365)))
+    _add(Problem(
+        contest_id="abc000",
+        id="A",
+        title="Increment",
+        description="# Increment\n\n標準入力から与えられた整数を1インクリメントした値を出力する",
+        time_limit=10,
+        memory_limit=1024))
+    _add(TestCase(
+        contest_id="abc000",
+        problem_id="A",
+        id="1",
+        input=ctx.compress(b'1\n'),
+        output=ctx.compress(b'2\n')))
+    _add(TestCase(
+        contest_id="abc000",
+        problem_id="A",
+        id="100",
+        input=ctx.compress(b'100\n'),
+        output=ctx.compress(b'101\n')))

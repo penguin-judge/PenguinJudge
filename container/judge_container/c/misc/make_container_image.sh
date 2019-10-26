@@ -1,1 +1,0 @@
-sudo docker build -t "judge_container_c" $(dirname $0)/..

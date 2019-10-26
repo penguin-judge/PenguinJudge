@@ -19,6 +19,7 @@ zstandard = "*"
 docker = "*"
 openapi-core = "*"
 pyyaml = "*"
+msgpack = "*"
 
 [requires]
 python_version = "3.7"
