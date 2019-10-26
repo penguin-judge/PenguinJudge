@@ -3,7 +3,8 @@ use std::fs::{remove_file, File, Permissions};
 use std::hash::{Hash, Hasher};
 use std::io::{BufReader, BufWriter, Error, ErrorKind, Read, Result, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::process::{id as get_pid, Command, Stdio};
+use std::os::unix::process::ExitStatusExt;
+use std::process::{id as get_pid, Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread::{current as current_thread, spawn};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -148,13 +149,20 @@ impl<R: Read, W: Write> Agent<R, W> {
                         if f.read_to_end(&mut bin).is_ok() {
                             return Ok(Response::Compilation(CompilationResult {
                                 binary: bin,
-                                time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
+                                time: d.as_secs_f64(),
+                                memory: 0,
                             }));
                         }
                     }
                 }
                 Ok(Response::Error {
-                    kind: ErrorResult::CompilationError,
+                    kind: {
+                        if Self::is_oom(status) {
+                            ErrorResult::MemoryLimitExceeded
+                        } else {
+                            ErrorResult::CompilationError
+                        }
+                    },
                 })
             }
             None => {
@@ -216,11 +224,18 @@ impl<R: Read, W: Write> Agent<R, W> {
                 if status.success() {
                     return Ok(Response::Test(TestResult {
                         output: output.lock().unwrap().clone(),
-                        time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
+                        time: d.as_secs_f64(),
+                        memory: 0,
                     }));
                 }
                 Ok(Response::Error {
-                    kind: ErrorResult::RuntimeError,
+                    kind: {
+                        if Self::is_oom(status) {
+                            ErrorResult::MemoryLimitExceeded
+                        } else {
+                            ErrorResult::RuntimeError
+                        }
+                    },
                 })
             }
             None => {
@@ -232,6 +247,10 @@ impl<R: Read, W: Write> Agent<R, W> {
                 })
             }
         }
+    }
+
+    fn is_oom(s: ExitStatus) -> bool {
+        s.code().is_none() && s.signal().is_some() && s.signal().unwrap() == 9
     }
 
     fn recv(&mut self) -> Result<Request> {

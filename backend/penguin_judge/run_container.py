@@ -72,20 +72,33 @@ class DockerJudgeDriver(JudgeDriver):
     def prepare(self, task: dict) -> None:
         self.time_limit = task['problem']['time_limit']
         self.memory_limit = task['problem']['memory_limit']
+        mem_limit = self.memory_limit * (2**20)
+        common_cfg = dict(
+            stdin_open=True,
+            network_disabled=True,
+            host_config=self.client.create_host_config(
+                auto_remove=True,
+                cap_drop=['ALL'],
+                mem_limit=mem_limit,
+                memswap_limit=mem_limit,
+            ),
+        )
         if task['environment'].get('compile_image_name'):
             self.compile_container = self.client.create_container(
-                task['environment'].get('compile_image_name'), stdin_open=True)
+                task['environment'].get('compile_image_name'), **common_cfg)
             self.client.start(self.compile_container)
         self.test_container = self.client.create_container(
-            task['environment']['test_image_name'], stdin_open=True)
+            task['environment']['test_image_name'], **common_cfg)
         self.client.start(self.test_container)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         for c in (self.compile_container, self.test_container):
             if not c:
                 continue
-            self.client.kill(c)
-            self.client.remove_container(c)
+            try:
+                self.client.kill(c)
+            except Exception:
+                pass
 
     def compile(self, task: dict) -> Union[JudgeStatus, Tuple[bytes, float]]:
         try:
