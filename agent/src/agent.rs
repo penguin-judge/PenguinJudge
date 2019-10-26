@@ -480,4 +480,30 @@ mod tests {
             _ => assert!(false),
         }
     }
+
+
+    /*
+    #[test]
+    fn test_memory_limit() {
+        // メモリ制限超
+        let binary = compile("fn main() {
+  let mut v: Vec<u8> = Vec::new();
+  v.resize(1024 * 1024 * 128, 1);
+  let mut x = 0u64;
+  for i in 0..v.len() {
+    x += v[i] as u64;
+  }
+  println!(\"{}\", x);
+}").unwrap();
+        let (mut agent, _) = create_agent(Config {
+            compile: None,
+            test: Some(get_test_config()),
+        });
+        prepare(&mut agent, binary, None, Some(64));
+        let req = TestRequest { input: vec![] };
+        match agent.process_test(req) {
+            Ok(Response::Error{kind}) => assert_eq!(kind, ErrorResult::MemoryLimitExceeded),
+            _ => assert!(false),
+        }
+    }*/
 }
