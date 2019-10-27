@@ -66,8 +66,8 @@ class DockerJudgeDriver(JudgeDriver):
         self.client = docker.APIClient()
         self.compile_container = None
         self.test_container = None
-        self.time_limit = None
-        self.memory_limit = None
+        self.time_limit = 0
+        self.memory_limit = 0
 
     def prepare(self, task: dict) -> None:
         self.time_limit = task['problem']['time_limit']
@@ -142,6 +142,7 @@ class DockerJudgeDriver(JudgeDriver):
                 'code': task['code'],
                 'time_limit': self.time_limit,
                 'memory_limit': self.memory_limit,
+                'output_limit': 1,
             })
 
             status_set = set()

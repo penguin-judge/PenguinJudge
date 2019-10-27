@@ -23,6 +23,7 @@ pub struct Preparation {
     pub code: Vec<u8>,
     pub time_limit: u32,
     pub memory_limit: u32,
+    pub output_limit: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,7 +46,7 @@ pub struct TestResult {
     #[serde(with = "serde_bytes")]
     pub output: Vec<u8>,
     pub time: f64,
-    pub memory: u32,
+    pub memory_bytes: u64,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
