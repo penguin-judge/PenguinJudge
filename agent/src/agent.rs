@@ -281,7 +281,6 @@ impl<R: Read, W: Write> Agent<R, W> {
                 }
             }
         };
-        handler.join().unwrap();
         let status = match child.try_wait()? {
             Some(s) => s,
             None => {
@@ -289,11 +288,17 @@ impl<R: Read, W: Write> Agent<R, W> {
                 child.wait()?
             }
         };
-        let is_ole_error = match &resp {
-            Response::Error { kind } => *kind == ErrorResult::OutputLimitExceeded,
+        handler.join().unwrap();
+        let ignore_exit_status = match &resp {
+            Response::Error {
+                kind: ErrorResult::OutputLimitExceeded,
+            }
+            | Response::Error {
+                kind: ErrorResult::TimeLimitExceeded,
+            } => true,
             _ => false,
         };
-        if !status.success() && !is_ole_error {
+        if !status.success() && !ignore_exit_status {
             if is_oom(status) {
                 resp = Response::Error {
                     kind: ErrorResult::MemoryLimitExceeded,
