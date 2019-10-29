@@ -610,7 +610,17 @@ mod tests {
         });
         prepare(&mut agent, binary, None, Some(64));
         let req = TestRequest { input: vec![] };
-        match agent.process_test(req) {
+        let ret = agent.process_test(req);
+        Command::new("sudo")
+            .arg("bash")
+            .arg("-c")
+            .arg(format!(
+                "echo -1 > {}/memory.memsw.limit_in_bytes; echo -1 > {}/memory.limit_in_bytes",
+                cgroups_dir, cgroups_dir,
+            ))
+            .status()
+            .unwrap();
+        match ret {
             Ok(Response::Error { kind }) => assert_eq!(kind, ErrorResult::MemoryLimitExceeded),
             _ => assert!(false),
         }
