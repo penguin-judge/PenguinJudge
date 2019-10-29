@@ -1,6 +1,12 @@
 import { customElement, LitElement, html, css, unsafeCSS } from 'lit-element';
 import { HeaderHeight, HeaderHeightPx } from './consts';
-import { router, session } from './state';
+//import { router, session } from './state';
+import {session} from './state';
+import '@lit-element-bootstrap/layout';
+import '@lit-element-bootstrap/button';
+import '@lit-element-bootstrap/navs';
+import '@lit-element-bootstrap/navbar';
+import '@lit-element-bootstrap/form';
 
 @customElement('penguin-judge-header')
 export class PenguinJudgeHeaderElement extends LitElement {
@@ -13,35 +19,23 @@ export class PenguinJudgeHeaderElement extends LitElement {
 
   render() {
     let title = 'Penguin Judge';
-    let title_link = router.generate('home');
+//    let title_link = router.generate('home');
     if (session.contest) {
       title = session.contest.title;
-      title_link = router.generate('contest-top', {id: session.contest.id});
+//      title_link = router.generate('contest-top', {id: session.contest.id});
     }
     return html`
-      <span id="icon-area">
-        <x-anchor href="${router.generate('home')}"><img id="icon" src="/images/penguin.png"></x-anchor>
-      </span>
-      <span id="title">
-        <x-anchor href="${title_link}">${title}</x-anchor>
-      </span>
-      <span id="extra">
-        <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('home')}">
-            <x-icon key="home"></x-icon>
-          </x-anchor>
-        </span>
-        <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('contests')}">
-            <x-icon key="insert_chart_outlined"></x-icon>
-          </x-anchor>
-        </span>
-        <span tabindex="0" style="cursor: pointer; margin-left: 1ex">
-          <x-icon key="person"></x-icon>
-          <span>ringo</span>
-          <span class="dropdown-caret"></span>
-        </span>
-      </span>
+    <bs-navbar navbar-light expand-lg class="bg-light">
+        <bs-navbar-brand-link><img id="icon" src="/images/penguin.png"> ${title}</bs-navbar-brand-link>
+        <bs-navbar-collapse>
+            <bs-navbar-nav>
+                <bs-nav-item><bs-nav-link active>Home</bs-nav-link></bs-nav-item>
+                <bs-nav-item><bs-nav-link>Features</bs-nav-link></bs-nav-item>
+                <bs-nav-item><bs-nav-link>Pricing</bs-nav-link></bs-nav-item>
+                <bs-nav-item><bs-nav-link disabled>Disabled</bs-nav-link></bs-nav-item>
+            </bs-navbar-nav>
+        </bs-navbar-collapse>
+    </bs-navbar>
     `;
   }
 
@@ -95,7 +89,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
         border-right: 4px solid transparent;
         border-bottom: 0px solid transparent;
         border-left: 4px solid transparent;
-      } 
+      }
     `;
   }
 }

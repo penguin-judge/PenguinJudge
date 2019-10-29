@@ -11,6 +11,7 @@ import './components/icon';
 import './components/panel';
 import { HeaderHeight } from './consts';
 import { router, session } from './state';
+import '@lit-element-bootstrap/layout';
 
 import { customElement, LitElement, html, css, property } from 'lit-element';
 
@@ -62,7 +63,12 @@ export class AppRootElement extends LitElement {
   }
 
   render() {
-    return html`<penguin-judge-header></penguin-judge-header><div id="container">${this.route}</div>`
+    return html`
+    <bs-container>
+        <div class="header"><penguin-judge-header></penguin-judge-header></div>
+        <div class="body" id="container">${this.route}</div>
+    </bs-container>
+    `
   }
 
   static get styles() {
