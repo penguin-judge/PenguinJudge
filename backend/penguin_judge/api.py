@@ -181,6 +181,26 @@ def list_own_submissions(contest_id: str) -> Response:
     return jsonify(ret)
 
 
+@app.route('/contests/<contest_id>/problems')
+def list_problems(contest_id: str) -> Response:
+    with transaction() as s:
+        ret = [p.to_summary_dict() for p in s.query(Problem).filter(
+            Problem.contest_id == contest_id).all()]
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>')
+def get_problem(contest_id: str, problem_id: str) -> Response:
+    with transaction() as s:
+        ret = s.query(Problem).filter(
+            Problem.contest_id == contest_id,
+            Problem.id == problem_id).fisrt()
+        if not ret:
+            abort(404)
+        ret = ret.to_dict()
+    return jsonify(ret)
+
+
 @app.route('/contests/<contest_id>/problems/<problem_id>/submission')
 def get_own_submissions(contest_id: str, problem_id: str) -> Response:
     ret = []

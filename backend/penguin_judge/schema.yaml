@@ -116,6 +116,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submissions"
+  /contests/{contest_id}/problems:
+    get:
+      operationId: listProblems
+      description: コンテストの問題一覧を取得
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: 問題一覧
+          content:
+            application/json:
+              schema:
+                $ref "#/components/schemas/Problems"
+  /contests/{contest_id}/problems/{problem_id}:
+    get:
+      operationId: getProblem
+      description: コンテストの問題の詳細情報を取得
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 問題の詳細情報
+          content:
+            application/json:
+              schema:
+                $ref "#/components/schemas/Problem"
   /contests/{contest_id}/problems/{problem_id}/submission:
     post:
       operationId: postSubmission
