@@ -1,5 +1,6 @@
 import './views/header';
 import './views/home';
+import './views/login';
 import './views/contests';
 import './views/contest-frame';
 import './views/contest-top';
@@ -16,7 +17,7 @@ import { customElement, LitElement, html, css, property } from 'lit-element';
 
 @customElement('x-root')
 export class AppRootElement extends LitElement {
-  @property({type: Object}) route = html``;
+  @property({ type: Object }) route = html``;
 
   constructor() {
     super();
@@ -28,17 +29,20 @@ export class AppRootElement extends LitElement {
       ['contests/:id/tasks', 'contest-tasks', html`<x-contest-tasks></x-contest-tasks>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks/:task_id', 'contest-task', html`<x-contest-task></x-contest-task>`, this._wait_fetch_contest_info],
       ['contests/:id/submissions/me', 'contest-submissions-me', html`<penguin-judge-contest-submission-results />`, this._wait_fetch_contest_info],
+      ['login', 'login', html`<x-login></x-login>`, null],
       ['', 'home', html`<x-home></x-home>`, null],
     ];
     routes.forEach((v) => {
       const [path, name, body, before_hook] = v;
       let hooks = undefined;
       if (before_hook) {
-        hooks = {before: before_hook};
+        hooks = { before: before_hook };
       }
-      router.on(path, {as: name, uses: (params: {[key: string]: string}) => {
+      router.on(path, {
+        as: name, uses: (params: { [key: string]: string }) => {
           this._route_handler(path, body, params);
-      }}, hooks);
+        }
+      }, hooks);
     });
     router.notFound((_: any) => {
       this.route = html`<h1>HTTP 404: NOT FOUND</h1>`
@@ -46,7 +50,7 @@ export class AppRootElement extends LitElement {
     router.resolve();
   }
 
-  private _route_handler(path: string, body: any, params: {[key: string]: string}) {
+  private _route_handler(path: string, body: any, params: { [key: string]: string }) {
     if (path.startsWith('contests/')) {
       body = html`<penguin-judge-contest-frame>${body}</penguin-judge-contest-frame>`;
     } else {
@@ -57,7 +61,7 @@ export class AppRootElement extends LitElement {
     session.navigated(path);
   }
 
-  private _wait_fetch_contest_info(done: any, params: {[key: string]: string}) {
+  private _wait_fetch_contest_info(done: any, params: { [key: string]: string }) {
     session.enter_contest(params.id).then(_ => done());
   }
 

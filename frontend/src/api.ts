@@ -32,6 +32,10 @@ export interface Submission extends PartialSubmission {
   user_id: string;
 }
 
+export interface Token {
+  token: string;
+  expires_in: number;
+}
 
 export class API {
   static list_contests(): Promise<Array<Contest>> {
@@ -65,7 +69,7 @@ export class API {
     delete submission.problem_id;
     const path = '/api/contests/' + encodeURIComponent(contest_id)
       + "/problems/" + encodeURIComponent(problem_id) + '/submission';
-    const headers = {'Content-Type': 'application/json'};
+    const headers = { 'Content-Type': 'application/json' };
     return new Promise((resolve, reject) => {
       fetch(path, {
         method: 'POST',
@@ -79,16 +83,31 @@ export class API {
 
   static list_own_submissions(
     contest_id: string, problem_id?: string): Promise<Array<Submission>> {
-      let path = '/api/contests/' + encodeURIComponent(contest_id);
-      if (problem_id) {
-        path += '/problems/' + encodeURIComponent(problem_id) + '/submissions';
-      } else {
-        path += '/submissions';
-      }
-      return new Promise((resolve, reject) => {
-        fetch(path).then((res) => {
-          resolve(res.json());
-        }).catch(reject);
-      });
+    let path = '/api/contests/' + encodeURIComponent(contest_id);
+    if (problem_id) {
+      path += '/problems/' + encodeURIComponent(problem_id) + '/submissions';
+    } else {
+      path += '/submissions';
+    }
+    return new Promise((resolve, reject) => {
+      fetch(path).then((res) => {
+        resolve(res.json());
+      }).catch(reject);
+    });
+  }
+
+  static login(id: string, password: string): Promise<Token> {
+    return fetch('/api/auth', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        password,
+      })
+    }).then(res => {
+      if (!res.ok) throw Error(res.statusText);
+      return res.json();
+    });
   }
 }
