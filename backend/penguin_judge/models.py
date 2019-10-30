@@ -4,8 +4,8 @@ import enum
 from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
-    Column, ForeignKey, DateTime, Integer, String, LargeBinary, Interval, Enum,
-    func)
+    Column, DateTime, Integer, String, LargeBinary, Interval, Enum, func,
+    ForeignKeyConstraint)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -66,8 +66,11 @@ class User(Base, _Exportable):
 class Token(Base, _Exportable):
     __tablename__ = 'tokens'
     token = Column(LargeBinary(32), primary_key=True)
-    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    user_id = Column(String, nullable=False)
     expires = Column(DateTime(timezone=True), nullable=False)
+    __table_args__ = (
+        ForeignKeyConstraint([user_id], [User.id]),  # type: ignore
+    )
 
 
 class Environment(Base, _Exportable):
@@ -98,6 +101,9 @@ class Problem(Base, _Exportable):
     time_limit = Column(Integer, nullable=False)
     memory_limit = Column(Integer, nullable=False)
     description = Column(String, nullable=False)
+    __table_args__ = (
+        ForeignKeyConstraint([contest_id], [Contest.id]),  # type: ignore
+    )
 
 
 class TestCase(Base, _Exportable):
@@ -107,6 +113,10 @@ class TestCase(Base, _Exportable):
     id = Column(String, primary_key=True)
     input = Column(LargeBinary, nullable=False)
     output = Column(LargeBinary, nullable=False)
+    __table_args__ = (
+        ForeignKeyConstraint([contest_id, problem_id],  # type: ignore
+                             [Problem.contest_id, Problem.id]),
+    )
 
 
 class Submission(Base, _Exportable):
@@ -125,6 +135,15 @@ class Submission(Base, _Exportable):
     compile_time = Column(Interval, nullable=True)
     created = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            [contest_id, problem_id],  # type: ignore
+            [Problem.contest_id, Problem.id]),
+        ForeignKeyConstraint(
+            [user_id], [User.id]),  # type: ignore
+        ForeignKeyConstraint(
+            [environment_id], [Environment.id]),  # type: ignore
+    )
 
 
 class JudgeResult(Base, _Exportable):
@@ -137,6 +156,14 @@ class JudgeResult(Base, _Exportable):
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,
         nullable=False)
     time = Column(Interval, nullable=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            [contest_id, problem_id, submission_id],  # type: ignore
+            [Submission.contest_id, Submission.problem_id, Submission.id]),
+        ForeignKeyConstraint(
+            [contest_id, problem_id, test_id],  # type: ignore
+            [TestCase.contest_id, TestCase.problem_id, TestCase.id]),
+    )
 
 
 def configure(**kwargs: str) -> None:
