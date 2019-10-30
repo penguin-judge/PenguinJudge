@@ -12,5 +12,16 @@
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.9",
     "webpack-dev-server": "^3.8.2"
+  },
+  "dependencies": {
+    "@lit-element-bootstrap/button": "^1.0.0-alpha.7",
+    "@lit-element-bootstrap/collapse": "^1.0.0-alpha.2",
+    "@lit-element-bootstrap/content": "^1.0.0-alpha.3",
+    "@lit-element-bootstrap/dropdown": "^1.0.0-alpha.4",
+    "@lit-element-bootstrap/form": "^1.0.0-alpha.3",
+    "@lit-element-bootstrap/layout": "^1.0.0-alpha.4",
+    "@lit-element-bootstrap/navbar": "^1.0.0-alpha.2",
+    "@lit-element-bootstrap/navs": "^1.0.0-alpha.2",
+    "@lit-element-bootstrap/utilities": "^1.0.0-alpha.4"
   }
 }
