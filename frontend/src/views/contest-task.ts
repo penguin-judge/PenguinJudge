@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
-import { API } from './api';
-import { session } from './state';
+import { API } from '../api';
+import { session } from '../state';
 
 @customElement('x-contest-task')
 export class AppContestTaskElement extends LitElement {

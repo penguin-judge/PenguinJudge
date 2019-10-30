@@ -1,15 +1,15 @@
-import './header';
-import './home';
-import './contests';
-import './contest-frame';
-import './contest-top';
-import './contest-tasks';
-import './contest-task';
-import './contest-submission-results';
+import './views/header';
+import './views/home';
+import './views/contests';
+import './views/contest-frame';
+import './views/contest-top';
+import './views/contest-tasks';
+import './views/contest-task';
+import './views/contest-submission-results';
 import './components/anchor';
 import './components/icon';
 import './components/panel';
-import { HeaderHeight } from './consts';
+import { HeaderHeight } from './views/consts';
 import { router, session } from './state';
 
 import { customElement, LitElement, html, css, property } from 'lit-element';
@@ -37,7 +37,7 @@ export class AppRootElement extends LitElement {
         hooks = {before: before_hook};
       }
       router.on(path, {as: name, uses: (params: {[key: string]: string}) => {
-        this._route_handler(path, body, params);
+          this._route_handler(path, body, params);
       }}, hooks);
     });
     router.notFound((_: any) => {

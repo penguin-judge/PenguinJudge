@@ -1,13 +1,13 @@
 import { customElement, LitElement, html, property, css } from 'lit-element';
 
-import { API } from './api';
+import { API } from '../api';
 import { MainAreaPaddingPx } from './consts';
-import { router } from './state';
-import { format_datetime, format_timespan } from './utils';
+import { router } from '../state';
+import { format_datetime, format_timespan } from '../utils';
 
 @customElement('x-contests')
 export class AppContentsElement extends LitElement {
-  @property({type: Object}) contests = html``;
+  @property({ type: Object }) contests = html``;
 
   constructor() {
     super()
@@ -16,7 +16,7 @@ export class AppContentsElement extends LitElement {
       contests.forEach((c) => {
         tmp.push(html`<tr>
           <td>${format_datetime(c.start_time)}</td>
-          <td><x-anchor href="${router.generate('contest-top', {id: c.id})}">${c.title}</x-anchor></td>
+          <td><x-anchor href="${router.generate('contest-top', { id: c.id })}">${c.title}</x-anchor></td>
           <td>${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</td>
         </tr>`);
       });

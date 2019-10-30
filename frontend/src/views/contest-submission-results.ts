@@ -1,8 +1,8 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription } from 'rxjs';
-import { API, Submission } from './api';
-import { session } from './state';
-import { format_datetime_detail } from './utils';
+import { API, Submission } from '../api';
+import { session } from '../state';
+import { format_datetime_detail } from '../utils';
 
 @customElement('penguin-judge-contest-submission-results')
 export class PenguinJudgeContestSubmissionResults extends LitElement {
