@@ -10,7 +10,7 @@ from flask import Flask, abort, request, Response, make_response
 from zstandard import ZstdCompressor, ZstdDecompressor  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.shortcuts import RequestValidator  # type: ignore
-from openapi_core.wrappers.flask import FlaskOpenAPIRequest  # type: ignore
+from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 
 from penguin_judge.models import (
