@@ -81,6 +81,7 @@ class Environment(Base, _Exportable):
 
 class Contest(Base, _Exportable):
     __tablename__ = 'contests'
+    __updatable_keys__ = ['title', 'description', 'start_time', 'end_time']
     __summary_keys__ = ['id', 'title', 'start_time', 'end_time']
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)

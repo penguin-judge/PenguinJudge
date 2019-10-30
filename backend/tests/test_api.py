@@ -1,4 +1,5 @@
 from http.cookiejar import CookieJar
+from datetime import datetime, timezone, timedelta
 import unittest
 from functools import partial
 from webtest import TestApp
@@ -74,3 +75,39 @@ class TestAPI(unittest.TestCase):
         app.authorization = None
         self.assertEqual(u, app.get(
             '/user', headers={'X-Auth-Token': token}).json)
+
+    def test_create_and_modify_contest(self):
+        def _invalid_post(body, status=400):
+            app.post_json('/contests', body, status=status)
+
+        def _invalid_patch(id, body, status=400):
+            app.patch_json('/contests/{}'.format(id), body, status=status)
+
+        start_time = datetime.now(tz=timezone.utc)
+        end_time = start_time + timedelta(hours=1)
+        c = {
+            'id': 'abc000',
+            'title': 'ABC000',
+            'description': '# ABC000\n\nほげほげ\n',
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+        }
+
+        _invalid_post({})
+        _invalid_post(dict(id='a', title='A', description='',
+                           start_time=start_time.isoformat(),
+                           end_time=start_time.isoformat()))
+
+        c2 = app.post_json('/contests', c).json
+        self.assertEqual(c, c2)
+
+        _invalid_patch(c['id'], dict(end_time=start_time.isoformat()))
+
+        patch = {
+            'title': 'Hoge',
+            'end_time': (end_time + timedelta(hours=1)).isoformat(),
+        }
+        c3 = dict(c)
+        c3.update(patch)
+        c4 = app.patch_json('/contests/{}'.format(c['id']), patch).json
+        self.assertEqual(c3, c4)

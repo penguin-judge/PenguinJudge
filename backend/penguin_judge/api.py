@@ -1,5 +1,5 @@
 from base64 import b64encode, b64decode
-import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Any, Union, Tuple, Optional, Dict
 import pickle
 from hashlib import pbkdf2_hmac
@@ -64,7 +64,7 @@ def _validate_token(
         token_bytes = b64decode(token)
     except Exception:
         abort(401)
-    utc_now = datetime.datetime.now(tz=datetime.timezone.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
     def _check(s: scoped_session) -> str:
         t = s.query(Token).filter(Token.token == token_bytes).first()
@@ -82,8 +82,7 @@ def authenticate() -> Response:
     _, body = _validate_request()
     token = os.urandom(32)
     expires_in = 365 * 24 * 60 * 60
-    expires = datetime.datetime.now(
-        datetime.timezone.utc) + datetime.timedelta(seconds=expires_in)
+    expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     with transaction() as s:
         u = s.query(User).filter(User.id == body.id).first()
         if not u:
@@ -150,6 +149,42 @@ def list_contests() -> Response:
     with transaction() as s:
         for c in s.query(Contest):
             ret.append(c.to_summary_dict())
+    return jsonify(ret)
+
+
+@app.route('/contests', methods=['POST'])
+def create_contest() -> Response:
+    # TODO(kazuki): adminのみにする
+    _, body = _validate_request()
+    if body.start_time >= body.end_time:
+        abort(400, {'detail': 'start_time must be lesser than end_time'})
+    with transaction() as s:
+        contest = Contest(
+            id=body.id,
+            title=body.title,
+            description=body.description,
+            start_time=body.start_time,
+            end_time=body.end_time)
+        s.add(contest)
+        ret = contest.to_dict()
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>', methods=['PATCH'])
+def update_contest(contest_id: str) -> Response:
+    # TODO(kazuki): adminのみにする
+    _, body = _validate_request()
+    with transaction() as s:
+        c = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not c:
+            abort(404)
+        for key in Contest.__updatable_keys__:
+            if not hasattr(body, key):
+                continue
+            setattr(c, key, getattr(body, key))
+        if c.start_time >= c.end_time:
+            abort(400, {'detail': 'start_time must be lesser than end_time'})
+        ret = c.to_dict()
     return jsonify(ret)
 
 
