@@ -1,5 +1,5 @@
 from base64 import b64encode, b64decode
-import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Any, Union, Tuple, Optional, Dict
 import pickle
 from hashlib import pbkdf2_hmac
@@ -10,7 +10,7 @@ from flask import Flask, abort, request, Response, make_response
 from zstandard import ZstdCompressor, ZstdDecompressor  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.shortcuts import RequestValidator  # type: ignore
-from openapi_core.wrappers.flask import FlaskOpenAPIRequest  # type: ignore
+from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 
 from penguin_judge.models import (
@@ -46,8 +46,8 @@ def _validate_request() -> Tuple[dict, Any]:
 
 
 def _validate_token(
-        s: Optional[scoped_session] = None,
-        required: bool = False) -> Optional[str]:
+        s: Optional[scoped_session] = None, required: bool = False,
+        admin_required: bool = False) -> Optional[dict]:
     token = request.headers.get('X-Auth-Token')
     if not token:
         items = request.headers.get('Authorization', '').split(' ', maxsplit=1)
@@ -64,13 +64,19 @@ def _validate_token(
         token_bytes = b64decode(token)
     except Exception:
         abort(401)
-    utc_now = datetime.datetime.now(tz=datetime.timezone.utc)
+    utc_now = datetime.now(tz=timezone.utc)
 
-    def _check(s: scoped_session) -> str:
-        t = s.query(Token).filter(Token.token == token_bytes).first()
-        if not t or t.expires <= utc_now:
+    def _check(s: scoped_session) -> Optional[dict]:
+        ret = s.query(Token.expires, User).filter(
+            Token.token == token_bytes, Token.user_id == User.id).first()
+        if not ret or ret[0] <= utc_now:
+            if required:
+                abort(401)
+            else:
+                return None
+        if admin_required and not ret[1].admin:
             abort(401)
-        return t.user_id
+        return ret[1].to_summary_dict()
     if s:
         return _check(s)
     with transaction() as s:
@@ -82,8 +88,7 @@ def authenticate() -> Response:
     _, body = _validate_request()
     token = os.urandom(32)
     expires_in = 365 * 24 * 60 * 60
-    expires = datetime.datetime.now(
-        datetime.timezone.utc) + datetime.timedelta(seconds=expires_in)
+    expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     with transaction() as s:
         u = s.query(User).filter(User.id == body.id).first()
         if not u:
@@ -102,12 +107,9 @@ def authenticate() -> Response:
 @app.route('/user')
 def get_current_user() -> Response:
     with transaction() as s:
-        uid = _validate_token(s)
-        if not uid:
-            abort(401)
-        u = s.query(User).filter(User.id == uid).first()
-        assert u  # 外部キー制約でuがNoneになることは無い
-        return jsonify(u.to_summary_dict())
+        u = _validate_token(s, required=True)
+    assert(u)
+    return jsonify(u)
 
 
 @app.route('/users/<user_id>')
@@ -125,9 +127,11 @@ def create_user() -> Response:
     salt = os.urandom(16)
     password = _kdf(body.password, salt)
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         if s.query(User).filter(User.id == body.id).first():
             abort(400)
-        user = User(id=body.id, password=password, name=body.name, salt=salt)
+        user = User(id=body.id, password=password, name=body.name, salt=salt,
+                    admin=getattr(body, 'admin', False))
         s.add(user)
         s.flush()
         resp = user.to_summary_dict()
@@ -153,6 +157,42 @@ def list_contests() -> Response:
     return jsonify(ret)
 
 
+@app.route('/contests', methods=['POST'])
+def create_contest() -> Response:
+    _, body = _validate_request()
+    if body.start_time >= body.end_time:
+        abort(400, {'detail': 'start_time must be lesser than end_time'})
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        contest = Contest(
+            id=body.id,
+            title=body.title,
+            description=body.description,
+            start_time=body.start_time,
+            end_time=body.end_time)
+        s.add(contest)
+        ret = contest.to_dict()
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>', methods=['PATCH'])
+def update_contest(contest_id: str) -> Response:
+    _, body = _validate_request()
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        c = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not c:
+            abort(404)
+        for key in Contest.__updatable_keys__:
+            if not hasattr(body, key):
+                continue
+            setattr(c, key, getattr(body, key))
+        if c.start_time >= c.end_time:
+            abort(400, {'detail': 'start_time must be lesser than end_time'})
+        ret = c.to_dict()
+    return jsonify(ret)
+
+
 @app.route('/contests/<contest_id>')
 def get_contest(contest_id: str) -> Response:
     with transaction() as s:
@@ -171,13 +211,35 @@ def get_contest(contest_id: str) -> Response:
 def list_own_submissions(contest_id: str) -> Response:
     ret = []
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         submissions = s.query(Submission).filter(
-                Submission.contest_id == contest_id,
-                Submission.user_id == 'kazuki').all()
+            Submission.contest_id == contest_id,
+            Submission.user_id == u['id']).all()
         if not submissions:
             abort(404)
         for c in submissions:
             ret.append(c.to_summary_dict())
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems')
+def list_problems(contest_id: str) -> Response:
+    with transaction() as s:
+        ret = [p.to_summary_dict() for p in s.query(Problem).filter(
+            Problem.contest_id == contest_id).all()]
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>')
+def get_problem(contest_id: str, problem_id: str) -> Response:
+    with transaction() as s:
+        ret = s.query(Problem).filter(
+            Problem.contest_id == contest_id,
+            Problem.id == problem_id).fisrt()
+        if not ret:
+            abort(404)
+        ret = ret.to_dict()
     return jsonify(ret)
 
 
@@ -186,10 +248,12 @@ def get_own_submissions(contest_id: str, problem_id: str) -> Response:
     ret = []
     zctx = ZstdDecompressor()
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         submissions = s.query(Submission).filter(
-                Submission.contest_id == contest_id,
-                Submission.problem_id == problem_id,
-                Submission.user_id == 'kazuki').all()
+            Submission.contest_id == contest_id,
+            Submission.problem_id == problem_id,
+            Submission.user_id == u['id']).all()
         if not submissions:
             abort(404)
         for c in submissions:
@@ -211,6 +275,8 @@ def post_submission(contest_id: str, problem_id: str) -> Response:
     code = cctx.compress(code.encode('utf8'))
 
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         if not s.query(Environment).filter(Environment.id == env_id).first():
             abort(400)
         tests = s.query(TestCase).filter(
@@ -220,7 +286,7 @@ def post_submission(contest_id: str, problem_id: str) -> Response:
             abort(400)
         submission = Submission(
             contest_id=contest_id, problem_id=problem_id,
-            user_id='kazuki', code=code, environment_id=env_id)
+            user_id=u['id'], code=code, environment_id=env_id)
         s.add(submission)
         s.flush()
         submission_id = submission.id

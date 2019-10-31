@@ -92,6 +92,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contests"
+    post:
+      operationId: createContest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContestCreation"
+      responses:
+        '201':
+          description: 作成したコンテスト情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contest"
   /contests/{contest_id}:
     get:
       operationId: getContest
@@ -100,6 +114,22 @@ paths:
       responses:
         '200':
           description: Responses specific contest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contest"
+    patch:
+      operationId: updateContest
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Contest"
+      responses:
+        '201':
+          description: 作成したコンテスト情報
           content:
             application/json:
               schema:
@@ -116,6 +146,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submissions"
+  /contests/{contest_id}/problems:
+    get:
+      operationId: listProblems
+      description: コンテストの問題一覧を取得
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: 問題一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problems"
+  /contests/{contest_id}/problems/{problem_id}:
+    get:
+      operationId: getProblem
+      description: コンテストの問題の詳細情報を取得
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 問題の詳細情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /contests/{contest_id}/problems/{problem_id}/submission:
     post:
       operationId: postSubmission
@@ -196,6 +253,8 @@ components:
         created:
           type: string
           format: date-time
+        admin:
+          type: boolean
     Users:
       type: array
       items:
@@ -242,6 +301,16 @@ components:
               type: string
             problems:
               $ref: "#/components/schemas/Problems"
+
+    ContestCreation:
+      allOf:
+        - $ref: "#/components/schemas/Contest"
+        - required:
+          - id
+          - title
+          - start_time
+          - end_time
+          - description
     Problem:
       type: object
       properties:

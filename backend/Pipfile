@@ -17,7 +17,7 @@ pika = "*"
 flask = "*"
 zstandard = "*"
 docker = "*"
-openapi-core = "*"
+openapi-core = {git = "https://github.com/kazuki/openapi-core.git"}
 pyyaml = "*"
 msgpack = "*"
 

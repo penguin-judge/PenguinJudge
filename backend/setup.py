@@ -8,6 +8,8 @@ with open('Pipfile.lock', 'r') as f:
     locks = json.load(f)
 install_requires = [
     name + locks['default'][name]['version']
+    if name != 'openapi-core'
+    else 'openapi-core @ https://github.com/kazuki/openapi-core/archive/fix/datetime-tz.tar.gz'
     for name in config['packages'].keys()]
 dev_requires = [
     name + locks['develop'][name]['version']
