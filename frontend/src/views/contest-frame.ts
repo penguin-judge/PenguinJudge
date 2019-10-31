@@ -1,8 +1,8 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription } from 'rxjs';
 import { BackgroundColor, MainAreaPaddingPx } from './consts';
-import { router, session } from './state';
-import { anchor_handler as _anchor_handler } from './utils';
+import { router, session } from '../state';
+import { anchor_handler as _anchor_handler } from '../utils';
 
 @customElement('penguin-judge-contest-frame')
 export class PenguinJudgeContestFrame extends LitElement {
@@ -29,9 +29,9 @@ export class PenguinJudgeContestFrame extends LitElement {
     const items = session.current_path.split('/').slice(2);
 
     const tabs = [
-      ['トップ', router.generate('contest-top', {id: c.id}), false],
-      ['問題', router.generate('contest-tasks', {id: c.id}), items.length > 0 && items[0] === 'tasks'],
-      ['提出結果', router.generate('contest-submissions-me', {id: c.id}), items.length > 0 && items[0] === 'submissions'],
+      ['トップ', router.generate('contest-top', { id: c.id }), false],
+      ['問題', router.generate('contest-tasks', { id: c.id }), items.length > 0 && items[0] === 'tasks'],
+      ['提出結果', router.generate('contest-submissions-me', { id: c.id }), items.length > 0 && items[0] === 'submissions'],
     ];
     const has_selected = tabs.reduce((accum, v) => {
       return accum || v[2];

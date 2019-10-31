@@ -1,6 +1,6 @@
 import { Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
-import { router, session } from './state';
+import { router, session } from '../state';
 
 @customElement('x-contest-tasks')
 export class AppContestTasksElement extends LitElement {
@@ -26,7 +26,7 @@ export class AppContestTasksElement extends LitElement {
     if (session.contest && session.contest.problems) {
       const contest_id = session.contest.id;
       session.contest.problems.forEach((problem) => {
-        const url = router.generate('contest-task', {id: contest_id, task_id: problem.id});
+        const url = router.generate('contest-task', { id: contest_id, task_id: problem.id });
         dom_problems.push(html`<tr>
                           <td><x-anchor href="${url}">${problem.id}</td>
                           <td><x-anchor href="${url}">${problem.title}</td></tr>`)

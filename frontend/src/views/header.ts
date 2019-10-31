@@ -1,6 +1,6 @@
 import { customElement, LitElement, html, css, unsafeCSS } from 'lit-element';
 import { HeaderHeight, HeaderHeightPx } from './consts';
-import { router, session } from './state';
+import { router, session } from '../state';
 
 @customElement('penguin-judge-header')
 export class PenguinJudgeHeaderElement extends LitElement {
@@ -16,7 +16,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
     let title_link = router.generate('home');
     if (session.contest) {
       title = session.contest.title;
-      title_link = router.generate('contest-top', {id: session.contest.id});
+      title_link = router.generate('contest-top', { id: session.contest.id });
     }
     return html`
       <span id="icon-area">

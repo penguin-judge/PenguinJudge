@@ -1,6 +1,6 @@
 import { Subscription } from 'rxjs';
 import { customElement, LitElement, html } from 'lit-element';
-import { session } from './state';
+import { session } from '../state';
 
 @customElement('x-contest-top')
 export class AppContestTopElement extends LitElement {
