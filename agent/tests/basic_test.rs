@@ -97,6 +97,7 @@ fn test_rust() {
                 code: binary,
                 time_limit: 10,
                 memory_limit: 1024 * 1024 * 1024,
+                output_limit: 1,
             });
             let req_bytes = rmp_serde::to_vec_named(&req).unwrap();
             pipe.write_all(&(req_bytes.len() as u32).to_le_bytes())

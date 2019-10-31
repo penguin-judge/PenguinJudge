@@ -1,10 +1,11 @@
 use std::collections::hash_map::DefaultHasher;
 use std::fs::{remove_file, File, Permissions};
 use std::hash::{Hash, Hasher};
-use std::io::{BufReader, BufWriter, Error, ErrorKind, Read, Result, Write};
+use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Result, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::process::{id as get_pid, Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::os::unix::process::ExitStatusExt;
+use std::process::{id as get_pid, Command, ExitStatus, Stdio};
+use std::sync::mpsc::channel;
 use std::thread::{current as current_thread, spawn};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -24,6 +25,7 @@ pub struct Agent<R: Read, W: Write> {
 
     time_limit: u32,
     memory_limit: u32,
+    output_limit: u32,
 }
 
 impl<R: Read, W: Write> Agent<R, W> {
@@ -98,6 +100,7 @@ impl<R: Read, W: Write> Agent<R, W> {
             buf: Vec::new(),
             time_limit: 0,
             memory_limit: 0,
+            output_limit: 0,
         }
     }
 
@@ -148,13 +151,20 @@ impl<R: Read, W: Write> Agent<R, W> {
                         if f.read_to_end(&mut bin).is_ok() {
                             return Ok(Response::Compilation(CompilationResult {
                                 binary: bin,
-                                time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
+                                time: d.as_secs_f64(),
+                                memory: 0,
                             }));
                         }
                     }
                 }
                 Ok(Response::Error {
-                    kind: ErrorResult::CompilationError,
+                    kind: {
+                        if is_oom(status) {
+                            ErrorResult::MemoryLimitExceeded
+                        } else {
+                            ErrorResult::CompilationError
+                        }
+                    },
                 })
             }
             None => {
@@ -171,6 +181,7 @@ impl<R: Read, W: Write> Agent<R, W> {
         let test_cfg = self.config.test.as_ref().unwrap();
         self.time_limit = config.time_limit;
         self.memory_limit = config.memory_limit;
+        self.output_limit = config.output_limit * 2u32.pow(20);
         let mut f = File::create(&test_cfg.path)?;
         f.set_permissions(Permissions::from_mode(0o755))?;
         f.write_all(&config.code)
@@ -183,8 +194,8 @@ impl<R: Read, W: Write> Agent<R, W> {
         for arg in &test_cfg.args {
             cmd.arg(arg);
         }
-        let output = Arc::new(Mutex::new(Vec::new()));
         let start_time = Instant::now();
+        let deadline = start_time + timeout;
         let mut child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -192,46 +203,113 @@ impl<R: Read, W: Write> Agent<R, W> {
             .spawn()?;
         let mut child_stdin = child.stdin.take().unwrap();
         let mut child_stdout = child.stdout.take().unwrap();
-        let child_output = output.clone();
+        let (sender, receiver) = channel();
+        let procfs_path = format!("/proc/{}/status", child.id());
+        #[derive(Debug)]
+        enum Msg {
+            Data(Vec<u8>),
+            Fin(u64, bool), // VmHWM, OLE-flag
+            Err,
+        }
+        let mut output: Vec<u8> = Vec::new();
+        let output_limit = self.output_limit;
         let handler = spawn(move || {
-            let mut buf = [0u8; 1024];
+            let get_hwm = |prev_value: u64| {
+                std::cmp::max(prev_value, read_vm_hwm(&procfs_path).unwrap_or(prev_value))
+            };
+            let mut last_hwm = get_hwm(0u64);
             if child_stdin.write_all(&req.input).is_err() || child_stdin.flush().is_err() {
                 return;
             }
+            let mut total_bytes: usize = 0;
             loop {
-                let size = match child_stdout.read(&mut buf) {
-                    Ok(0) | Err(_) => break,
+                let mut v: Vec<u8> = Vec::new();
+                v.resize(1024, 0);
+                last_hwm = get_hwm(last_hwm);
+                let ret = child_stdout.read(v.as_mut_slice());
+                last_hwm = get_hwm(last_hwm);
+                let size = match ret {
+                    Err(_) => {
+                        sender.send(Msg::Err).unwrap();
+                        return;
+                    }
+                    Ok(0) => {
+                        sender.send(Msg::Fin(get_hwm(last_hwm), false)).unwrap();
+                        return;
+                    }
                     Ok(s) => s,
                 };
-                child_output
-                    .lock()
-                    .unwrap()
-                    .extend_from_slice(&buf[0..size]);
+                total_bytes += size;
+                if total_bytes >= output_limit as usize {
+                    sender.send(Msg::Fin(get_hwm(last_hwm), true)).unwrap();
+                    return;
+                }
+                v.resize(size, 0);
+                sender.send(Msg::Data(v)).unwrap();
             }
         });
-        match child.wait_timeout(timeout)? {
-            Some(status) => {
-                handler.join().unwrap();
-                let d = Instant::now().duration_since(start_time);
-                if status.success() {
-                    return Ok(Response::Test(TestResult {
-                        output: output.lock().unwrap().clone(),
-                        time: d.as_secs() as f64 + f64::from(d.subsec_nanos()) * 1e-9,
-                    }));
-                }
-                Ok(Response::Error {
-                    kind: ErrorResult::RuntimeError,
-                })
-            }
-            None => {
-                child.kill()?;
-                child.wait()?;
-                handler.join().unwrap();
-                Ok(Response::Error {
+        let mut resp = loop {
+            let now = Instant::now();
+            if deadline < now {
+                break Response::Error {
                     kind: ErrorResult::TimeLimitExceeded,
-                })
+                };
+            }
+            match receiver.recv_timeout(deadline - now) {
+                Ok(Msg::Data(data)) => output.extend_from_slice(&data),
+                Ok(Msg::Fin(hwm, false)) => {
+                    break Response::Test(TestResult {
+                        output,
+                        time: start_time.elapsed().as_secs_f64(),
+                        memory_bytes: hwm,
+                    })
+                }
+                Ok(Msg::Fin(_, true)) => {
+                    break Response::Error {
+                        kind: ErrorResult::OutputLimitExceeded,
+                    }
+                }
+                Ok(Msg::Err) => {
+                    break Response::Error {
+                        kind: ErrorResult::RuntimeError,
+                    }
+                }
+                _ => {
+                    break Response::Error {
+                        kind: ErrorResult::TimeLimitExceeded,
+                    }
+                }
+            }
+        };
+        let status = match child.try_wait()? {
+            Some(s) => s,
+            None => {
+                let _ = child.kill();
+                child.wait()?
+            }
+        };
+        handler.join().unwrap();
+        let ignore_exit_status = match &resp {
+            Response::Error {
+                kind: ErrorResult::OutputLimitExceeded,
+            }
+            | Response::Error {
+                kind: ErrorResult::TimeLimitExceeded,
+            } => true,
+            _ => false,
+        };
+        if !status.success() && !ignore_exit_status {
+            if is_oom(status) {
+                resp = Response::Error {
+                    kind: ErrorResult::MemoryLimitExceeded,
+                };
+            } else {
+                resp = Response::Error {
+                    kind: ErrorResult::RuntimeError,
+                };
             }
         }
+        Ok(resp)
     }
 
     fn recv(&mut self) -> Result<Request> {
@@ -253,6 +331,25 @@ impl<R: Read, W: Write> Agent<R, W> {
         self.writer.flush()?;
         Ok(())
     }
+}
+
+fn read_vm_hwm(path: &str) -> Result<u64> {
+    let mut reader = BufReader::new(File::open(&path)?);
+    let mut line = String::new();
+    while reader.read_line(&mut line)? > 0 {
+        if !line.starts_with("VmHWM:") {
+            line.clear();
+            continue;
+        }
+        let v = &line[6..].trim_start();
+        let sz_kb: u64 = (&v[..v.find(' ').unwrap()]).parse().unwrap();
+        return Ok(sz_kb * 1024);
+    }
+    Err(Error::new(ErrorKind::UnexpectedEof, ""))
+}
+
+fn is_oom(s: ExitStatus) -> bool {
+    s.code().is_none() && s.signal().is_some() && s.signal().unwrap() == 9
 }
 
 impl<R: Read, W: Write> Drop for Agent<R, W> {
@@ -426,6 +523,7 @@ mod tests {
             code: binary,
             time_limit: time_limit.unwrap_or(10),
             memory_limit: memory_limit.unwrap_or(64),
+            output_limit: 1,
         };
         agent.process_prepare(prep).unwrap();
     }
@@ -481,29 +579,78 @@ mod tests {
         }
     }
 
-
-    /*
     #[test]
     fn test_memory_limit() {
         // メモリ制限超
-        let binary = compile("fn main() {
-  let mut v: Vec<u8> = Vec::new();
-  v.resize(1024 * 1024 * 128, 1);
-  let mut x = 0u64;
-  for i in 0..v.len() {
-    x += v[i] as u64;
-  }
-  println!(\"{}\", x);
-}").unwrap();
+        let code = "fn main() { let mut v: Vec<u8> = Vec::new();
+            v.resize(1024 * 1024 * 1024, 1); let mut x = 0u64;
+            for i in 0..v.len() { x += (v[i] + v[(i + x as usize) % v.len()]) as u64; }
+            println!(\"{}\", x); }";
+        let binary = compile(code).unwrap();
+
+        // cgroup設定(パスワード不要なsudo権限が必要)
+        let cgroups_dir = "/sys/fs/cgroup/memory/penguin_judge_tests";
+        let limit_in_bytes = 2u32.pow(20) * 64; // 64MiB
+        Command::new("sudo")
+            .arg("bash").arg("-c").arg(
+                format!(
+                    "mkdir -p {}; echo {} > {}/memory.limit_in_bytes; echo {} > {}/memory.memsw.limit_in_bytes; echo {} > {}/cgroup.procs",
+                    cgroups_dir,
+                    limit_in_bytes,
+                    cgroups_dir,
+                    limit_in_bytes,
+                    cgroups_dir,
+                    get_pid(),
+                    cgroups_dir,
+                )).status().unwrap();
+
         let (mut agent, _) = create_agent(Config {
             compile: None,
             test: Some(get_test_config()),
         });
         prepare(&mut agent, binary, None, Some(64));
         let req = TestRequest { input: vec![] };
-        match agent.process_test(req) {
-            Ok(Response::Error{kind}) => assert_eq!(kind, ErrorResult::MemoryLimitExceeded),
+        let ret = agent.process_test(req);
+        Command::new("sudo")
+            .arg("bash")
+            .arg("-c")
+            .arg(format!(
+                "echo -1 > {}/memory.memsw.limit_in_bytes; echo -1 > {}/memory.limit_in_bytes",
+                cgroups_dir, cgroups_dir,
+            ))
+            .status()
+            .unwrap();
+        match ret {
+            Ok(Response::Error { kind }) => assert_eq!(kind, ErrorResult::MemoryLimitExceeded),
             _ => assert!(false),
         }
-    }*/
+    }
+
+    #[test]
+    fn test_output_limit() {
+        // 出力サイズ超過
+        let binary =
+            compile("fn main() { for i in 0..std::u64::MAX { println!(\"Hello {}\", i); }}")
+                .unwrap();
+        let (mut agent, _) = create_agent(Config {
+            compile: None,
+            test: Some(get_test_config()),
+        });
+        prepare(&mut agent, binary, Some(1), None);
+        let req = TestRequest { input: vec![] };
+        match agent.process_test(req) {
+            Ok(Response::Error { kind }) => assert_eq!(kind, ErrorResult::OutputLimitExceeded),
+            v => {
+                println!("{:?}", v);
+                assert!(false)
+            }
+        }
+    }
+
+    #[test]
+    fn test_hwm() {
+        let path = "/proc/self/status".to_string();
+        let ret = read_vm_hwm(&path).unwrap();
+        assert!(ret > 0);
+    }
 }

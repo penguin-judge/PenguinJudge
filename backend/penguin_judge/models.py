@@ -212,7 +212,7 @@ def _insert_debug_data() -> None:
         id="A",
         title="Increment",
         description="# Increment\n\n標準入力から与えられた整数を1インクリメントした値を出力する",
-        time_limit=10,
+        time_limit=1,
         memory_limit=1024))
     _add(TestCase(
         contest_id="abc000",
