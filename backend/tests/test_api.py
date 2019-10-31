@@ -59,6 +59,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(resp['name'], 'ぺんぎん')
         self.assertEqual(resp['admin'], False)
         self.assertIn('created', resp)
+        _invalid({'id': 'penguin', 'name': 'same', 'password': 'hogehoge'})
 
     def test_auth(self):
         def _invalid(body, status=400):
@@ -94,7 +95,36 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(u, app.get(
             '/user', headers={'X-Auth-Token': token}).json)
 
-    def test_create_and_modify_contest(self):
+        app.get('/user', status=401)
+        app.get('/user', headers={
+            'X-Auth-Token': b64encode(b'invalid token').decode('ascii')
+        }, status=401)
+        app.get('/user', headers={'X-Auth-Token': b'Z'}, status=401)
+
+        with transaction() as s:
+            s.query(Token).filter(Token.user_id == uid).update({
+                'expires': datetime.now(tz=timezone.utc)})
+        app.get('/user', headers={'X-Auth-Token': token}, status=401)
+
+    def test_get_user(self):
+        app.get('/users/invalid_user', status=404)
+        u = app.get('/users/admin').json
+        self.assertEqual(u['id'], 'admin')
+        self.assertTrue(u['admin'])
+
+    def test_list_environments(self):
+        envs = app.get('/environments').json
+        self.assertEqual(envs, [])
+
+        env = dict(name='Python 3.7', test_image_name='docker-image')
+        with transaction() as s:
+            s.add(Environment(**env))
+        envs = app.get('/environments').json
+        self.assertEqual(len(envs), 1)
+        self.assertIsInstance(envs[0]['id'], int)
+        self.assertEqual(envs[0]['name'], env['name'])
+
+    def test_create_list_modify_contest(self):
         def _invalid_post(body, status=400):
             app.post_json('/contests', body, status=status)
 
@@ -129,3 +159,8 @@ class TestAPI(unittest.TestCase):
         c3.update(patch)
         c4 = app.patch_json('/contests/{}'.format(c['id']), patch).json
         self.assertEqual(c3, c4)
+
+        c4.pop('description')
+        contests = app.get('/contests').json
+        self.assertEqual(len(contests), 1)
+        self.assertEqual(contests[0], c4)
