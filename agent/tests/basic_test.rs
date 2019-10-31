@@ -16,22 +16,21 @@ fn test_rust() {
         println!(\"{}\", x + 1);
     }"
     .as_bytes();
-    let code_path = "/tmp/penguin_judge_agent_test.rs";
-    let code_out_path = "/tmp/compiled";
-    let exec_path = "/tmp/penguin_judge_agent_test";
     let config_path = "/tmp/penguin_judge_agent_test.config";
     std::env::set_var("PENGUIN_JUDGE_AGENT_CONFIG", config_path);
     let binary: Vec<u8> = {
         let cconfig = Config {
             compile: Some(CompilationConfig {
-                path: code_path.to_string(),
+                path: String::new(),
+                ext: ".rs".to_string(),
+                output: String::new(),
                 cmd: "rustc".to_string(),
                 args: vec![
+                    "-O".to_string(),
                     "-o".to_string(),
-                    code_out_path.to_string(),
-                    code_path.to_string(),
+                    "<output>".to_string(),
+                    "<path>".to_string(),
                 ],
-                output: code_out_path.to_string(),
             }),
             test: None,
         };
@@ -41,7 +40,11 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(
+                Config::load_from_default_path(),
+                pipe_agent.try_clone().unwrap(),
+                pipe_agent,
+            );
             agent.start().unwrap();
         });
         let mut output = Vec::new();
@@ -69,8 +72,9 @@ fn test_rust() {
         let tconfig = Config {
             compile: None,
             test: Some(TestConfig {
-                path: exec_path.to_string(),
-                cmd: exec_path.to_string(),
+                path: String::new(),
+                ext: String::new(),
+                cmd: String::new(),
                 args: Vec::new(),
             }),
         };
@@ -80,7 +84,11 @@ fn test_rust() {
         }
         let (mut pipe, pipe_agent) = UnixStream::pair().unwrap();
         let handler = spawn(move || {
-            let mut agent = Agent::new(pipe_agent.try_clone().unwrap(), pipe_agent);
+            let mut agent = Agent::new(
+                Config::load_from_default_path(),
+                pipe_agent.try_clone().unwrap(),
+                pipe_agent,
+            );
             agent.start().unwrap();
         });
         let mut output = Vec::new();

@@ -1,6 +1,3 @@
 {
-    "test": {
-        "path": "/tmp/test",
-        "cmd": "/tmp/test"
-    }
+    "test": {}
 }

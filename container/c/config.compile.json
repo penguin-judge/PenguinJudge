@@ -1,8 +1,7 @@
 {
     "compile": {
-        "path": "/tmp/test.c",
+        "ext": ".c",
         "cmd": "gcc",
-        "args": ["-o", "/tmp/test", "/tmp/test.c"],
-        "output": "/tmp/test"
+        "args": ["-O2", "-o", "<output>", "<path>"]
     }
 }

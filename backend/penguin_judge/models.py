@@ -4,7 +4,8 @@ import enum
 from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
-    Column, ForeignKey, DateTime, Integer, String, LargeBinary, Enum, func)
+    Column, ForeignKey, DateTime, Integer, String, LargeBinary, Interval, Enum,
+    func)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -120,6 +121,7 @@ class Submission(Base, _Exportable):
     status = Column(
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,
         nullable=False)
+    compile_time = Column(Interval, nullable=True)
     created = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -133,6 +135,7 @@ class JudgeResult(Base, _Exportable):
     status = Column(
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,
         nullable=False)
+    time = Column(Interval, nullable=True)
 
 
 def configure(**kwargs: str) -> None:

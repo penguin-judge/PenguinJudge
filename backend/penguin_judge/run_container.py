@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from datetime import timedelta
 import os
 from io import RawIOBase
-from typing import Any, Union
+from typing import Any, Union, Tuple, Optional
 import struct
 
 import docker  # type: ignore
@@ -18,7 +19,7 @@ class JudgeDriver(ABC):
         pass
 
     @abstractmethod
-    def compile(self, task: dict) -> Union[JudgeStatus, bytes]:
+    def compile(self, task: dict) -> Union[JudgeStatus, Tuple[bytes, float]]:
         raise NotImplementedError
 
     @abstractmethod
@@ -65,8 +66,12 @@ class DockerJudgeDriver(JudgeDriver):
         self.client = docker.APIClient()
         self.compile_container = None
         self.test_container = None
+        self.time_limit = None
+        self.memory_limit = None
 
     def prepare(self, task: dict) -> None:
+        self.time_limit = task['problem']['time_limit']
+        self.memory_limit = task['problem']['memory_limit']
         if task['environment'].get('compile_image_name'):
             self.compile_container = self.client.create_container(
                 task['environment'].get('compile_image_name'), stdin_open=True)
@@ -82,33 +87,38 @@ class DockerJudgeDriver(JudgeDriver):
             self.client.kill(c)
             self.client.remove_container(c)
 
-    def compile(self, task: dict) -> Union[JudgeStatus, bytes]:
+    def compile(self, task: dict) -> Union[JudgeStatus, Tuple[bytes, float]]:
         try:
             s = self.client.attach_socket(
                 self.compile_container,
                 params={'stdin': 1, 'stdout': 1, 'stream': 1})
+            # TODO(*): コンパイルのタイムアウト/メモリ上限はどうする?
             self._send(s, {
                 'type': 'Compilation',
                 'code': task['code'],
-                'time_limit': 10,
-                'memory_limit': 10,
+                'time_limit': self.time_limit,
+                'memory_limit': self.memory_limit,
             })
             resp = self._recv(s)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
-                return resp['binary']
+                return (resp['binary'], resp['time'])
             return JudgeStatus.CompilationError
         except Exception:
             return JudgeStatus.InternalError
 
     def tests(self, task: dict) -> JudgeStatus:
-        def _update_status(test_id: str, st: JudgeStatus) -> None:
+        def _update_status(test_id: str, st: JudgeStatus,
+                           time: Optional[float] = None) -> None:
+            updates: dict = {JudgeResult.status: st}
+            if time is not None:
+                updates[JudgeResult.time] = timedelta(seconds=time)
             with transaction() as s:
                 s.query(JudgeResult).filter(
                     JudgeResult.contest_id == task['contest_id'],
                     JudgeResult.problem_id == task['problem_id'],
                     JudgeResult.submission_id == task['id'],
                     JudgeResult.test_id == test_id,
-                ).update({JudgeResult.status: st}, synchronize_session=False)
+                ).update(updates, synchronize_session=False)
 
         try:
             s = self.client.attach_socket(
@@ -117,8 +127,8 @@ class DockerJudgeDriver(JudgeDriver):
             self._send(s, {
                 'type': 'Preparation',
                 'code': task['code'],
-                'time_limit': 10,
-                'memory_limit': 10,
+                'time_limit': self.time_limit,
+                'memory_limit': self.memory_limit,
             })
 
             status_set = set()
@@ -140,7 +150,7 @@ class DockerJudgeDriver(JudgeDriver):
                         status = JudgeStatus.WrongAnswer
                 elif typ == 'Error' and isinstance(kind, str):
                     status = JudgeStatus.from_str(kind)
-                _update_status(test['id'], status)
+                _update_status(test['id'], status, resp.get('time'))
                 status_set.add(status)
 
             if len(status_set) == 1:
@@ -169,6 +179,7 @@ def run(task: dict) -> None:
         test['input'] = zctx.decompress(test['input'])
         test['output'] = zctx.decompress(test['output'])
 
+    compile_time = None
     with DockerJudgeDriver() as judge:
         try:
             judge.prepare(task)
@@ -184,9 +195,7 @@ def run(task: dict) -> None:
             return
         if task['environment'].get('compile_image_name'):
             ret = judge.compile(task)
-            if isinstance(ret, bytes):
-                task['code'] = ret
-            else:
+            if isinstance(ret, JudgeStatus):
                 with transaction() as s:
                     s.query(Submission).filter(
                         Submission.contest_id == task['contest_id'],
@@ -202,11 +211,15 @@ def run(task: dict) -> None:
                         Submission.status: ret}, synchronize_session=False)
                 print('judge failed: {}'.format(ret), flush=True)
                 return
+            task['code'], compile_time = ret[0], timedelta(seconds=ret[1])
         ret = judge.tests(task)
         with transaction() as s:
             s.query(Submission).filter(
                 Submission.contest_id == task['contest_id'],
                 Submission.problem_id == task['problem_id'],
                 Submission.id == task['id']
-            ).update({Submission.status: ret}, synchronize_session=False)
+            ).update({
+                Submission.status: ret,
+                Submission.compile_time: compile_time,
+            }, synchronize_session=False)
         print('judge finished: {}'.format(ret), flush=True)

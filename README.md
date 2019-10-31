@@ -27,7 +27,7 @@ docker-composeを使った起動方法
 
 ```
 $ cd container
-$ cd ./build.sh
+$ ./build.sh
 $ cd ..
 $ docker-compose up --build
 ```

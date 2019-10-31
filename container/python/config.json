@@ -1,9 +1,7 @@
 {
     "test": {
-        "path": "/tmp/test.py",
+        "ext": ".py",
         "cmd": "/usr/local/bin/python",
-        "args": [
-            "/tmp/test.py"
-        ]
+        "args": ["-OO", "<path>"]
     }
 }
