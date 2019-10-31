@@ -46,8 +46,8 @@ def _validate_request() -> Tuple[dict, Any]:
 
 
 def _validate_token(
-        s: Optional[scoped_session] = None,
-        required: bool = False) -> Optional[str]:
+        s: Optional[scoped_session] = None, required: bool = False,
+        admin_required: bool = False) -> Optional[dict]:
     token = request.headers.get('X-Auth-Token')
     if not token:
         items = request.headers.get('Authorization', '').split(' ', maxsplit=1)
@@ -66,11 +66,17 @@ def _validate_token(
         abort(401)
     utc_now = datetime.now(tz=timezone.utc)
 
-    def _check(s: scoped_session) -> str:
-        t = s.query(Token).filter(Token.token == token_bytes).first()
-        if not t or t.expires <= utc_now:
+    def _check(s: scoped_session) -> Optional[dict]:
+        ret = s.query(Token.expires, User).filter(
+            Token.token == token_bytes, Token.user_id == User.id).first()
+        if not ret or ret[0] <= utc_now:
+            if required:
+                abort(401)
+            else:
+                return None
+        if admin_required and not ret[1].admin:
             abort(401)
-        return t.user_id
+        return ret[1].to_summary_dict()
     if s:
         return _check(s)
     with transaction() as s:
@@ -101,12 +107,9 @@ def authenticate() -> Response:
 @app.route('/user')
 def get_current_user() -> Response:
     with transaction() as s:
-        uid = _validate_token(s)
-        if not uid:
-            abort(401)
-        u = s.query(User).filter(User.id == uid).first()
-        assert u  # 外部キー制約でuがNoneになることは無い
-        return jsonify(u.to_summary_dict())
+        u = _validate_token(s, required=True)
+    assert(u)
+    return jsonify(u)
 
 
 @app.route('/users/<user_id>')
@@ -124,9 +127,11 @@ def create_user() -> Response:
     salt = os.urandom(16)
     password = _kdf(body.password, salt)
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         if s.query(User).filter(User.id == body.id).first():
             abort(400)
-        user = User(id=body.id, password=password, name=body.name, salt=salt)
+        user = User(id=body.id, password=password, name=body.name, salt=salt,
+                    admin=getattr(body, 'admin', False))
         s.add(user)
         s.flush()
         resp = user.to_summary_dict()
@@ -154,11 +159,11 @@ def list_contests() -> Response:
 
 @app.route('/contests', methods=['POST'])
 def create_contest() -> Response:
-    # TODO(kazuki): adminのみにする
     _, body = _validate_request()
     if body.start_time >= body.end_time:
         abort(400, {'detail': 'start_time must be lesser than end_time'})
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         contest = Contest(
             id=body.id,
             title=body.title,
@@ -172,9 +177,9 @@ def create_contest() -> Response:
 
 @app.route('/contests/<contest_id>', methods=['PATCH'])
 def update_contest(contest_id: str) -> Response:
-    # TODO(kazuki): adminのみにする
     _, body = _validate_request()
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         c = s.query(Contest).filter(Contest.id == contest_id).first()
         if not c:
             abort(404)
@@ -206,9 +211,11 @@ def get_contest(contest_id: str) -> Response:
 def list_own_submissions(contest_id: str) -> Response:
     ret = []
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         submissions = s.query(Submission).filter(
-                Submission.contest_id == contest_id,
-                Submission.user_id == 'kazuki').all()
+            Submission.contest_id == contest_id,
+            Submission.user_id == u['id']).all()
         if not submissions:
             abort(404)
         for c in submissions:
@@ -241,10 +248,12 @@ def get_own_submissions(contest_id: str, problem_id: str) -> Response:
     ret = []
     zctx = ZstdDecompressor()
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         submissions = s.query(Submission).filter(
-                Submission.contest_id == contest_id,
-                Submission.problem_id == problem_id,
-                Submission.user_id == 'kazuki').all()
+            Submission.contest_id == contest_id,
+            Submission.problem_id == problem_id,
+            Submission.user_id == u['id']).all()
         if not submissions:
             abort(404)
         for c in submissions:
@@ -266,6 +275,8 @@ def post_submission(contest_id: str, problem_id: str) -> Response:
     code = cctx.compress(code.encode('utf8'))
 
     with transaction() as s:
+        u = _validate_token(s, required=True)
+        assert(u)
         if not s.query(Environment).filter(Environment.id == env_id).first():
             abort(400)
         tests = s.query(TestCase).filter(
@@ -275,7 +286,7 @@ def post_submission(contest_id: str, problem_id: str) -> Response:
             abort(400)
         submission = Submission(
             contest_id=contest_id, problem_id=problem_id,
-            user_id='kazuki', code=code, environment_id=env_id)
+            user_id=u['id'], code=code, environment_id=env_id)
         s.add(submission)
         s.flush()
         submission_id = submission.id

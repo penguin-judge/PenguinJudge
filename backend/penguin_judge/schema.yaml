@@ -253,6 +253,8 @@ components:
         created:
           type: string
           format: date-time
+        admin:
+          type: boolean
     Users:
       type: array
       items:

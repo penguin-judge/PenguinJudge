@@ -4,8 +4,8 @@ import enum
 from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
-    Column, DateTime, Integer, String, LargeBinary, Interval, Enum, func,
-    ForeignKeyConstraint)
+    Boolean, Column, DateTime, Integer, String, LargeBinary, Interval, Enum,
+    func, ForeignKeyConstraint)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -54,11 +54,12 @@ class _Exportable(object):
 
 class User(Base, _Exportable):
     __tablename__ = 'users'
-    __summary_keys__ = ['id', 'name', 'created']
+    __summary_keys__ = ['id', 'name', 'created', 'admin']
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     salt = Column(LargeBinary(32), nullable=False)
     password = Column(LargeBinary(32), nullable=False)
+    admin = Column(Boolean, server_default='False')
     created = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -221,6 +222,11 @@ def _insert_debug_data() -> None:
 
     ctx = ZstdCompressor()
 
+    _add(User(
+        id='admin', name='Administrator', salt=b'penguin', admin=True,
+        password=(b'W\x97\xaf\xcby\xbf\x80\x03)\x8aq1\xca\xf9C \r\x18\xbeF\xe4'
+                  + b'\x97.\xac\xec}\x918\xe0\xb2\x81\xd8')  # password=penguin
+    ))
     _add(Environment(
         name="C (gcc 8.2)",
         compile_image_name="penguin_judge_c_compile:8.2",
