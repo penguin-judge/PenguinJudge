@@ -164,12 +164,78 @@ class TestAPI(unittest.TestCase):
             'title': 'Hoge',
             'end_time': (end_time + timedelta(hours=1)).isoformat(),
         }
+        _invalid_patch('invalid', patch, status=404)
         c3 = dict(c)
         c3.update(patch)
         c4 = _patch(c['id'], patch).json
         self.assertEqual(c3, c4)
 
+        self.assertEqual(app.get('/contests/{}'.format(c['id'])).json, c4)
+        app.get('/contests/invalid', status=404)
+
         c4.pop('description')
         contests = app.get('/contests').json
         self.assertEqual(len(contests), 1)
         self.assertEqual(contests[0], c4)
+
+    def test_problem(self):
+        def _post(contest_id, body, status=None):
+            return app.post_json(
+                '/contests/{}/problems'.format(contest_id), body,
+                headers=self.admin_headers, status=status)
+
+        def _invalid_post(contest_id, body, status=400):
+            _post(contest_id, body, status=status)
+
+        def _patch(contest_id, id, body, status=None):
+            return app.patch_json(
+                '/contests/{}/problems/{}'.format(contest_id, id), body,
+                headers=self.admin_headers, status=status)
+
+        def _invalid_patch(contest_id, id, body, status=400):
+            _patch(contest_id, id, body, status=status)
+
+        start_time = datetime.now(tz=timezone.utc)
+        contest_id = app.post_json('/contests', {
+            'id': 'abc000',
+            'title': 'ABC000',
+            'description': '# ABC000\n\nほげほげ\n',
+            'start_time': start_time.isoformat(),
+            'end_time': (start_time + timedelta(hours=1)).isoformat(),
+        }, headers=self.admin_headers).json['id']
+
+        p0 = dict(
+            id='A', title='A Problem', description='# A\n', time_limit=2)
+        _invalid_post('invalid', p0, status=404)
+        _invalid_post(contest_id, {})
+        _post(contest_id, p0)
+        _invalid_post(contest_id, p0, status=409)
+
+        p1 = dict(
+            id='B', title='B Problem', description='# B\n', time_limit=1,
+            memory_limit=1)
+        _post(contest_id, p1)
+
+        ret = app.get('/contests/{}/problems'.format(contest_id)).json
+        if ret[0]['id'] != 'A':
+            ret = [ret[1], ret[0]]
+        p0['memory_limit'] = 256
+        p0['contest_id'] = p1['contest_id'] = contest_id
+        self.assertEqual([p0, p1], ret)
+
+        _invalid_patch(contest_id, 'invalid-id', {}, status=404)
+        ret = _patch(contest_id, p0['id'], {'title': 'AAAA'}).json
+        p0['title'] = 'AAAA'
+        self.assertEqual(ret, p0)
+
+        app.delete('/contests/{}/problems/{}'.format(contest_id, p1['id']))
+        self.assertEqual([p0], app.get(
+            '/contests/{}/problems'.format(contest_id)).json)
+
+        app.get('/contests/invalid/problems/invalid', status=404)
+        app.get('/contests/{}/problems/invalid'.format(contest_id), status=404)
+        self.assertEqual(p0, app.get(
+            '/contests/{}/problems/{}'.format(contest_id, p0['id'])).json)
+
+        ret = app.get('/contests/{}'.format(contest_id)).json
+        self.assertEqual([p0], ret['problems'])

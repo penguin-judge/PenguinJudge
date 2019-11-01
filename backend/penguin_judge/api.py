@@ -20,6 +20,8 @@ from penguin_judge.models import (
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.utils import json_dumps
 
+DEFAULT_MEMORY_LIMIT = 256  # MiB
+
 app = Flask(__name__)
 with open(os.path.join(os.path.dirname(__file__), 'schema.yaml'), 'r') as f:
     _spec = create_spec(yaml.safe_load(f))
@@ -231,12 +233,62 @@ def list_problems(contest_id: str) -> Response:
     return jsonify(ret)
 
 
+@app.route('/contests/<contest_id>/problems', methods=['POST'])
+def create_problem(contest_id: str) -> Response:
+    _, body = _validate_request()
+    with transaction() as s:
+        if s.query(Contest).filter(Contest.id == contest_id).count() == 0:
+            abort(404)
+        if s.query(Problem).filter(
+                Problem.contest_id == contest_id,
+                Problem.id == body.id).count() == 1:
+            abort(409)
+        problem = Problem(
+            contest_id=contest_id,
+            id=body.id,
+            title=body.title,
+            time_limit=body.time_limit,
+            memory_limit=getattr(body, 'memory_limit', DEFAULT_MEMORY_LIMIT),
+            description=body.description)
+        s.add(problem)
+        s.flush()
+        ret = problem.to_dict()
+    return jsonify(ret, status=201)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>', methods=['PATCH'])
+def update_problem(contest_id: str, problem_id: str) -> Response:
+    _, body = _validate_request()
+    with transaction() as s:
+        problem = s.query(Problem).filter(Problem.contest_id == contest_id,
+                                          Problem.id == problem_id).first()
+        if not problem:
+            abort(404)
+        for key in Contest.__updatable_keys__:
+            if not hasattr(body, key):
+                continue
+            setattr(problem, key, getattr(body, key))
+        ret = problem.to_dict()
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>', methods=['DELETE'])
+def delete_problem(contest_id: str, problem_id: str) -> Response:
+    with transaction() as s:
+        s.query(Problem).filter(
+            Problem.contest_id == contest_id,
+            Problem.id == problem_id).delete(synchronize_session=False)
+    resp = make_response((b'', 204))
+    resp.headers.pop('content-type')
+    return resp
+
+
 @app.route('/contests/<contest_id>/problems/<problem_id>')
 def get_problem(contest_id: str, problem_id: str) -> Response:
     with transaction() as s:
         ret = s.query(Problem).filter(
             Problem.contest_id == contest_id,
-            Problem.id == problem_id).fisrt()
+            Problem.id == problem_id).first()
         if not ret:
             abort(404)
         ret = ret.to_dict()

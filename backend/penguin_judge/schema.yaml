@@ -159,6 +159,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problems"
+    post:
+      operationId: createProblem
+      description: コンテストの問題を作成する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProblemCreation"
+      responses:
+        '201':
+          description: 問題詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /contests/{contest_id}/problems/{problem_id}:
     get:
       operationId: getProblem
@@ -173,6 +190,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+    patch:
+      operationId: updateProblem
+      description: コンテストの問題を修正する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Problem"
+      responses:
+        '200':
+          description: 修正後の問題情報
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      operationId: deleteProblem
+      description: コンテストの問題を削除する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '204':
+          description: 削除成功
   /contests/{contest_id}/problems/{problem_id}/submission:
     post:
       operationId: postSubmission
@@ -301,7 +345,6 @@ components:
               type: string
             problems:
               $ref: "#/components/schemas/Problems"
-
     ContestCreation:
       allOf:
         - $ref: "#/components/schemas/Contest"
@@ -321,11 +364,21 @@ components:
         title:
           type: string
         time_limit:
+          description: "[sec]"
           type: integer
         memory_limit:
+          description: "[MiB]"
           type: integer
         description:
           type: string
+    ProblemCreation:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - required:
+          - id
+          - title
+          - time_limit
+          - description
     Problems:
       type: array
       items:

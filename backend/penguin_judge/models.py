@@ -96,6 +96,7 @@ class Contest(Base, _Exportable):
 
 class Problem(Base, _Exportable):
     __tablename__ = 'problems'
+    __updatable_keys__ = ['title', 'description', 'time_limit', 'memory_limit']
     contest_id = Column(String, primary_key=True)
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
