@@ -56,7 +56,7 @@ def _validate_token(
     if not token:
         token = request.cookies.get('AuthToken')
     if not token:
-        if required:
+        if required or admin_required:
             abort(401)
         return None
 
@@ -70,7 +70,7 @@ def _validate_token(
         ret = s.query(Token.expires, User).filter(
             Token.token == token_bytes, Token.user_id == User.id).first()
         if not ret or ret[0] <= utc_now:
-            if required:
+            if required or admin_required:
                 abort(401)
             else:
                 return None
@@ -129,7 +129,7 @@ def create_user() -> Response:
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
         if s.query(User).filter(User.id == body.id).first():
-            abort(400)
+            abort(409)
         user = User(id=body.id, password=password, name=body.name, salt=salt,
                     admin=getattr(body, 'admin', False))
         s.add(user)

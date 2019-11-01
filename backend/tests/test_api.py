@@ -40,10 +40,10 @@ class TestAPI(unittest.TestCase):
         self.admin_headers = {'X-Auth-Token': self.admin_token}
 
     def test_create_user(self):
-        def _invalid(body, setup_token=True):
+        def _invalid(body, setup_token=True, status=400):
             headers = self.admin_headers if setup_token else {}
             app.post_json('/users', body, headers=headers,
-                          status=400 if setup_token else 401)
+                          status=status if setup_token else 401)
         _invalid({})
         _invalid({'id': 'abc', 'name': 'penguin'})
         _invalid({'id': 'abc', 'password': 'penguinpenguin'})
@@ -59,7 +59,8 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(resp['name'], 'ぺんぎん')
         self.assertEqual(resp['admin'], False)
         self.assertIn('created', resp)
-        _invalid({'id': 'penguin', 'name': 'same', 'password': 'hogehoge'})
+        _invalid({'id': 'penguin', 'name': 'same', 'password': 'hogehoge'},
+                 status=409)
 
     def test_auth(self):
         def _invalid(body, status=400):
@@ -125,11 +126,19 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(envs[0]['name'], env['name'])
 
     def test_create_list_modify_contest(self):
+        def _post(body, status=None):
+            return app.post_json('/contests', body, headers=self.admin_headers,
+                                 status=status)
+
         def _invalid_post(body, status=400):
-            app.post_json('/contests', body, status=status)
+            _post(body, status=status)
+
+        def _patch(id, body, status=None):
+            return app.patch_json('/contests/{}'.format(id), body,
+                                  headers=self.admin_headers, status=status)
 
         def _invalid_patch(id, body, status=400):
-            app.patch_json('/contests/{}'.format(id), body, status=status)
+            _patch(id, body, status=status)
 
         start_time = datetime.now(tz=timezone.utc)
         end_time = start_time + timedelta(hours=1)
@@ -146,7 +155,7 @@ class TestAPI(unittest.TestCase):
                            start_time=start_time.isoformat(),
                            end_time=start_time.isoformat()))
 
-        c2 = app.post_json('/contests', c).json
+        c2 = _post(c).json
         self.assertEqual(c, c2)
 
         _invalid_patch(c['id'], dict(end_time=start_time.isoformat()))
@@ -157,7 +166,7 @@ class TestAPI(unittest.TestCase):
         }
         c3 = dict(c)
         c3.update(patch)
-        c4 = app.patch_json('/contests/{}'.format(c['id']), patch).json
+        c4 = _patch(c['id'], patch).json
         self.assertEqual(c3, c4)
 
         c4.pop('description')
