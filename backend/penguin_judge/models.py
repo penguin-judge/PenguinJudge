@@ -5,7 +5,7 @@ from typing import Dict, Iterator, Optional, List
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Integer, String, LargeBinary, Interval, Enum,
-    func, ForeignKeyConstraint)
+    func, ForeignKeyConstraint, Index)
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -125,9 +125,9 @@ class Submission(Base, _Exportable):
     __tablename__ = 'submissions'
     __summary_keys__ = ['contest_id', 'problem_id', 'id', 'user_id',
                         'environment_id', 'status', 'created']
-    contest_id = Column(String, primary_key=True)
-    problem_id = Column(String, primary_key=True)
     id = Column(Integer, primary_key=True, autoincrement=True)
+    contest_id = Column(String, nullable=False)
+    problem_id = Column(String, nullable=False)
     user_id = Column(String, nullable=False)
     code = Column(LargeBinary, nullable=False)
     environment_id = Column(Integer, nullable=False)
@@ -145,6 +145,7 @@ class Submission(Base, _Exportable):
             [user_id], [User.id]),  # type: ignore
         ForeignKeyConstraint(
             [environment_id], [Environment.id]),  # type: ignore
+        Index('submissions_contest_problem_idx', contest_id, problem_id),
     )
 
 
@@ -160,8 +161,8 @@ class JudgeResult(Base, _Exportable):
     time = Column(Interval, nullable=True)
     __table_args__ = (
         ForeignKeyConstraint(
-            [contest_id, problem_id, submission_id],  # type: ignore
-            [Submission.contest_id, Submission.problem_id, Submission.id]),
+            [submission_id],  # type: ignore
+            [Submission.id]),
         ForeignKeyConstraint(
             [contest_id, problem_id, test_id],  # type: ignore
             [TestCase.contest_id, TestCase.problem_id, TestCase.id]),

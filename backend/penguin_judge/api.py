@@ -209,22 +209,6 @@ def get_contest(contest_id: str) -> Response:
     return jsonify(ret)
 
 
-@app.route('/contests/<contest_id>/submissions')
-def list_own_submissions(contest_id: str) -> Response:
-    ret = []
-    with transaction() as s:
-        u = _validate_token(s, required=True)
-        assert(u)
-        submissions = s.query(Submission).filter(
-            Submission.contest_id == contest_id,
-            Submission.user_id == u['id']).all()
-        if not submissions:
-            abort(404)
-        for c in submissions:
-            ret.append(c.to_summary_dict())
-    return jsonify(ret)
-
-
 @app.route('/contests/<contest_id>/problems')
 def list_problems(contest_id: str) -> Response:
     with transaction() as s:
@@ -237,6 +221,7 @@ def list_problems(contest_id: str) -> Response:
 def create_problem(contest_id: str) -> Response:
     _, body = _validate_request()
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         if s.query(Contest).filter(Contest.id == contest_id).count() == 0:
             abort(404)
         if s.query(Problem).filter(
@@ -260,6 +245,7 @@ def create_problem(contest_id: str) -> Response:
 def update_problem(contest_id: str, problem_id: str) -> Response:
     _, body = _validate_request()
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         problem = s.query(Problem).filter(Problem.contest_id == contest_id,
                                           Problem.id == problem_id).first()
         if not problem:
@@ -275,6 +261,7 @@ def update_problem(contest_id: str, problem_id: str) -> Response:
 @app.route('/contests/<contest_id>/problems/<problem_id>', methods=['DELETE'])
 def delete_problem(contest_id: str, problem_id: str) -> Response:
     with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
         s.query(Problem).filter(
             Problem.contest_id == contest_id,
             Problem.id == problem_id).delete(synchronize_session=False)
@@ -295,33 +282,25 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
     return jsonify(ret)
 
 
-@app.route('/contests/<contest_id>/problems/<problem_id>/submission')
-def get_own_submissions(contest_id: str, problem_id: str) -> Response:
+@app.route('/contests/<contest_id>/submissions')
+def list_submissions(contest_id: str) -> Response:
     ret = []
-    zctx = ZstdDecompressor()
     with transaction() as s:
-        u = _validate_token(s, required=True)
-        assert(u)
         submissions = s.query(Submission).filter(
             Submission.contest_id == contest_id,
-            Submission.problem_id == problem_id,
-            Submission.user_id == u['id']).all()
-        if not submissions:
+        ).all()
+        if (not submissions and s.query(Contest).filter(
+                Contest.id == contest_id).count() == 0):
             abort(404)
         for c in submissions:
             ret.append(c.to_summary_dict())
-            ret[-1]['code'] = zctx.decompress(ret[-1]['code']).decode('utf-8')
     return jsonify(ret)
 
 
-@app.route('/contests/<contest_id>/problems/<problem_id>/submission',
-           methods=['POST'])
-def post_submission(contest_id: str, problem_id: str) -> Response:
-    body = request.json
-    code = body.get('code')
-    env_id = body.get('environment_id')
-    if not (code and env_id):
-        abort(400)
+@app.route('/contests/<contest_id>/submissions', methods=['POST'])
+def post_submission(contest_id: str) -> Response:
+    _, body = _validate_request()
+    problem_id, code, env_id = body.problem_id, body.code, body.environment_id
 
     cctx = ZstdCompressor()
     code = cctx.compress(code.encode('utf8'))
@@ -341,29 +320,29 @@ def post_submission(contest_id: str, problem_id: str) -> Response:
             user_id=u['id'], code=code, environment_id=env_id)
         s.add(submission)
         s.flush()
-        submission_id = submission.id
+        ret = submission.to_summary_dict()
 
     conn = pika.BlockingConnection(get_mq_conn_params())
     ch = conn.channel()
     ch.queue_declare(queue='judge_queue')
     ch.basic_publish(
         exchange='', routing_key='judge_queue', body=pickle.dumps(
-            (contest_id, problem_id, submission_id)))
+            (contest_id, problem_id, ret['id'])))
     ch.close()
     conn.close()
-    return make_response((b'', 201))
+    return jsonify(ret, status=201)
 
 
-@app.route('/contests/<contest_id>/problems/<problem_id>/submission/all')
-def get_all_submissions(contest_id: str, problem_id: str) -> Response:
-    ret = []
+@app.route('/contests/<contest_id>/submissions/<submission_id>')
+def get_submission(contest_id: str, submission_id: str) -> Response:
+    params, _ = _validate_request()
     zctx = ZstdDecompressor()
-    # TODO(bakaming) : コンテスト時間中は自分の解答だけに絞る
     with transaction() as s:
-        submissions = s.query(Submission).filter(
-                Submission.contest_id == contest_id,
-                Submission.problem_id == problem_id).all()
-        for c in submissions:
-            ret.append(c.to_summary_dict())
-            ret[-1]['code'] = zctx.decompress(ret[-1]['code']).decode('utf-8')
+        submission = s.query(Submission).filter(
+            Submission.contest_id == contest_id,
+            Submission.id == submission_id).first()
+        if not submission or submission.contest_id != contest_id:
+            abort(404)
+        ret = submission.to_dict()
+    ret['code'] = zctx.decompress(ret['code']).decode('utf-8')
     return jsonify(ret)

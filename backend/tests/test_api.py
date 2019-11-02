@@ -2,8 +2,10 @@ from base64 import b64encode
 from http.cookiejar import CookieJar
 from datetime import datetime, timezone, timedelta
 import unittest
+import unittest.mock
 from functools import partial
 from webtest import TestApp
+from zstandard import ZstdCompressor  # type: ignore
 from penguin_judge.api import app as _app
 from penguin_judge.models import (
     User, Environment, Contest, Problem, TestCase, Submission, JudgeResult,
@@ -228,7 +230,8 @@ class TestAPI(unittest.TestCase):
         p0['title'] = 'AAAA'
         self.assertEqual(ret, p0)
 
-        app.delete('/contests/{}/problems/{}'.format(contest_id, p1['id']))
+        app.delete('/contests/{}/problems/{}'.format(contest_id, p1['id']),
+                   headers=self.admin_headers)
         self.assertEqual([p0], app.get(
             '/contests/{}/problems'.format(contest_id)).json)
 
@@ -239,3 +242,75 @@ class TestAPI(unittest.TestCase):
 
         ret = app.get('/contests/{}'.format(contest_id)).json
         self.assertEqual([p0], ret['problems'])
+
+    @unittest.mock.patch('pika.BlockingConnection')
+    @unittest.mock.patch('penguin_judge.api.get_mq_conn_params')
+    def test_submission(self, mock_conn, mock_get_params):
+        # TODO(kazuki): API経由に書き換える
+        env = dict(name='Python 3.7', test_image_name='docker-image')
+        with transaction() as s:
+            env = Environment(**env)
+            s.add(env)
+            s.flush()
+            env = env.to_dict()
+
+        start_time = datetime.now(tz=timezone.utc)
+        contest_id = app.post_json('/contests', {
+            'id': 'abc000',
+            'title': 'ABC000',
+            'description': '# ABC000\n\nほげほげ\n',
+            'start_time': start_time.isoformat(),
+            'end_time': (start_time + timedelta(hours=1)).isoformat(),
+        }, headers=self.admin_headers).json['id']
+        prefix = '/contests/{}'.format(contest_id)
+        app.post_json(
+            '{}/problems'.format(prefix),
+            dict(id='A', title='A Problem', description='# A', time_limit=2),
+            headers=self.admin_headers)
+
+        # TODO(kazuki): API経由に書き換える
+        ctx = ZstdCompressor()
+        with transaction() as s:
+            s.add(TestCase(
+                contest_id=contest_id,
+                problem_id='A',
+                id='1',
+                input=ctx.compress(b'1'),
+                output=ctx.compress(b'2')))
+
+        self.assertEqual([], app.get('{}/submissions'.format(prefix)).json)
+        app.get('/contests/invalid/submissions', status=404)
+
+        code = 'print("Hello World")'
+        resp = app.post_json('{}/submissions'.format(prefix), {
+            'problem_id': 'A',
+            'environment_id': env['id'],
+            'code': code,
+        }, headers=self.admin_headers).json
+        self.assertEqual([resp], app.get('{}/submissions'.format(prefix)).json)
+        resp2 = app.get('{}/submissions/{}'.format(prefix, resp['id'])).json
+        self.assertEqual(resp2.pop('code'), code)
+        self.assertEqual(resp, resp2)
+
+        app.post_json('{}/submissions'.format(prefix), {
+            'problem_id': 'invalid',
+            'environment_id': env['id'],
+            'code': code,
+        }, headers=self.admin_headers, status=400)
+        app.post_json('{}/submissions'.format(prefix), {
+            'problem_id': 'A',
+            'environment_id': 99999,
+            'code': code,
+        }, headers=self.admin_headers, status=400)
+        app.get('{}/submissions/99999'.format(prefix), status=404)
+
+        contest_id2 = app.post_json('/contests', {
+            'id': 'abc001',
+            'title': 'ABC001',
+            'description': '# ABC001',
+            'start_time': start_time.isoformat(),
+            'end_time': (start_time + timedelta(hours=1)).isoformat(),
+        }, headers=self.admin_headers).json['id']
+        app.get(
+            '/contests/{}/submissions/{}'.format(contest_id2, resp['id']),
+            status=404)
