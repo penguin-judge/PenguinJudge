@@ -9,11 +9,41 @@ import './contest-submission-results';
 import './components/anchor';
 import './components/icon';
 import './components/panel';
-import { HeaderHeight } from './consts';
+//import { HeaderHeight } from './consts';
 import { router, session } from './state';
-import '@lit-element-bootstrap/layout';
-
 import { customElement, LitElement, html, css, property } from 'lit-element';
+import '@lit-element-bootstrap/content';
+import '@lit-element-bootstrap/utilities';
+import '@lit-element-bootstrap/layout';
+import '@lit-element-bootstrap/badge';
+import '@lit-element-bootstrap/breadcrumb';
+import '@lit-element-bootstrap/button';
+import '@lit-element-bootstrap/button-group';
+import '@lit-element-bootstrap/card';
+import '@lit-element-bootstrap/carousel';
+import '@lit-element-bootstrap/dropdown';
+import '@lit-element-bootstrap/form';
+import '@lit-element-bootstrap/input-group';
+import '@lit-element-bootstrap/jumbotron';
+import '@lit-element-bootstrap/list-group';
+import '@lit-element-bootstrap/media-object';
+import '@lit-element-bootstrap/modal';
+import '@lit-element-bootstrap/navbar';
+import '@lit-element-bootstrap/alert';
+import '@lit-element-bootstrap/pagination';
+import '@lit-element-bootstrap/progress';
+import '@lit-element-bootstrap/collapse';
+import '@lit-element-bootstrap/theme';
+import '@lit-element-bootstrap/navs';
+
+import { BsContentRebootCss, BsContentTypographyCss } from '@lit-element-bootstrap/content';
+import { BsTextCss, BsTextColorCss, BsSpacingCss, BsDisplayCss } from '@lit-element-bootstrap/utilities';
+import { BsFlexDisplayCss,
+    BsFlexJustifyCss,
+    BsFlexWrapCss,
+    BsFlexAlignContentCss,
+    BsFlexDirectionCss,
+    BsFlexOrderCss } from '@lit-element-bootstrap/utilities';
 
 @customElement('x-root')
 export class AppRootElement extends LitElement {
@@ -33,7 +63,7 @@ export class AppRootElement extends LitElement {
     ];
     routes.forEach((v) => {
       const [path, name, body, before_hook] = v;
-      let hooks = undefined;
+      let hooks: any = undefined;
       if (before_hook) {
         hooks = {before: before_hook};
       }
@@ -72,22 +102,50 @@ export class AppRootElement extends LitElement {
   }
 
   static get styles() {
-    return css`
-      * {
-        font-family: sans-serif;
-      }
-      #container {
-        padding-top: ${HeaderHeight};
-        flex-grow: 1;
-        display: flex;
-      }
-      #container > * {
-        flex-grow: 1;
-      }
-      :host {
-        height: 100%;
-        display: flex;
-      }
-    `;
-  }
+        return [
+            BsContentRebootCss,
+            BsContentTypographyCss,
+            BsTextCss,
+            BsTextColorCss,
+            BsDisplayCss,
+            BsFlexWrapCss,
+            BsFlexOrderCss,
+            BsFlexDisplayCss,
+            BsFlexDirectionCss,
+            BsFlexJustifyCss,
+            BsSpacingCss,
+            BsFlexAlignContentCss,
+            css`
+                bs-jumbotron {
+                    margin-top: 15px;
+                }
+                div#jumbotron-buttons {
+                    margin-bottom: 20px;
+                }
+                div#jumbotron-buttons bs-link-button {
+                    margin-right: 20px;
+                }
+            `
+        ];
+    }
+
+//  static get styles() {
+  //  return css`
+//      * {
+//        font-family: sans-serif;
+//      }
+//      #container {
+//        padding-top: ${HeaderHeight};
+//        flex-grow: 1;
+//        display: flex;
+//      }
+//      #container > * {
+//        flex-grow: 1;
+//      }
+//      :host {
+//        height: 100%;
+//        display: flex;
+//      }
+//    `;
+//  }
 }

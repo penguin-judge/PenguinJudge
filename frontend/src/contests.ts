@@ -1,7 +1,15 @@
 import { customElement, LitElement, html, property, css } from 'lit-element';
+import { BsContentRebootCss, BsContentTypographyCss } from '@lit-element-bootstrap/content';
+import { BsTextCss, BsTextColorCss, BsSpacingCss, BsDisplayCss } from '@lit-element-bootstrap/utilities';
+import { BsFlexDisplayCss,
+    BsFlexJustifyCss,
+    BsFlexWrapCss,
+    BsFlexAlignContentCss,
+    BsFlexDirectionCss,
+    BsFlexOrderCss, BsBackgroundColorsCss, BsBordersCss } from '@lit-element-bootstrap/utilities';
 
 import { API } from './api';
-import { MainAreaPaddingPx } from './consts';
+//import { MainAreaPaddingPx } from './consts';
 import { router } from './state';
 import { format_datetime, format_timespan } from './utils';
 
@@ -14,10 +22,10 @@ export class AppContentsElement extends LitElement {
     API.list_contests().then((contests) => {
       const tmp: Array<Object> = [];
       contests.forEach((c) => {
-        tmp.push(html`<tr>
-          <td>${format_datetime(c.start_time)}</td>
-          <td><x-anchor href="${router.generate('contest-top', {id: c.id})}">${c.title}</x-anchor></td>
-          <td>${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</td>
+        tmp.push(html`<bs-row>
+          <bs-column sm-3 demo class="border">${format_datetime(c.start_time)}</bs-column>
+          <bs-column sm-6 demo class="border"><x-anchor href="${router.generate('contest-top', {id: c.id})}">${c.title}</x-anchor></bs-column>
+          <bs-column sm-3 demo class="border">${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</bs-column>
         </tr>`);
       });
       this.contests = html`
@@ -28,28 +36,115 @@ export class AppContentsElement extends LitElement {
 
   render() {
     return html`
-      <x-panel header="開催中のコンテスト">
-        ${this.contests}
-      </x-panel>
-      <x-panel header="開催予定のコンテスト">
-        <div>ほげほげ</div>
-      </x-panel>
-      <x-panel header="終了したコンテスト">
-        <div>ほげほげ</div>
-      </x-panel>
+    <bs-container>
+        <bs-row>
+            <bs-column sm-12 demo>
+            <bs-card>
+                <bs-card-header slot="card-header">開催中のコンテスト</bs-card-header>
+                <bs-card-body>
+                  <bs-container>
+                    <bs-row class="text-white bg-info">
+                      <bs-column sm-3 demo class="border">
+                      開始時刻
+                      </bs-column>
+                      <bs-column sm-6 demo class="border">
+                      コンテスト名
+                      </bs-column>
+                      <bs-column sm-3 demo class="border">
+                      時間
+                      </bs-column>
+                    </bs-row>
+                    ${this.contests}
+                    <bs-row>
+                      <bs-column sm-3 demo class="border">
+                      2019.12.16 18:00-
+                      </bs-column>
+                      <bs-column sm-6 demo class="border">
+                      <bs-alert-link light herf="#!test">ペンギンコンテストNo.1</bs-alert-link>
+                      </bs-column>
+                      <bs-column sm-3 demo class="border">
+                      2時間
+                      </bs-column>
+                    </bs-row>
+                  </bs-container>
+                </bs-card-body>
+            </bs-card>
+            </bs-column>
+        </bs-row>
+        <bs-row>
+          <bs-column sm-12 demo><br></bs-column>
+        </bs-row>
+        <bs-row>
+            <bs-column sm-12 demo>
+            <bs-card>
+                <bs-card-header slot="card-header">開催予定のコンテスト</bs-card-header>
+                <bs-card-body>
+                    <bs-card-text slot="card-text">
+                        <p>ほげほげ</p>
+                    </bs-card-text>
+                </bs-card-body>
+            </bs-card>
+            </bs-column>
+        </bs-row>
+        <bs-row>
+          <bs-column sm-12 demo><br></bs-column>
+        </bs-row>
+        <bs-row>
+            <bs-column sm-12 demo>
+            <bs-card>
+                <bs-card-header slot="card-header">終了したコンテスト</bs-card-header>
+                <bs-card-body>
+                    <bs-card-text slot="card-text">
+                        <p>ほげほげ</p>
+                    </bs-card-text>
+                </bs-card-body>
+            </bs-card>
+            </bs-column>
+        </bs-row>
+    </bs-container>
     `;
   }
 
   static get styles() {
-    return css`
-      :host {
-        display: flex;
-        flex-direction: column;
-        padding: ${MainAreaPaddingPx}px;
-      }
-      x-panel {
-        margin-bottom: 20px;
-      }
-    `
-  }
+        return [
+            BsContentRebootCss,
+            BsContentTypographyCss,
+            BsBordersCss,
+            BsTextCss,
+            BsTextColorCss,
+            BsDisplayCss,
+            BsFlexWrapCss,
+            BsFlexOrderCss,
+            BsFlexDisplayCss,
+            BsFlexDirectionCss,
+            BsFlexJustifyCss,
+            BsSpacingCss,
+            BsFlexAlignContentCss,
+            BsBackgroundColorsCss,
+            css`
+                bs-jumbotron {
+                    margin-top: 15px;
+                }
+                div#jumbotron-buttons {
+                    margin-bottom: 20px;
+                }
+                div#jumbotron-buttons bs-link-button {
+                    margin-right: 20px;
+                }
+            `
+        ];
+    }
+
+//  static get styles() {
+//    return css`
+//      :host {
+//        display: flex;
+//        flex-direction: column;
+//        padding: ${MainAreaPaddingPx}px;
+//      }
+//      x-panel {
+//        margin-bottom: 20px;
+//      }
+//    `
+//  }
 }
