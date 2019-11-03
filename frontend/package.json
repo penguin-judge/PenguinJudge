@@ -34,7 +34,6 @@
     "@lit-element-bootstrap/pagination": "^1.0.0-alpha.2",
     "@lit-element-bootstrap/progress": "^1.0.0-alpha.2",
     "@lit-element-bootstrap/theme": "^1.0.0-alpha.2",
-    "@lit-element-bootstrap/utilities": "^1.0.0-alpha.4",
-    "lit-element-bootstrap": "0.0.0"
+    "@lit-element-bootstrap/utilities": "^1.0.0-alpha.4"
   }
 }
