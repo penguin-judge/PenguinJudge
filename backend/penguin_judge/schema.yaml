@@ -136,16 +136,46 @@ paths:
                 $ref: "#/components/schemas/Contest"
   /contests/{contest_id}/submissions:
     get:
-      operationId: listOwnSubmissions
+      operationId: listSubmissions
       parameters:
         - $ref: "#/components/parameters/ContestID"
       responses:
         '200':
-          description: Responses own submissions
+          description: Responses submissions
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submissions"
+    post:
+      operationId: postSubmission
+      description: "解答を投稿する"
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Submission"
+      responses:
+        '201':
+          description: Responses submission info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionSummary"
+  /contests/{contest_id}/submissions/{submission_id}:
+    get:
+      operationId: getSubmission
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/SubmissionID"
+      responses:
+        '200':
+          description: Responses submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
   /contests/{contest_id}/problems:
     get:
       operationId: listProblems
@@ -159,6 +189,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problems"
+    post:
+      operationId: createProblem
+      description: コンテストの問題を作成する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProblemCreation"
+      responses:
+        '201':
+          description: 問題詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /contests/{contest_id}/problems/{problem_id}:
     get:
       operationId: getProblem
@@ -173,10 +220,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /contests/{contest_id}/problems/{problem_id}/submission:
-    post:
-      operationId: postSubmission
-      description: "TODO: submissionsにパスを変更する"
+    patch:
+      operationId: updateProblem
+      description: コンテストの問題を修正する
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
@@ -184,41 +230,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Submission"
+              $ref: "#/components/schemas/Problem"
       responses:
-        '201':
-          description: Responses submission info
+        '200':
+          description: 修正後の問題情報
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubmissionSummary"
-    get:
-      operationId: getOwnSubmissionsForProblem
-      description: 実装してあるけど、必要???
+                $ref: "#/components/schemas/Problem"
+    delete:
+      operationId: deleteProblem
+      description: コンテストの問題を削除する
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
       responses:
-        '200':
-          description: Responses submission list
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Submissions"
-  /contests/{contest_id}/problems/{problem_id}/submission/all:
-    get:
-      operationId: getSubmissionsForProblem
-      description: 実装してあるけど、必要???
-      parameters:
-        - $ref: "#/components/parameters/ContestID"
-        - $ref: "#/components/parameters/ProblemID"
-      responses:
-        '200':
-          description: Responses submission list
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Submissions"
+        '204':
+          description: 削除成功
 components:
   schemas:
     Token:
@@ -301,7 +329,6 @@ components:
               type: string
             problems:
               $ref: "#/components/schemas/Problems"
-
     ContestCreation:
       allOf:
         - $ref: "#/components/schemas/Contest"
@@ -321,11 +348,21 @@ components:
         title:
           type: string
         time_limit:
+          description: "[sec]"
           type: integer
         memory_limit:
+          description: "[MiB]"
           type: integer
         description:
           type: string
+    ProblemCreation:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - required:
+          - id
+          - title
+          - time_limit
+          - description
     Problems:
       type: array
       items:
@@ -359,7 +396,6 @@ components:
             code:
               type: string
           required:
-            - contest_id
             - problem_id
             - environment_id
             - code
