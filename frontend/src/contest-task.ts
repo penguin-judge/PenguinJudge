@@ -31,6 +31,7 @@ export class AppContestTaskElement extends LitElement {
     });
   }
 
+
   render() {
     if (!session.contest || !session.contest.problems || !session.task_id)
       return html`?`;
@@ -41,26 +42,37 @@ export class AppContestTaskElement extends LitElement {
     if (!task)
       return html`??`;
 
-    const dom_langs = session.environments.map((e) => {
-      return html`<option value="${e.id}">${e.name}</option>`;
+    const langs = session.environments.map((e) => {
+      return {"id": e.id, "value": e.name};
     });
 
     return html`
-      <div id="problem">
-        <div id="title">${task.title}</div>
-        ${task.description}
-      </div>
-      <div id="submission">
-        <div>
-          <select id="env">${dom_langs}</select>
+      <bs-container>
+        <div class="header text-dark" style="margin:10px;"><h3>${task.title}</h3></div>
+        <div class="body">
+        <bs-row>
+          <bs-column sm-4 demo>
+            ${task.description}
+          </bs-column>
+          <bs-column sm-7 demo>
+            <bs-form>
+            <bs-form-group>
+              <bs-form-label slot="label">言語</bs-form-label>
+              <bs-form-select slot="control"
+                        .jsonData=${langs}
+                        json-id="id"
+                        json-text="value"></bs-form-select>
+            </bs-form-group>
+            <bs-form-group>
+              <bs-form-label slot="label">コード</bs-form-label>
+              <bs-form-textarea rows="10" slot="control"></bs-form-textarea>
+            </bs-form-group>
+            <bs-button primary button-type="submit" action="submit">提出</bs-button>
+            </bs-form>
+          </bs-column>
+        </bs-row>
         </div>
-        <div>
-          <textarea id="code"></textarea>
-        </div>
-        <div>
-          <button @click="${this.post}">提出</button>
-        </div>
-      </div>
+      </bs-container>
     `
   }
 

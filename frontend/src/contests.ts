@@ -26,11 +26,11 @@ export class AppContentsElement extends LitElement {
           <bs-column sm-3 demo class="border">${format_datetime(c.start_time)}</bs-column>
           <bs-column sm-6 demo class="border"><x-anchor href="${router.generate('contest-top', {id: c.id})}">${c.title}</x-anchor></bs-column>
           <bs-column sm-3 demo class="border">${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</bs-column>
-        </tr>`);
+        </bs-row>`);
       });
       this.contests = html`
-        <table><thead><tr><td>開始時刻</td><td>コンテスト名</td><td>時間</td></tr></thead>
-        <tbody>${tmp}</tbody></table>`;
+        ${tmp}
+        `;
     });
   }
 
@@ -43,7 +43,7 @@ export class AppContentsElement extends LitElement {
                 <bs-card-header slot="card-header">開催中のコンテスト</bs-card-header>
                 <bs-card-body>
                   <bs-container>
-                    <bs-row class="text-white bg-info">
+                    <bs-row style="background-color:#CCE5FF;" class="text-dark">
                       <bs-column sm-3 demo class="border">
                       開始時刻
                       </bs-column>
@@ -55,17 +55,6 @@ export class AppContentsElement extends LitElement {
                       </bs-column>
                     </bs-row>
                     ${this.contests}
-                    <bs-row>
-                      <bs-column sm-3 demo class="border">
-                      2019.12.16 18:00-
-                      </bs-column>
-                      <bs-column sm-6 demo class="border">
-                      <bs-alert-link light herf="#!test">ペンギンコンテストNo.1</bs-alert-link>
-                      </bs-column>
-                      <bs-column sm-3 demo class="border">
-                      2時間
-                      </bs-column>
-                    </bs-row>
                   </bs-container>
                 </bs-card-body>
             </bs-card>

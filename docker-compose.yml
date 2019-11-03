@@ -19,12 +19,6 @@ services:
     depends_on:
       - mq
       - db
-  gui:
-    build: frontend
-    depends_on:
-      - api
-    ports:
-      - 8080:80
   mq:
     image: rabbitmq:alpine
   db:

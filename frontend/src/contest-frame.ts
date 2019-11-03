@@ -40,23 +40,24 @@ export class PenguinJudgeContestFrame extends LitElement {
       tabs[0][2] = true;
     const tabs_html: any = [];
     tabs.forEach((e) => {
-      tabs_html.push(html`<a @click="${this.anchor_handler}" href="${e[1]}" class="${e[2] ? 'selected' : ''}">${e[0]}</a>`);
+      if(e[2]){
+        tabs_html.push(html`<bs-nav-item><bs-nav-link href="${e[1]}" active>${e[0]}</bs-nav-link></bs-nav-item>`);
+      }else{
+        tabs_html.push(html`<bs-nav-item><bs-nav-link href="${e[1]}">${e[0]}</bs-nav-link></bs-nav-item>`);
+      }
+//      tabs_html.push(html`<a @click="${this.anchor_handler}" href="${e[1]}" class="${e[2] ? 'selected' : ''}">${e[0]}</a>`);
     });
 
     return html`
-      <div id="frame">
-        <div id="header">
-          ${tabs_html}
-          <a class="disabled">順位表</a>
-          <a class="disabled">コードテスト</a>
-          <a class="disabled">質問</a>
-          <a class="disabled">解説</a>
-          <div id="spacer"></div>
-        </div>
-        <div id="contents">
-          <slot></slot>
-        </div>
-      </div>
+    <bs-nav tabs>
+      ${tabs_html}
+      <bs-nav-item><bs-nav-link>順位表</bs-nav-link></bs-nav-item>
+      <bs-nav-item><bs-nav-link>コードテスト</bs-nav-link></bs-nav-item>
+      <bs-nav-item><bs-nav-link>質問</bs-nav-link></bs-nav-item>
+      <bs-nav-item><bs-nav-link>解説</bs-nav-link></bs-nav-item>
+    </bs-nav>
+    <slot></slot>
+    
     `;
   }
 
