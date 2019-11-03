@@ -355,6 +355,8 @@ components:
           type: integer
         description:
           type: string
+        score:
+          type: integer
     ProblemCreation:
       allOf:
         - $ref: "#/components/schemas/Problem"
@@ -363,6 +365,7 @@ components:
           - title
           - time_limit
           - description
+          - score
     Problems:
       type: array
       items:
