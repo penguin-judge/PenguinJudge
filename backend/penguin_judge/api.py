@@ -234,7 +234,8 @@ def create_problem(contest_id: str) -> Response:
             title=body.title,
             time_limit=body.time_limit,
             memory_limit=getattr(body, 'memory_limit', DEFAULT_MEMORY_LIMIT),
-            description=body.description)
+            description=body.description,
+            score=body.score)
         s.add(problem)
         s.flush()
         ret = problem.to_dict()

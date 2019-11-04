@@ -207,7 +207,8 @@ class TestAPI(unittest.TestCase):
         }, headers=self.admin_headers).json['id']
 
         p0 = dict(
-            id='A', title='A Problem', description='# A\n', time_limit=2)
+            id='A', title='A Problem', description='# A\n', time_limit=2,
+            score=100)
         _invalid_post('invalid', p0, status=404)
         _invalid_post(contest_id, {})
         _post(contest_id, p0)
@@ -215,7 +216,7 @@ class TestAPI(unittest.TestCase):
 
         p1 = dict(
             id='B', title='B Problem', description='# B\n', time_limit=1,
-            memory_limit=1)
+            memory_limit=1, score=200)
         _post(contest_id, p1)
 
         ret = app.get('/contests/{}/problems'.format(contest_id)).json
@@ -264,9 +265,10 @@ class TestAPI(unittest.TestCase):
         }, headers=self.admin_headers).json['id']
         prefix = '/contests/{}'.format(contest_id)
         app.post_json(
-            '{}/problems'.format(prefix),
-            dict(id='A', title='A Problem', description='# A', time_limit=2),
-            headers=self.admin_headers)
+            '{}/problems'.format(prefix), dict(
+                id='A', title='A Problem', description='# A', time_limit=2,
+                score=100
+            ), headers=self.admin_headers)
 
         # TODO(kazuki): API経由に書き換える
         ctx = ZstdCompressor()
