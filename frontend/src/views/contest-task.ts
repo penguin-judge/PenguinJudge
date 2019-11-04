@@ -28,6 +28,9 @@ export class AppContestTaskElement extends LitElement {
       problem_id: session.task_id,
       code: code,
       environment_id: parseInt(env),
+    }).catch(e => {
+      if (e.status === 401)
+        alert("ログインが必要です");
     });
   }
 

@@ -24,9 +24,8 @@ export class AppHomeElement extends LitElement {
     console.log(userid, password);
 
     this.subscription = from(API.login(userid, password)).subscribe(
-      json => {
-        // save token
-        session.token = json.token;
+      _ => {
+        session.update_current_user();
       },
       err => {
         this.errorStr = err;

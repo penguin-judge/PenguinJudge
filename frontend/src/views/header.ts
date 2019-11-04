@@ -9,6 +9,9 @@ export class PenguinJudgeHeaderElement extends LitElement {
     session.contest_subject.subscribe(_ => {
       this.requestUpdate();
     });
+    session.current_user.subscribe(_ => {
+      this.requestUpdate();
+    });
   }
 
   render() {
@@ -17,6 +20,16 @@ export class PenguinJudgeHeaderElement extends LitElement {
     if (session.contest) {
       title = session.contest.title;
       title_link = router.generate('contest-top', { id: session.contest.id });
+    }
+
+    let user_area;
+    if (session.current_user.value) {
+      user_area = html`
+        <x-icon>person</x-icon>
+        <span>${session.current_user.value.name}</span>
+        <span class="dropdown-caret"></span>`;
+    } else {
+      user_area = html`<a is="router-link" href="${router.generate('login')}">ログイン</a>`
     }
     return html`
       <span id="icon-area">
@@ -36,11 +49,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
             <x-icon>insert_chart_outlined</x-icon>
           </a>
         </span>
-        <span tabindex="0">
-          <x-icon>person</x-icon>
-          <span>ringo</span>
-          <span class="dropdown-caret"></span>
-        </span>
+        <span tabindex="0">${user_area}</span>
       </span>
     `;
   }

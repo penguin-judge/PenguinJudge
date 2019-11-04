@@ -1,3 +1,10 @@
+export interface User {
+  id: string;
+  name: string;
+  admin: boolean;
+  created: string;
+}
+
 export interface Environment {
   id: number;
   name: string;
@@ -41,6 +48,14 @@ export interface Token {
 }
 
 export class API {
+  static get_current_user(): Promise<User> {
+    return new Promise((resolve, reject) => {
+      fetch('/api/user').then((res) => {
+        resolve(res.json());
+      }).catch(reject);
+    });
+  }
+
   static list_contests(): Promise<Array<Contest>> {
     return new Promise((resolve, reject) => {
       fetch('/api/contests').then((res) => {
@@ -65,7 +80,7 @@ export class API {
     });
   }
 
-  static submit(submission: PartialSubmission): Promise<void> {
+  static submit(submission: PartialSubmission): Promise<Submission> {
     const contest_id = submission.contest_id;
     delete submission.contest_id;
     const path = '/api/contests/' + encodeURIComponent(contest_id) + '/submissions';
@@ -75,8 +90,12 @@ export class API {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(submission)
-      }).then(_ => {
-        resolve();
+      }).then(res => {
+        if (res.ok) {
+          resolve(res.json());
+        } else {
+          reject(res);
+        }
       }).catch(reject);
     });
   }
