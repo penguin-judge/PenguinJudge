@@ -85,6 +85,7 @@ export class PenguinJudgeContestFrame extends LitElement {
         border-right: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
         background-color: ${BackgroundColor};
+        white-space: nowrap;
       }
       #header > *.selected {
         border-bottom: unset;
@@ -105,7 +106,7 @@ export class PenguinJudgeContestFrame extends LitElement {
         flex-grow: 1;
         display: flex;
       }
-      #contents > * {
+      #contents > ::slotted(*) {
         flex-grow: 1;
       }
       #header > .disabled, #header > .disabled:hover {

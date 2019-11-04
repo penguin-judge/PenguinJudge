@@ -7,6 +7,9 @@ export interface Problem {
   id: string;
   title: string;
   description: string;
+  time_limit: number;
+  memory_limit: number;
+  score: number;
 }
 
 export interface Contest {
