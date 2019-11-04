@@ -20,21 +20,21 @@ export class PenguinJudgeHeaderElement extends LitElement {
     }
     return html`
       <span id="icon-area">
-        <x-anchor href="${router.generate('home')}"><img id="icon" src="/images/penguin.png"></x-anchor>
+        <a is="router-link" href="${router.generate('home')}"><img id="icon" src="/images/penguin.png"></a>
       </span>
       <span id="title">
-        <x-anchor href="${title_link}">${title}</x-anchor>
+        <a href="${title_link}" is="router-link">${title}</a>
       </span>
       <span id="extra">
         <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('home')}">
+          <a is="router-link" href="${router.generate('home')}">
             <x-icon key="home"></x-icon>
-          </x-anchor>
+          </a>
         </span>
         <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('contests')}">
+          <a is="router-link" href="${router.generate('contests')}">
             <x-icon key="insert_chart_outlined"></x-icon>
-          </x-anchor>
+          </a>
         </span>
         <span tabindex="0" style="cursor: pointer; margin-left: 1ex">
           <x-icon key="person"></x-icon>
@@ -71,7 +71,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
         font-weight: bold;
         font-size: 130%;
       }
-      #title x-anchor {
+      #title a {
         color: black;
         text-decoration: none;
       }

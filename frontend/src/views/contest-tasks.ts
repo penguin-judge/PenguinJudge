@@ -28,8 +28,8 @@ export class AppContestTasksElement extends LitElement {
       session.contest.problems.forEach((problem) => {
         const url = router.generate('contest-task', { id: contest_id, task_id: problem.id });
         dom_problems.push(html`<tr>
-                          <td><x-anchor href="${url}">${problem.id}</td>
-                          <td><x-anchor href="${url}">${problem.title}</td></tr>`)
+                          <td><a is="router-link" href="${url}">${problem.id}</a></td>
+                          <td><a is="router-link" href="${url}">${problem.title}</a></td></tr>`)
       });
     }
     return html`

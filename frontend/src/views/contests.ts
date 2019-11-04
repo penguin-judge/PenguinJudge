@@ -16,7 +16,7 @@ export class AppContentsElement extends LitElement {
       contests.forEach((c) => {
         tmp.push(html`<tr>
           <td>${format_datetime(c.start_time)}</td>
-          <td><x-anchor href="${router.generate('contest-top', { id: c.id })}">${c.title}</x-anchor></td>
+          <td><a is="router-link" href="${router.generate('contest-top', { id: c.id })}">${c.title}</a></td>
           <td>${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</td>
         </tr>`);
       });
