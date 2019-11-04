@@ -25,7 +25,7 @@ export interface PartialSubmission {
   contest_id: string;
   problem_id: string;
   code: string;
-  environment_id: string;
+  environment_id: number;
 }
 
 export interface Submission extends PartialSubmission {
@@ -67,11 +67,8 @@ export class API {
 
   static submit(submission: PartialSubmission): Promise<void> {
     const contest_id = submission.contest_id;
-    const problem_id = submission.problem_id;
     delete submission.contest_id;
-    delete submission.problem_id;
-    const path = '/api/contests/' + encodeURIComponent(contest_id)
-      + "/problems/" + encodeURIComponent(problem_id) + '/submission';
+    const path = '/api/contests/' + encodeURIComponent(contest_id) + '/submissions';
     const headers = { 'Content-Type': 'application/json' };
     return new Promise((resolve, reject) => {
       fetch(path, {

@@ -27,7 +27,7 @@ export class AppContestTaskElement extends LitElement {
       contest_id: session.contest.id,
       problem_id: session.task_id,
       code: code,
-      environment_id: env,
+      environment_id: parseInt(env),
     });
   }
 
