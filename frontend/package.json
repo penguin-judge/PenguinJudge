@@ -4,6 +4,7 @@
   "author": "Kazuki Oikawa",
   "devDependencies": {
     "@types/navigo": "^7.0.1",
+    "@vanillawc/wc-markdown": "^1.3.0",
     "lit-element": "^2.2.1",
     "navigo": "^7.1.2",
     "rxjs": "^6.5.3",

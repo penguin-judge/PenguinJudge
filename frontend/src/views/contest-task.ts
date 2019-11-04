@@ -45,10 +45,13 @@ export class AppContestTaskElement extends LitElement {
       return html`<option value="${e.id}">${e.name}</option>`;
     });
 
+    // <wc-markdown>の後に改行が必要
     return html`
       <div id="problem">
         <div id="title">${task.title}</div>
-        ${task.description}
+        <wc-markdown>
+${task.description}
+</wc-markdown>
       </div>
       <div id="submission">
         <div>

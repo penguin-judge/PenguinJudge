@@ -1,3 +1,5 @@
+import '@vanillawc/wc-markdown';
+
 import './views/header';
 import './views/home';
 import './views/login';

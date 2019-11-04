@@ -25,6 +25,9 @@ export class AppContestTopElement extends LitElement {
     if (!session.contest) {
       return html``
     }
-    return html`<p>${session.contest.description}</p>`
+    // <wc-markdown>の後に改行が必要
+    return html`<wc-markdown>
+${session.contest.description}
+</wc-markdown>`
   }
 }
