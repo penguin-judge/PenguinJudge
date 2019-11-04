@@ -26,17 +26,17 @@ export class PenguinJudgeHeaderElement extends LitElement {
         <a href="${title_link}" is="router-link">${title}</a>
       </span>
       <span id="extra">
-        <span tabindex="0" style="margin-left: 1ex">
-          <a is="router-link" href="${router.generate('home')}">
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('home')}" title="ホームに戻る">
             <x-icon>home</x-icon>
           </a>
         </span>
-        <span tabindex="0" style="margin-left: 1ex">
-          <a is="router-link" href="${router.generate('contests')}">
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('contests')}" title="コンテスト一覧">
             <x-icon>insert_chart_outlined</x-icon>
           </a>
         </span>
-        <span tabindex="0" style="cursor: pointer; margin-left: 1ex">
+        <span tabindex="0">
           <x-icon>person</x-icon>
           <span>ringo</span>
           <span class="dropdown-caret"></span>
@@ -81,6 +81,10 @@ export class PenguinJudgeHeaderElement extends LitElement {
         flex-grow: 1;
         text-align: right;
         margin-right: 1em;
+      }
+      #extra > span {
+        margin-left: 1ex;
+        cursor: pointer;
       }
       x-icon {
         font-size: 22px;

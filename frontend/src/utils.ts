@@ -1,5 +1,3 @@
-import { router } from './state';
-
 const _datetime_formatter = new Intl.DateTimeFormat('ja', {weekday: 'short'});
 
 
@@ -31,9 +29,4 @@ export function format_timespan(ts: number): string {
   const h = Math.floor(ts / 60);
   const m = ts % 60;
   return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
-}
-
-export function anchor_handler(e: MouseEvent): void {
-  e.preventDefault();
-  router.navigate((<HTMLElement>e.target).getAttribute("href"));
 }

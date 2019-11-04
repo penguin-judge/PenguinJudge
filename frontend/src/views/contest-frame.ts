@@ -2,7 +2,6 @@ import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription } from 'rxjs';
 import { BackgroundColor, MainAreaPaddingPx } from './consts';
 import { router, session } from '../state';
-import { anchor_handler as _anchor_handler } from '../utils';
 
 @customElement('penguin-judge-contest-frame')
 export class PenguinJudgeContestFrame extends LitElement {
@@ -40,7 +39,7 @@ export class PenguinJudgeContestFrame extends LitElement {
       tabs[0][2] = true;
     const tabs_html: any = [];
     tabs.forEach((e) => {
-      tabs_html.push(html`<a @click="${this.anchor_handler}" href="${e[1]}" class="${e[2] ? 'selected' : ''}">${e[0]}</a>`);
+      tabs_html.push(html`<a is="router-link" href="${e[1]}" class="${e[2] ? 'selected' : ''}">${e[0]}</a>`);
     });
 
     return html`
@@ -60,13 +59,6 @@ export class PenguinJudgeContestFrame extends LitElement {
     `;
   }
 
-  anchor_handler(e: MouseEvent): void {
-    const target = <HTMLElement>e.target;
-    if (!target) return;
-    _anchor_handler(e);
-    target.blur();
-  }
-
   static get styles() {
     return css`
       :host {
@@ -80,15 +72,21 @@ export class PenguinJudgeContestFrame extends LitElement {
       }
       #header {
         display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        height: 40px;
       }
       #header > * {
-        padding: 1ex 2ex;
+        padding-left: 2ex;
+        padding-right: 2ex;
+        line-height: 38px;  // 40 - border-top-width - border-bottom-width
         border-top: 1px solid #ddd;
         border-right: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
+        background-color: ${BackgroundColor};
       }
       #header > *.selected {
-        background-color: ${BackgroundColor};
         border-bottom: unset;
       }
       #header > #spacer {
@@ -103,6 +101,7 @@ export class PenguinJudgeContestFrame extends LitElement {
       }
       #contents {
         margin: ${MainAreaPaddingPx}px;
+        margin-top: ${40 + MainAreaPaddingPx}px;
         flex-grow: 1;
         display: flex;
       }
