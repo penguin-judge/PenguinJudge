@@ -28,16 +28,16 @@ export class PenguinJudgeHeaderElement extends LitElement {
       <span id="extra">
         <span tabindex="0" style="margin-left: 1ex">
           <a is="router-link" href="${router.generate('home')}">
-            <x-icon key="home"></x-icon>
+            <x-icon>home</x-icon>
           </a>
         </span>
         <span tabindex="0" style="margin-left: 1ex">
           <a is="router-link" href="${router.generate('contests')}">
-            <x-icon key="insert_chart_outlined"></x-icon>
+            <x-icon>insert_chart_outlined</x-icon>
           </a>
         </span>
         <span tabindex="0" style="cursor: pointer; margin-left: 1ex">
-          <x-icon key="person"></x-icon>
+          <x-icon>person</x-icon>
           <span>ringo</span>
           <span class="dropdown-caret"></span>
         </span>
@@ -67,13 +67,15 @@ export class PenguinJudgeHeaderElement extends LitElement {
       #icon {
         height: ${unsafeCSS(HeaderHeightPx * 0.7)}px;
       }
+      a {
+        text-decoration: none;
+      }
       #title {
         font-weight: bold;
         font-size: 130%;
       }
       #title a {
         color: black;
-        text-decoration: none;
       }
       #extra {
         flex-grow: 1;
