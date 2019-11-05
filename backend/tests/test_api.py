@@ -158,6 +158,7 @@ class TestAPI(unittest.TestCase):
                            end_time=start_time.isoformat()))
 
         c2 = _post(c).json
+        c['published'] = False
         self.assertEqual(c, c2)
 
         _invalid_patch(c['id'], dict(end_time=start_time.isoformat()))
@@ -165,6 +166,7 @@ class TestAPI(unittest.TestCase):
         patch = {
             'title': 'Hoge',
             'end_time': (end_time + timedelta(hours=1)).isoformat(),
+            'published': True,
         }
         _invalid_patch('invalid', patch, status=404)
         c3 = dict(c)
@@ -204,6 +206,7 @@ class TestAPI(unittest.TestCase):
             'description': '# ABC000\n\nほげほげ\n',
             'start_time': start_time.isoformat(),
             'end_time': (start_time + timedelta(hours=1)).isoformat(),
+            'published': True
         }, headers=self.admin_headers).json['id']
 
         p0 = dict(
@@ -243,6 +246,21 @@ class TestAPI(unittest.TestCase):
 
         ret = app.get('/contests/{}'.format(contest_id)).json
         self.assertEqual([p0], ret['problems'])
+
+        with transaction() as s:
+            s.query(User).update({'admin': False})
+            s.query(Contest).update({'start_time': (
+                datetime.now(tz=timezone.utc) + timedelta(hours=1))})
+        self.assertNotIn(
+            'problems', app.get('/contests/{}'.format(contest_id)).json)
+        app.get('/contests/{}/problems'.format(contest_id), status=403)
+        app.get('/contests/{}/problems/A'.format(contest_id), status=404)
+
+        with transaction() as s:
+            s.query(Contest).update({'published': False})
+        app.get('/contests/{}'.format(contest_id), status=404)
+        app.get('/contests/{}/problems'.format(contest_id), status=404)
+        app.get('/contests/{}/problems/A'.format(contest_id), status=404)
 
     @unittest.mock.patch('pika.BlockingConnection')
     @unittest.mock.patch('penguin_judge.api.get_mq_conn_params')

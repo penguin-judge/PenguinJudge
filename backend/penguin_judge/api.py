@@ -154,7 +154,11 @@ def list_contests() -> Response:
     # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
     ret = []
     with transaction() as s:
-        for c in s.query(Contest):
+        u = _validate_token(s)
+        q = s.query(Contest)
+        if not (u and u['admin']):
+            q = q.filter(Contest.published.is_(True))
+        for c in q:
             ret.append(c.to_summary_dict())
     return jsonify(ret)
 
@@ -171,8 +175,10 @@ def create_contest() -> Response:
             title=body.title,
             description=body.description,
             start_time=body.start_time,
-            end_time=body.end_time)
+            end_time=body.end_time,
+            published=getattr(body, 'published', None))
         s.add(contest)
+        s.flush()
         ret = contest.to_dict()
     return jsonify(ret)
 
@@ -198,20 +204,28 @@ def update_contest(contest_id: str) -> Response:
 @app.route('/contests/<contest_id>')
 def get_contest(contest_id: str) -> Response:
     with transaction() as s:
-        ret = s.query(Contest).filter(Contest.id == contest_id).first()
-        if not ret:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not contest or not contest.is_accessible(u):
             abort(404)
-        ret = ret.to_dict()
-        problems = s.query(Problem).filter(
-            Problem.contest_id == contest_id).all()
-        if problems:
-            ret['problems'] = [p.to_dict() for p in problems]
+        ret = contest.to_dict()
+        if contest.is_begun():
+            problems = s.query(Problem).filter(
+                Problem.contest_id == contest_id).all()
+            if problems:
+                ret['problems'] = [p.to_dict() for p in problems]
     return jsonify(ret)
 
 
 @app.route('/contests/<contest_id>/problems')
 def list_problems(contest_id: str) -> Response:
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
+        if not (contest.is_begun() or getattr(u, 'admin', False)):
+            abort(403)
         ret = [p.to_summary_dict() for p in s.query(Problem).filter(
             Problem.contest_id == contest_id).all()]
     return jsonify(ret)
@@ -274,6 +288,12 @@ def delete_problem(contest_id: str, problem_id: str) -> Response:
 @app.route('/contests/<contest_id>/problems/<problem_id>')
 def get_problem(contest_id: str, problem_id: str) -> Response:
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
+        if not (contest.is_begun() or getattr(u, 'admin', False)):
+            abort(404)  # ここは403ではなく404にする
         ret = s.query(Problem).filter(
             Problem.contest_id == contest_id,
             Problem.id == problem_id).first()

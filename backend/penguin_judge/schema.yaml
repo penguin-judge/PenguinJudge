@@ -71,6 +71,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        '404':
+          description: not found
   /environments:
     get:
       operationId: listEnvironments
@@ -118,6 +120,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contest"
+        '404':
+          description: not found
     patch:
       operationId: updateContest
       parameters:
@@ -134,6 +138,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contest"
+        '404':
+          description: not found
   /contests/{contest_id}/submissions:
     get:
       operationId: listSubmissions
@@ -146,6 +152,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submissions"
+        '404':
+          description: not found
     post:
       operationId: postSubmission
       description: "解答を投稿する"
@@ -163,6 +171,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubmissionSummary"
+        '404':
+          description: not found contest_id or problem_id
   /contests/{contest_id}/submissions/{submission_id}:
     get:
       operationId: getSubmission
@@ -176,6 +186,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submission"
+        '404':
+          description: not found content_id or problem_id. またはコンテスト開始前
   /contests/{contest_id}/problems:
     get:
       operationId: listProblems
@@ -189,6 +201,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problems"
+        '403':
+          description: コンテスト開始前
+        '404':
+          description: not found
     post:
       operationId: createProblem
       description: コンテストの問題を作成する
@@ -220,6 +236,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        '404':
+          description: not found. またはコンテスト開始前
     patch:
       operationId: updateProblem
       description: コンテストの問題を修正する
@@ -238,6 +256,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        '404':
+          description: not found
     delete:
       operationId: deleteProblem
       description: コンテストの問題を削除する
@@ -317,6 +337,8 @@ components:
         end_time:
           type: string
           format: date-time
+        published:
+          type: boolean
     Contests:
       type: array
       items:
