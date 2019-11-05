@@ -280,6 +280,7 @@ class TestAPI(unittest.TestCase):
             'description': '# ABC000\n\nほげほげ\n',
             'start_time': start_time.isoformat(),
             'end_time': (start_time + timedelta(hours=1)).isoformat(),
+            'published': True,
         }, headers=self.admin_headers).json['id']
         prefix = '/contests/{}'.format(contest_id)
         app.post_json(
@@ -298,7 +299,9 @@ class TestAPI(unittest.TestCase):
                 input=ctx.compress(b'1'),
                 output=ctx.compress(b'2')))
 
-        self.assertEqual([], app.get('{}/submissions'.format(prefix)).json)
+        app.get('{}/submissions'.format(prefix), status=403)
+        self.assertEqual([], app.get(
+            '{}/submissions'.format(prefix), headers=self.admin_headers).json)
         app.get('/contests/invalid/submissions', status=404)
 
         code = 'print("Hello World")'
@@ -307,7 +310,8 @@ class TestAPI(unittest.TestCase):
             'environment_id': env['id'],
             'code': code,
         }, headers=self.admin_headers).json
-        self.assertEqual([resp], app.get('{}/submissions'.format(prefix)).json)
+        self.assertEqual([resp], app.get(
+            '{}/submissions'.format(prefix), headers=self.admin_headers).json)
         resp2 = app.get('{}/submissions/{}'.format(prefix, resp['id'])).json
         self.assertEqual(resp2.pop('code'), code)
         self.assertEqual(resp, resp2)
@@ -334,3 +338,7 @@ class TestAPI(unittest.TestCase):
         app.get(
             '/contests/{}/submissions/{}'.format(contest_id2, resp['id']),
             status=404)
+
+        with transaction() as s:
+            s.query(Contest).update({'end_time': start_time})
+        app.get('{}/submissions'.format(prefix))

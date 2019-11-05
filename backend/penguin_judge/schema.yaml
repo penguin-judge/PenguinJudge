@@ -171,6 +171,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubmissionSummary"
+        '403':
+          description: 開催中はログインが必要
         '404':
           description: not found contest_id or problem_id
   /contests/{contest_id}/submissions/{submission_id}:

@@ -307,13 +307,21 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
 def list_submissions(contest_id: str) -> Response:
     ret = []
     with transaction() as s:
-        submissions = s.query(Submission).filter(
-            Submission.contest_id == contest_id,
-        ).all()
-        if (not submissions and s.query(Contest).filter(
-                Contest.id == contest_id).count() == 0):
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
             abort(404)
-        for c in submissions:
+        is_admin = getattr(u, 'admin', False)
+        if not (contest.is_begun() or is_admin):
+            abort(403)
+
+        q = s.query(Submission).filter(Submission.contest_id == contest_id)
+        if not (contest.is_finished() or is_admin):
+            if not u:
+                # 未ログイン時は開催中コンテストの投稿一覧は見えない
+                abort(403)
+            q = q.filter(Submission.user_id == u['id'])
+        for c in q:
             ret.append(c.to_summary_dict())
     return jsonify(ret)
 

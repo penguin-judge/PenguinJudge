@@ -99,6 +99,10 @@ class Contest(Base, _Exportable):
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         return self.start_time <= now
 
+    def is_finished(self) -> bool:
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        return self.end_time <= now
+
     def is_accessible(self, user_info: Optional[dict]) -> bool:
         return self.published or (  # type: ignore
             user_info is not None and user_info['admin'])
