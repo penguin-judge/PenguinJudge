@@ -13,7 +13,7 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
     super();
     this.subscription = session.contest_subject.subscribe((s) => {
       if (s) {
-        API.list_own_submissions(s.id).then((submissions) => {
+        API.list_submissions(s.id).then((submissions) => {
           this.submissions = submissions;
           this.requestUpdate();
         });
