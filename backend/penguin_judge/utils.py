@@ -18,3 +18,12 @@ class _JsonEncoder(json.JSONEncoder):
 
 def json_dumps(o: Union[dict, list]) -> str:
     return json.dumps(o, cls=_JsonEncoder, separators=(',', ':'))
+
+
+def pagination_header(count: int, page: int, per_page: int) -> dict:
+    return {
+        'X-Page': page,
+        'X-Per-Page': per_page,
+        'X-Total': count,
+        'X-Total-Pages': (count + (per_page - 1)) // per_page,
+    }

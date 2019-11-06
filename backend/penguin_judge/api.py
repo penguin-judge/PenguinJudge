@@ -18,7 +18,7 @@ from penguin_judge.models import (
     User, Submission, Contest, Environment, Problem, TestCase, Token,
 )
 from penguin_judge.mq import get_mq_conn_params
-from penguin_judge.utils import json_dumps
+from penguin_judge.utils import json_dumps, pagination_header
 
 DEFAULT_MEMORY_LIMIT = 256  # MiB
 
@@ -40,7 +40,7 @@ def _kdf(password: str, salt: bytes) -> bytes:
     return pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
 
 
-def _validate_request() -> Tuple[dict, Any]:
+def _validate_request() -> Tuple[Any, Any]:
     ret = _request_validator.validate(FlaskOpenAPIRequest(request))
     if ret.errors:
         abort(400)
@@ -152,15 +152,19 @@ def list_environments() -> Response:
 @app.route('/contests')
 def list_contests() -> Response:
     # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
+    params, body = _validate_request()
+    page, per_page = params.query['page'], params.query['per_page']
     ret = []
     with transaction() as s:
         u = _validate_token(s)
         q = s.query(Contest)
         if not (u and u['admin']):
             q = q.filter(Contest.published.is_(True))
-        for c in q:
+
+        count = q.count()
+        for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
-    return jsonify(ret)
+    return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
 @app.route('/contests', methods=['POST'])
@@ -305,6 +309,9 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
 
 @app.route('/contests/<contest_id>/submissions')
 def list_submissions(contest_id: str) -> Response:
+    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
+    params, body = _validate_request()
+    page, per_page = params.query['page'], params.query['per_page']
     ret = []
     with transaction() as s:
         u = _validate_token(s)
@@ -321,9 +328,11 @@ def list_submissions(contest_id: str) -> Response:
                 # 未ログイン時は開催中コンテストの投稿一覧は見えない
                 abort(403)
             q = q.filter(Submission.user_id == u['id'])
-        for c in q:
+
+        count = q.count()
+        for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
-    return jsonify(ret)
+    return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
 @app.route('/contests/<contest_id>/submissions', methods=['POST'])

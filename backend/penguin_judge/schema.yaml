@@ -87,9 +87,17 @@ paths:
   /contests:
     get:
       operationId: listContests
+      parameters:
+        - $ref: "#/components/parameters/PageParams"
+        - $ref: "#/components/parameters/PerPageParams"
       responses:
         '200':
           description: Responses contest list
+          headers:
+            X-Total:
+              $ref: "#/components/headers/TotalItemsHeader"
+            X-Total-Pages:
+              $ref: "#/components/headers/TotalPagesHeader"
           content:
             application/json:
               schema:
@@ -145,9 +153,16 @@ paths:
       operationId: listSubmissions
       parameters:
         - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/PageParams"
+        - $ref: "#/components/parameters/PerPageParams"
       responses:
         '200':
           description: Responses submissions
+          headers:
+            X-Total:
+              $ref: "#/components/headers/TotalItemsHeader"
+            X-Total-Pages:
+              $ref: "#/components/headers/TotalPagesHeader"
           content:
             application/json:
               schema:
@@ -449,6 +464,28 @@ components:
       name: submission_id
       in: path
       required: true
+      schema:
+        type: integer
+    PageParams:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPageParams:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+        maximum: 100
+  headers:
+    TotalItemsHeader:
+      schema:
+        type: integer
+    TotalPagesHeader:
       schema:
         type: integer
   securitySchemes:

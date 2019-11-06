@@ -342,3 +342,86 @@ class TestAPI(unittest.TestCase):
         with transaction() as s:
             s.query(Contest).update({'end_time': start_time})
         app.get('{}/submissions'.format(prefix))
+
+    def test_contests_pagination(self):
+        test_data = []
+        base_time = datetime.now(tz=timezone.utc)
+        for i in range(100):
+            start_time = base_time + timedelta(minutes=i * 10)
+            end_time = start_time + timedelta(hours=1)
+            c = {
+                'id': 'id-{}'.format(i),
+                'title': 'Test Contest {}'.format(i),
+                'description': '**Pagination** Test {}'.format(i),
+                'start_time': start_time.isoformat(),
+                'end_time': end_time.isoformat(),
+                'published': True,
+            }
+            test_data.append(app.post_json(
+                '/contests', c, headers=self.admin_headers).json)
+
+        resp = app.get('/contests')
+        self.assertEqual(len(resp.json), 20)
+        self.assertEqual(int(resp.headers['X-Page']), 1)
+        self.assertEqual(int(resp.headers['X-Per-Page']), 20)
+        self.assertEqual(int(resp.headers['X-Total']), 100)
+        self.assertEqual(int(resp.headers['X-Total-Pages']), 5)
+
+        resp = app.get('/contests?page=2&per_page=31')
+        self.assertEqual(len(resp.json), 31)
+        self.assertEqual(
+            [x['id'] for x in resp.json],
+            [x['id'] for x in test_data[31:62]])
+        self.assertEqual(int(resp.headers['X-Page']), 2)
+        self.assertEqual(int(resp.headers['X-Per-Page']), 31)
+        self.assertEqual(int(resp.headers['X-Total']), 100)
+        self.assertEqual(int(resp.headers['X-Total-Pages']), 4)
+
+    def test_submissions_pagination(self):
+        test_data = []
+        start_time = datetime.now(tz=timezone.utc)
+        end_time = start_time + timedelta(hours=1)
+        app.post_json('/contests', {
+            'id': 'id0',
+            'title': 'Test Contest',
+            'description': '**Pagination** Test',
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+            'published': True,
+        }, headers=self.admin_headers)
+        app.post_json('/contests/id0/problems', {
+            'id': 'A', 'title': 'Problem', 'description': '# A',
+            'time_limit': 2, 'score': 100
+        }, headers=self.admin_headers)
+
+        test_data = []
+        with transaction() as s:
+            env = Environment(name='Python 3.7', test_image_name='image')
+            s.add(env)
+            s.flush()
+            for i in range(100):
+                submission = Submission(
+                    contest_id='id0', problem_id='A', user_id='admin',
+                    code=b'dummy', environment_id=env.id)
+                s.add(submission)
+                s.flush()
+                test_data.append(submission.to_dict())
+
+        resp = app.get('/contests/id0/submissions', headers=self.admin_headers)
+        self.assertEqual(len(resp.json), 20)
+        self.assertEqual(int(resp.headers['X-Page']), 1)
+        self.assertEqual(int(resp.headers['X-Per-Page']), 20)
+        self.assertEqual(int(resp.headers['X-Total']), 100)
+        self.assertEqual(int(resp.headers['X-Total-Pages']), 5)
+
+        resp = app.get(
+            '/contests/id0/submissions?page=2&per_page=31',
+            headers=self.admin_headers)
+        self.assertEqual(len(resp.json), 31)
+        self.assertEqual(
+            [x['id'] for x in resp.json],
+            [x['id'] for x in test_data[31:62]])
+        self.assertEqual(int(resp.headers['X-Page']), 2)
+        self.assertEqual(int(resp.headers['X-Per-Page']), 31)
+        self.assertEqual(int(resp.headers['X-Total']), 100)
+        self.assertEqual(int(resp.headers['X-Total-Pages']), 4)
