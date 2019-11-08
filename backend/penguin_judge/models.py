@@ -212,6 +212,7 @@ def _insert_debug_data() -> None:
     import datetime
     from typing import Any
     from zstandard import ZstdCompressor  # type: ignore
+    from penguin_judge.api import _kdf
 
     def _add(o: Any) -> None:
         try:
@@ -226,11 +227,11 @@ def _insert_debug_data() -> None:
 
     ctx = ZstdCompressor()
 
+    salt = b'penguin'
+    passwd = _kdf('penguinpenguin', salt)
     _add(User(
-        id='admin', name='Administrator', salt=b'penguin', admin=True,
-        password=(b'W\x97\xaf\xcby\xbf\x80\x03)\x8aq1\xca\xf9C \r\x18\xbeF\xe4'
-                  + b'\x97.\xac\xec}\x918\xe0\xb2\x81\xd8')  # password=penguin
-    ))
+        id='admin', name='Administrator', salt=salt, admin=True,
+        password=passwd))
     _add(Environment(
         name="C (gcc 8.2)",
         compile_image_name="penguin_judge_c_compile:8.2",
@@ -251,7 +252,8 @@ def _insert_debug_data() -> None:
         title="Increment",
         description="# Increment\n\n標準入力から与えられた整数を1インクリメントした値を出力する",
         time_limit=1,
-        memory_limit=1024))
+        memory_limit=1024,
+        score=100))
     _add(TestCase(
         contest_id="abc000",
         problem_id="A",

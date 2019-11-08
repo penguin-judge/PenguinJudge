@@ -9,6 +9,9 @@ export class PenguinJudgeHeaderElement extends LitElement {
     session.contest_subject.subscribe(_ => {
       this.requestUpdate();
     });
+    session.current_user.subscribe(_ => {
+      this.requestUpdate();
+    });
   }
 
   render() {
@@ -18,29 +21,35 @@ export class PenguinJudgeHeaderElement extends LitElement {
       title = session.contest.title;
       title_link = router.generate('contest-top', { id: session.contest.id });
     }
+
+    let user_area;
+    if (session.current_user.value) {
+      user_area = html`
+        <x-icon>person</x-icon>
+        <span>${session.current_user.value.name}</span>
+        <span class="dropdown-caret"></span>`;
+    } else {
+      user_area = html`<a is="router-link" href="${router.generate('login')}">ログイン</a>`
+    }
     return html`
       <span id="icon-area">
-        <x-anchor href="${router.generate('home')}"><img id="icon" src="/images/penguin.png"></x-anchor>
+        <a is="router-link" href="${router.generate('home')}"><img id="icon" src="/images/penguin.png"></a>
       </span>
       <span id="title">
-        <x-anchor href="${title_link}">${title}</x-anchor>
+        <a href="${title_link}" is="router-link">${title}</a>
       </span>
       <span id="extra">
-        <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('home')}">
-            <x-icon key="home"></x-icon>
-          </x-anchor>
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('home')}" title="ホームに戻る">
+            <x-icon>home</x-icon>
+          </a>
         </span>
-        <span tabindex="0" style="margin-left: 1ex">
-          <x-anchor href="${router.generate('contests')}">
-            <x-icon key="insert_chart_outlined"></x-icon>
-          </x-anchor>
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('contests')}" title="コンテスト一覧">
+            <x-icon>insert_chart_outlined</x-icon>
+          </a>
         </span>
-        <span tabindex="0" style="cursor: pointer; margin-left: 1ex">
-          <x-icon key="person"></x-icon>
-          <span>ringo</span>
-          <span class="dropdown-caret"></span>
-        </span>
+        <span tabindex="0">${user_area}</span>
       </span>
     `;
   }
@@ -67,18 +76,24 @@ export class PenguinJudgeHeaderElement extends LitElement {
       #icon {
         height: ${unsafeCSS(HeaderHeightPx * 0.7)}px;
       }
+      a {
+        text-decoration: none;
+      }
       #title {
         font-weight: bold;
         font-size: 130%;
       }
-      #title x-anchor {
+      #title a {
         color: black;
-        text-decoration: none;
       }
       #extra {
         flex-grow: 1;
         text-align: right;
         margin-right: 1em;
+      }
+      #extra > span {
+        margin-left: 1ex;
+        cursor: pointer;
       }
       x-icon {
         font-size: 22px;

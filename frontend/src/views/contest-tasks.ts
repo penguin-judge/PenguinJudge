@@ -28,14 +28,17 @@ export class AppContestTasksElement extends LitElement {
       session.contest.problems.forEach((problem) => {
         const url = router.generate('contest-task', { id: contest_id, task_id: problem.id });
         dom_problems.push(html`<tr>
-                          <td><x-anchor href="${url}">${problem.id}</td>
-                          <td><x-anchor href="${url}">${problem.title}</td></tr>`)
+                          <td><a is="router-link" href="${url}">${problem.id}</a></td>
+                          <td><a is="router-link" href="${url}">${problem.title}</a></td>
+                          <td>${problem.time_limit} sec</td>
+                          <td>${problem.memory_limit} MiB</td>
+                          <td>${problem.score}点</td>
+                          </tr>`)
       });
     }
     return html`
-      <h1>問題</h1>
       <table>
-        <thead><tr><th></th><th>問題名</th></tr></thead>
+        <thead><tr><th></th><th>問題名</th><th>実行時間制限</th><th>メモリ制限</th><th>配点</th></tr></thead>
         <tbody>${dom_problems}</tbody>
       </table>
     `
@@ -50,9 +53,16 @@ export class AppContestTasksElement extends LitElement {
       border: solid 1px #ddd;
       padding: 1ex 2ex;
       text-align: left;
+      white-space: nowrap;
     }
     tbody tr:nth-child(odd) {
       background-color: #f1f1f1;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 100%;
+    }
+    td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+      text-align: right;
     }
     `
   }

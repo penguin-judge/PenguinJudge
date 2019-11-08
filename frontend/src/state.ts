@@ -1,7 +1,7 @@
 import Navigo from 'navigo';
 import { BehaviorSubject } from 'rxjs';
 
-import { API, Contest, Environment } from './api';
+import { API, Contest, Environment, User } from './api';
 
 export const router: any = new Navigo(null, true, '#!');
 
@@ -19,9 +19,13 @@ class Session {
   }
 
   // Authentication
-  token: string | null = null;
-  get logged_in(): boolean {
-    return this.token !== null;
+  private _user = new BehaviorSubject<User | null>(null);
+  get current_user() { return this._user; }
+  update_current_user() {
+    API.get_current_user().then(user => {
+      if (user)
+        this._user.next(user);
+    });
   }
 
   // Environment
@@ -61,6 +65,7 @@ class Session {
       if (envs)
         this._envs.next(envs);
     });
+    this.update_current_user();
   }
 }
 export const session = new Session();
