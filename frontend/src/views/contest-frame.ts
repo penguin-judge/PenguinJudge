@@ -25,22 +25,14 @@ export class PenguinJudgeContestFrame extends LitElement {
   render() {
     const c = session.contest;
     if (!c) return html``;
-    const items = session.current_path.split('/').slice(2);
+    const [tabName] = session.current_path.split('/').slice(2);
 
     const tabs = [
-      ['トップ', router.generate('contest-top', { id: c.id }), false],
-      ['問題', router.generate('contest-tasks', { id: c.id }), items.length > 0 && items[0] === 'tasks'],
-      ['提出結果', router.generate('contest-submissions-me', { id: c.id }), items.length > 0 && items[0] === 'submissions'],
+      ['トップ', router.generate('contest-top', { id: c.id }), undefined],
+      ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks'],
+      ['提出結果', router.generate('contest-submissions-me', { id: c.id }), 'submissions'],
     ];
-    const has_selected = tabs.reduce((accum, v) => {
-      return accum || v[2];
-    }, false);
-    if (!has_selected)
-      tabs[0][2] = true;
-    const tabs_html: any = [];
-    tabs.forEach((e) => {
-      tabs_html.push(html`<a is="router-link" href="${e[1]}" class="${e[2] ? 'selected' : ''}">${e[0]}</a>`);
-    });
+    const tabs_html = tabs.map(([title, link, path]) => html`<a is="router-link" href="${link}" class="${tabName === path ? 'selected' : ''}">${title}</a>`);
 
     return html`
       <div id="frame">
