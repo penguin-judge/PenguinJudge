@@ -284,6 +284,23 @@ paths:
       responses:
         '204':
           description: 削除成功
+  /contests/{contest_id}/rankings:
+    get:
+      operationId: listRankings
+      description: コンテストの順位表を取得する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: 順位表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rankings"
+        '403':
+          description: コンテスト開催前です
+        '404':
+          description: not found
 components:
   schemas:
     Token:
@@ -441,6 +458,43 @@ components:
             - problem_id
             - environment_id
             - code
+    Ranking:
+      type: object
+      properties:
+        ranking:
+          type: integer
+        user_id:
+          type: string
+        user_name:
+          type: string
+        score:
+          type: integer
+        time:
+          type: number
+          format: double
+        penalties:
+          type: integer
+        adjusted_time:
+          description: ペナルティを加算後の所要時間
+          type: number
+          format: double
+        problems:
+          type: object
+          description: keyは問題ID
+          additionalProperties:
+            type: object
+            properties:
+              score:
+                type: integer
+              time:
+                type: number
+                format: double
+              penalties:
+                type: integer
+    Rankings:
+      type: array
+      items:
+        $ref: "#/components/schemas/Ranking"
   parameters:
     UserID:
       name: user_id

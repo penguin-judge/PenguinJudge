@@ -1,9 +1,10 @@
 from base64 import b64encode, b64decode
 from datetime import datetime, timezone, timedelta
-from typing import Any, Union, Tuple, Optional, Dict
+from typing import Any, Union, Tuple, Optional, Dict, List
 import pickle
 from hashlib import pbkdf2_hmac
 import os
+from itertools import groupby
 
 import pika  # type: ignore
 from flask import Flask, abort, request, Response, make_response
@@ -14,8 +15,8 @@ from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 
 from penguin_judge.models import (
-    transaction, scoped_session,
-    User, Submission, Contest, Environment, Problem, TestCase, Token,
+    transaction, scoped_session, Contest, Environment, JudgeStatus, Problem,
+    Submission, TestCase, Token, User,
 )
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.utils import json_dumps, pagination_header
@@ -384,3 +385,67 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
         ret = submission.to_dict()
     ret['code'] = zctx.decompress(ret['code']).decode('utf-8')
     return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/rankings')
+def list_rankings(contest_id: str) -> Response:
+    params, _ = _validate_request()
+    with transaction() as s:
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not contest:
+            abort(404)
+        if not contest.is_begun():
+            abort(403)
+        contest_penalty = contest.penalty
+
+        problems = {p.id: p.score for p in s.query(
+            Problem.id, Problem.score).filter(Problem.contest_id == contest_id)
+        }
+
+        q = s.query(
+            Submission.user_id, Submission.problem_id,
+            Submission.status, Submission.created,
+        ).filter(
+            Submission.contest_id == contest_id,
+            Submission.created >= contest.start_time,
+            Submission.created < contest.end_time,
+        )
+
+        users: Dict[str, List[Tuple[str, timedelta, JudgeStatus]]] = {}
+        for (uid, pid, st, t) in q:
+            if uid not in users:
+                users[uid] = []
+            users[uid].append((pid, t - contest.start_time, st))
+
+    results = []
+    for uid, all_submission in users.items():
+        all_submission.sort(key=lambda x: (x[0], x[1]))
+        total_time = timedelta()
+        total_score = 0
+        total_penalties = 0
+        ret = dict(user_id=uid, problems={})
+        for problem_id, submissions in groupby(
+                all_submission, key=lambda x: x[0]):
+            n_penalties = 0
+            tmp: Dict[str, Union[float, int, timedelta]] = {}
+            for sb in submissions:
+                if sb[2] == JudgeStatus.Accepted:
+                    time = tmp['time'] = sb[1]
+                    score = tmp['score'] = problems[problem_id]
+                    total_time += time
+                    total_score += score
+                    total_penalties += n_penalties
+                    break
+                elif sb[2] != JudgeStatus.InternalError:
+                    n_penalties += 1
+            tmp['penalties'] = n_penalties
+            ret['problems'][problem_id] = tmp
+        ret.update(dict(
+            time=total_time, score=total_score, penalties=total_penalties,
+            adjusted_time=total_time + total_penalties * contest_penalty))
+        results.append(ret)
+
+    results.sort(key=lambda x: (-x['score'], x['adjusted_time']))
+    for i, r in enumerate(results):
+        r['ranking'] = i + 1
+    return jsonify(results)

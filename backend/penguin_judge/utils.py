@@ -6,9 +6,11 @@ import json
 
 
 class _JsonEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> str:
+    def default(self, o: Any) -> Union[str, float]:
         if isinstance(o, datetime.datetime):
             return o.astimezone(tz=datetime.timezone.utc).isoformat()
+        if isinstance(o, datetime.timedelta):
+            return o.total_seconds()
         if isinstance(o, bytes):
             return b64encode(o).decode('ascii')
         if isinstance(o, Enum):

@@ -93,7 +93,8 @@ class Contest(Base, _Exportable):
     description = Column(String, nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
-    published = Column(Boolean, server_default='False')
+    published = Column(Boolean, server_default='False', nullable=False)
+    penalty = Column(Interval, server_default='300', nullable=False)
 
     def is_begun(self) -> bool:
         now = datetime.datetime.now(tz=datetime.timezone.utc)

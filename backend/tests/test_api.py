@@ -6,10 +6,10 @@ import unittest.mock
 from functools import partial
 from webtest import TestApp
 from zstandard import ZstdCompressor  # type: ignore
-from penguin_judge.api import app as _app
+from penguin_judge.api import app as _app, _kdf
 from penguin_judge.models import (
     User, Environment, Contest, Problem, TestCase, Submission, JudgeResult,
-    Token, configure, transaction)
+    Token, JudgeStatus, configure, transaction)
 from . import TEST_DB_URL
 
 app = TestApp(_app, cookiejar=CookieJar())
@@ -26,14 +26,14 @@ class TestAPI(unittest.TestCase):
             JudgeResult, Submission, TestCase, Problem, Contest, Environment,
             Token, User)
         admin_token = bytes([i for i in range(32)])
+        salt = b'penguin'
+        passwd = _kdf('penguinpenguin', salt)
         with transaction() as s:
             for t in tables:
                 s.query(t).delete(synchronize_session=False)
             s.add(User(
-                id='admin', name='Administrator', salt=b'penguin', admin=True,
-                password=(
-                    b'W\x97\xaf\xcby\xbf\x80\x03)\x8aq1\xca\xf9C \r\x18\xbeF'
-                    + b'\xe4\x97.\xac\xec}\x918\xe0\xb2\x81\xd8')))
+                id='admin', name='Administrator', salt=salt, admin=True,
+                password=passwd))
             s.flush()
             s.add(Token(
                 token=admin_token, user_id='admin',
@@ -425,3 +425,98 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(int(resp.headers['X-Per-Page']), 31)
         self.assertEqual(int(resp.headers['X-Total']), 100)
         self.assertEqual(int(resp.headers['X-Total-Pages']), 4)
+
+    def test_ranking(self):
+        salt = b'penguin'
+        passwd = _kdf('penguinpenguin', salt)
+
+        app.get('/contests/abc000/rankings', status=404)
+
+        with transaction() as s:
+            env = Environment(
+                name='Python3 (3.8.0)',
+                test_image_name='penguin_judge_python:3.8')
+            s.add(env)
+            s.add(Contest(
+                id='abc000',
+                title='ABC000',
+                description='# Title\nMarkdown Test\n\n* Item0\n* Item1\n',
+                published=True,
+                start_time=datetime.now(tz=timezone.utc),
+                end_time=datetime.now(
+                    tz=timezone.utc) + timedelta(days=365)))
+            s.flush()
+            env_id = env.id
+            problem_ids = ['A', 'B', 'C', 'D', 'E']
+            for i, id in enumerate(problem_ids):
+                s.add(Problem(
+                    contest_id='abc000', id=id, title='Problem {}'.format(id),
+                    description='', time_limit=1, memory_limit=1024,
+                    score=(i + 1) * 100))
+            for i in range(10):
+                s.add(User(
+                    id='user{}'.format(i), name='User{}'.format(i), salt=salt,
+                    password=passwd))
+
+        self.assertEquals([], app.get('/contests/abc000/rankings').json)
+
+        with transaction() as s:
+            problem_kwargs = [dict(
+                contest_id='abc000', problem_id=id, code=b'',
+                environment_id=env_id) for id in problem_ids]
+            start = datetime.now(tz=timezone.utc)
+            d = timedelta(seconds=1)
+            users = {
+                'user0': [
+                    (1, 0, 1), (1, 0, 2), (1, 0, 4), (1, 0, 8), (1, 0, 16)],
+                'user1': [
+                    (1, 1, 4), (1, 2, 8), (1, 1, 16), (1, 2, 32), (1, 1, 64)],
+                'user2': [
+                    (1, 1, 2), (0, 2, 0), (0, 1, 0), (0, 0, 0), (0, 0, 0)],
+                'user3': [
+                    (0, 1, 0), (0, 2, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0)],
+            }
+            for u, v in users.items():
+                for i, (n_ac, n_wa, t) in enumerate(v):
+                    for j in range(n_wa):
+                        if t > 0:
+                            tmp = t - 1
+                        else:
+                            tmp = i + j + 1
+                        s.add(Submission(
+                            user_id=u, status=JudgeStatus.WrongAnswer,
+                            created=start + d * tmp, **problem_kwargs[i]))
+                    if n_ac > 0:
+                        s.add(Submission(
+                            user_id=u, status=JudgeStatus.Accepted,
+                            created=start + d * t, **problem_kwargs[i]))
+
+        ret = app.get('/contests/abc000/rankings').json
+        self.assertEquals(4, len(ret))
+        self.assertEquals(ret[0]['user_id'], 'user0')
+        self.assertEquals(ret[1]['user_id'], 'user1')
+        self.assertEquals(ret[2]['user_id'], 'user2')
+        self.assertEquals(ret[3]['user_id'], 'user3')
+        self.assertEquals(ret[0]['ranking'], 1)
+        self.assertEquals(ret[0]['score'], 1500)
+        self.assertEquals(ret[0]['penalties'], 0)
+        self.assertEquals(ret[0]['time'], ret[0]['adjusted_time'])
+        self.assertEquals(ret[1]['ranking'], 2)
+        self.assertEquals(ret[1]['score'], 1500)
+        self.assertEquals(ret[1]['penalties'], 7)
+        self.assertEquals(ret[1]['time'] + 7 * 300, ret[1]['adjusted_time'])
+        self.assertEquals(ret[2]['ranking'], 3)
+        self.assertEquals(ret[2]['score'], 100)
+        self.assertEquals(ret[2]['penalties'], 1)
+        self.assertEquals(ret[2]['time'] + 300, ret[2]['adjusted_time'])
+        self.assertEquals(ret[3]['ranking'], 4)
+        self.assertEquals(ret[3]['score'], 0)
+        self.assertEquals(ret[3]['penalties'], 0)
+        self.assertEquals(ret[3]['time'], 0)
+        self.assertEquals(ret[3]['problems'], {
+            'A': {'penalties': 1},
+            'B': {'penalties': 2},
+            'C': {'penalties': 1},
+            'D': {'penalties': 1},
+            'E': {'penalties': 1},
+        })
