@@ -31,6 +31,7 @@ export class PenguinJudgeContestFrame extends LitElement {
       ['トップ', router.generate('contest-top', { id: c.id }), undefined],
       ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks'],
       ['提出結果', router.generate('contest-submissions-me', { id: c.id }), 'submissions'],
+      ['順位表', router.generate('contest-standings', { id: c.id }), 'standings'],
     ];
     const tabs_html = tabs.map(([title, link, path]) => html`<a is="router-link" href="${link}" class="${tabName === path ? 'selected' : ''}">${title}</a>`);
 
@@ -38,7 +39,6 @@ export class PenguinJudgeContestFrame extends LitElement {
       <div id="frame">
         <div id="header">
           ${tabs_html}
-          <a class="disabled">順位表</a>
           <a class="disabled">コードテスト</a>
           <a class="disabled">質問</a>
           <a class="disabled">解説</a>
