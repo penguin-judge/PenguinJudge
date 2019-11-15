@@ -211,7 +211,7 @@ def get_contest(contest_id: str) -> Response:
     with transaction() as s:
         u = _validate_token(s)
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
-        if not contest or not contest.is_accessible(u):
+        if not (contest and contest.is_accessible(u)):
             abort(404)
         ret = contest.to_dict()
         if contest.is_begun():
@@ -428,15 +428,17 @@ def list_rankings(contest_id: str) -> Response:
                 all_submission, key=lambda x: x[0]):
             n_penalties = 0
             tmp: Dict[str, Union[float, int, timedelta]] = {}
-            for sb in submissions:
-                if sb[2] == JudgeStatus.Accepted:
-                    time = tmp['time'] = sb[1]
+            for (_, submit_time, submit_status) in submissions:
+                if submit_status == JudgeStatus.Accepted:
+                    time = tmp['time'] = submit_time
                     score = tmp['score'] = problems[problem_id]
                     total_time += time
                     total_score += score
                     total_penalties += n_penalties
                     break
-                elif sb[2] != JudgeStatus.InternalError:
+                elif submit_status not in (
+                        JudgeStatus.CompilationError,
+                        JudgeStatus.InternalError):
                     n_penalties += 1
             tmp['penalties'] = n_penalties
             ret['problems'][problem_id] = tmp
