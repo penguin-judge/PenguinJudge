@@ -71,6 +71,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        '404':
+          description: not found
   /environments:
     get:
       operationId: listEnvironments
@@ -85,9 +87,17 @@ paths:
   /contests:
     get:
       operationId: listContests
+      parameters:
+        - $ref: "#/components/parameters/PageParams"
+        - $ref: "#/components/parameters/PerPageParams"
       responses:
         '200':
           description: Responses contest list
+          headers:
+            X-Total:
+              $ref: "#/components/headers/TotalItemsHeader"
+            X-Total-Pages:
+              $ref: "#/components/headers/TotalPagesHeader"
           content:
             application/json:
               schema:
@@ -118,6 +128,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contest"
+        '404':
+          description: not found
     patch:
       operationId: updateContest
       parameters:
@@ -134,18 +146,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contest"
+        '404':
+          description: not found
   /contests/{contest_id}/submissions:
     get:
       operationId: listSubmissions
       parameters:
         - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/PageParams"
+        - $ref: "#/components/parameters/PerPageParams"
       responses:
         '200':
           description: Responses submissions
+          headers:
+            X-Total:
+              $ref: "#/components/headers/TotalItemsHeader"
+            X-Total-Pages:
+              $ref: "#/components/headers/TotalPagesHeader"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submissions"
+        '404':
+          description: not found
     post:
       operationId: postSubmission
       description: "解答を投稿する"
@@ -163,6 +186,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubmissionSummary"
+        '403':
+          description: 開催中はログインが必要
+        '404':
+          description: not found contest_id or problem_id
   /contests/{contest_id}/submissions/{submission_id}:
     get:
       operationId: getSubmission
@@ -176,6 +203,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Submission"
+        '404':
+          description: not found content_id or problem_id. またはコンテスト開始前
   /contests/{contest_id}/problems:
     get:
       operationId: listProblems
@@ -189,6 +218,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problems"
+        '403':
+          description: コンテスト開始前
+        '404':
+          description: not found
     post:
       operationId: createProblem
       description: コンテストの問題を作成する
@@ -220,6 +253,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        '404':
+          description: not found. またはコンテスト開始前
     patch:
       operationId: updateProblem
       description: コンテストの問題を修正する
@@ -238,6 +273,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        '404':
+          description: not found
     delete:
       operationId: deleteProblem
       description: コンテストの問題を削除する
@@ -247,6 +284,23 @@ paths:
       responses:
         '204':
           description: 削除成功
+  /contests/{contest_id}/rankings:
+    get:
+      operationId: listRankings
+      description: コンテストの順位表を取得する
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+      responses:
+        '200':
+          description: 順位表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rankings"
+        '403':
+          description: コンテスト開催前です
+        '404':
+          description: not found
 components:
   schemas:
     Token:
@@ -317,6 +371,8 @@ components:
         end_time:
           type: string
           format: date-time
+        published:
+          type: boolean
     Contests:
       type: array
       items:
@@ -402,6 +458,43 @@ components:
             - problem_id
             - environment_id
             - code
+    Ranking:
+      type: object
+      properties:
+        ranking:
+          type: integer
+        user_id:
+          type: string
+        user_name:
+          type: string
+        score:
+          type: integer
+        time:
+          type: number
+          format: double
+        penalties:
+          type: integer
+        adjusted_time:
+          description: ペナルティを加算後の所要時間
+          type: number
+          format: double
+        problems:
+          type: object
+          description: keyは問題ID
+          additionalProperties:
+            type: object
+            properties:
+              score:
+                type: integer
+              time:
+                type: number
+                format: double
+              penalties:
+                type: integer
+    Rankings:
+      type: array
+      items:
+        $ref: "#/components/schemas/Ranking"
   parameters:
     UserID:
       name: user_id
@@ -425,6 +518,28 @@ components:
       name: submission_id
       in: path
       required: true
+      schema:
+        type: integer
+    PageParams:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPageParams:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+        maximum: 100
+  headers:
+    TotalItemsHeader:
+      schema:
+        type: integer
+    TotalPagesHeader:
       schema:
         type: integer
   securitySchemes:
