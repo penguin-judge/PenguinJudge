@@ -160,6 +160,7 @@ paths:
         - $ref: "#/components/parameters/EnvironmentFilter"
         - $ref: "#/components/parameters/JudgeStatusFilter"
         - $ref: "#/components/parameters/UserIDFilter"
+        - $ref: "#/components/parameters/SubmissionSortKey"
       responses:
         '200':
           description: Responses submissions
@@ -591,6 +592,24 @@ components:
       in: query
       schema:
         type: string
+    SubmissionSortKey:
+      name: sort
+      in: query
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - created
+            - -created
+            - code_bytes
+            - -code_bytes
+            - max_time
+            - -max_time
+            - max_memory
+            - -max_memory
   headers:
     TotalItemsHeader:
       schema:

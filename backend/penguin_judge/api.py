@@ -322,7 +322,6 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
 
 @app.route('/contests/<contest_id>/submissions')
 def list_submissions(contest_id: str) -> Response:
-    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
     params, body = _validate_request()
     page, per_page = params.query['page'], params.query['per_page']
     ret = []
@@ -355,6 +354,16 @@ def list_submissions(contest_id: str) -> Response:
             q = q.filter(expr(v))  # type: ignore
 
         count = q.count()
+
+        if params.query.get('sort'):
+            sort_keys = []
+            for key in params.query['sort']:
+                f = getattr(Submission, key.lstrip('-'))
+                if key[0] == '-':
+                    f = f.desc()
+                sort_keys.append(f)
+            q = q.order_by(*sort_keys)
+
         for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
     return jsonify(ret, headers=pagination_header(count, page, per_page))
