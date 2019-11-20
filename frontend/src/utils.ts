@@ -26,7 +26,17 @@ export function format_datetime_detail(s: string | Date): string {
 }
 
 export function format_timespan(ts: number): string {
-  const h = Math.floor(ts / 60);
+  ts = Math.floor(ts / (60 * 1000)); // tsはミリ秒なので分未満は切り捨て
   const m = ts % 60;
-  return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
+  let h = Math.floor(ts / 60);
+  const days = Math.floor(h / 24);
+  let ret = '';
+  if (days >= 1) {
+    ret = days.toString() + ' days ';
+    h = h % 24;
+    if (h === 0)
+      return ret;
+  }
+  ret += h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
+  return ret;
 }

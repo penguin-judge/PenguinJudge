@@ -10,6 +10,7 @@ import './views/contest-tasks';
 import './views/contest-task';
 import './views/contest-submission-results';
 import './components/anchor';
+import './components/contest-list';
 import './components/icon';
 import './components/panel';
 import { HeaderHeight } from './views/consts';
