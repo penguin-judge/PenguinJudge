@@ -156,6 +156,10 @@ paths:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/PageParams"
         - $ref: "#/components/parameters/PerPageParams"
+        - $ref: "#/components/parameters/ProblemFilter"
+        - $ref: "#/components/parameters/EnvironmentFilter"
+        - $ref: "#/components/parameters/JudgeStatusFilter"
+        - $ref: "#/components/parameters/UserIDFilter"
       responses:
         '200':
           description: Responses submissions
@@ -441,7 +445,7 @@ components:
         environment_id:
           type: integer
         status:
-          type: string
+          $ref: "#/components/schemas/JudgeStatus"
         created:
           type: string
           format: date-time
@@ -496,6 +500,19 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Ranking"
+    JudgeStatus:
+      type: string
+      enum:
+        - Waiting
+        - Running
+        - Accepted
+        - CompilationError
+        - RuntimeError
+        - WrongAnswer
+        - MemoryLimitExceeded
+        - TimeLimitExceeded
+        - OutputLimitExceeded
+        - InternalError
   parameters:
     UserID:
       name: user_id
@@ -545,6 +562,26 @@ components:
           - scheduled
           - running
           - finished
+    ProblemFilter:
+      name: problem_id
+      in: query
+      schema:
+        type: string
+    EnvironmentFilter:
+      name: environment_id
+      in: query
+      schema:
+        type: integer
+    JudgeStatusFilter:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/JudgeStatus"
+    UserIDFilter:
+      name: user_id
+      in: query
+      schema:
+        type: string
   headers:
     TotalItemsHeader:
       schema:

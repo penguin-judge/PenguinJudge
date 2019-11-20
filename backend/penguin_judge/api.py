@@ -342,6 +342,18 @@ def list_submissions(contest_id: str) -> Response:
                 abort(403)
             q = q.filter(Submission.user_id == u['id'])
 
+        filters = [
+            ('problem_id', Submission.problem_id.__eq__),
+            ('environment_id', Submission.environment_id.__eq__),
+            ('status', Submission.status.__eq__),
+            ('user_id', Submission.user_id.contains),
+        ]
+        for key, expr in filters:
+            v = params.query.get(key)
+            if v is None:
+                continue
+            q = q.filter(expr(v))  # type: ignore
+
         count = q.count()
         for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
