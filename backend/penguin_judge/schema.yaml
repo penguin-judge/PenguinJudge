@@ -446,6 +446,15 @@ components:
           type: integer
         status:
           $ref: "#/components/schemas/JudgeStatus"
+        code_bytes:
+          type: integer
+          nullable: true
+        max_time:
+          type: number
+          nullable: true
+        max_memory:
+          type: integer
+          nullable: true
         created:
           type: string
           format: date-time

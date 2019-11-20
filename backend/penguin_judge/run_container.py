@@ -23,7 +23,8 @@ class JudgeDriver(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def tests(self, task: dict) -> JudgeStatus:
+    def tests(self, task: dict) -> Tuple[
+            JudgeStatus, Optional[timedelta], Optional[int]]:
         raise NotImplementedError
 
     def __enter__(self) -> 'JudgeDriver':
@@ -119,12 +120,19 @@ class DockerJudgeDriver(JudgeDriver):
         except Exception:
             return JudgeStatus.InternalError
 
-    def tests(self, task: dict) -> JudgeStatus:
+    def tests(self, task: dict) -> Tuple[
+            JudgeStatus, Optional[timedelta], Optional[int]]:
+        max_time: Optional[timedelta] = None
+        max_memory: Optional[int] = None
+
         def _update_status(test_id: str, st: JudgeStatus,
-                           time: Optional[float] = None) -> None:
+                           time: Optional[timedelta] = None,
+                           memory_kb: Optional[int] = None) -> None:
             updates: dict = {JudgeResult.status: st}
             if time is not None:
-                updates[JudgeResult.time] = timedelta(seconds=time)
+                updates[JudgeResult.time] = time
+            if memory_kb is not None:
+                updates[JudgeResult.memory] = memory_kb
             with transaction() as s:
                 s.query(JudgeResult).filter(
                     JudgeResult.contest_id == task['contest_id'],
@@ -164,20 +172,32 @@ class DockerJudgeDriver(JudgeDriver):
                         status = JudgeStatus.WrongAnswer
                 elif typ == 'Error' and isinstance(kind, str):
                     status = JudgeStatus.from_str(kind)
-                _update_status(test['id'], status, resp.get('time'))
+                time: Optional[timedelta] = None
+                mem: Optional[int] = None
+                time_raw, mem_raw = resp.get('time'), resp.get('memory_bytes')
+                if time_raw is not None:
+                    time = timedelta(seconds=time_raw)
+                if mem_raw is not None:
+                    mem = mem_raw // 1024
+                _update_status(test['id'], status, time, mem)
+                if time is not None and (max_time is None or max_time < time):
+                    max_time = time
+                if mem is not None and (
+                        max_memory is None or max_memory < mem):
+                    max_memory = mem
                 status_set.add(status)
 
             if len(status_set) == 1:
-                return list(status_set)[0]
+                return list(status_set)[0], max_time, max_memory
             for x in (JudgeStatus.InternalError, JudgeStatus.RuntimeError,
                       JudgeStatus.WrongAnswer, JudgeStatus.MemoryLimitExceeded,
                       JudgeStatus.TimeLimitExceeded,
                       JudgeStatus.OutputLimitExceeded):
                 if x in status_set:
-                    return x
+                    return x, max_time, max_memory
             raise RuntimeError  # 未知のkindの場合はInternalError
         except Exception:
-            return JudgeStatus.InternalError
+            return JudgeStatus.InternalError, max_time, max_memory
 
 
 def run(task: dict) -> None:
@@ -226,7 +246,7 @@ def run(task: dict) -> None:
                 print('judge failed: {}'.format(ret), flush=True)
                 return
             task['code'], compile_time = ret[0], timedelta(seconds=ret[1])
-        ret = judge.tests(task)
+        ret, max_time, max_memory = judge.tests(task)
         with transaction() as s:
             s.query(Submission).filter(
                 Submission.contest_id == task['contest_id'],
@@ -235,5 +255,7 @@ def run(task: dict) -> None:
             ).update({
                 Submission.status: ret,
                 Submission.compile_time: compile_time,
+                Submission.max_time: max_time,
+                Submission.max_memory: max_memory,
             }, synchronize_session=False)
         print('judge finished: {}'.format(ret), flush=True)

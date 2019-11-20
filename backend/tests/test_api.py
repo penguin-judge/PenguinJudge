@@ -151,7 +151,6 @@ class TestAPI(unittest.TestCase):
             'start_time': start_time.isoformat(),
             'end_time': end_time.isoformat(),
         }
-
         _invalid_post({})
         _invalid_post(dict(id='a', title='A', description='',
                            start_time=start_time.isoformat(),
@@ -159,6 +158,7 @@ class TestAPI(unittest.TestCase):
 
         c2 = _post(c).json
         c['published'] = False
+        c['penalty'] = 300.0
         self.assertEqual(c, c2)
 
         _invalid_patch(c['id'], dict(end_time=start_time.isoformat()))
@@ -178,6 +178,7 @@ class TestAPI(unittest.TestCase):
         app.get('/contests/invalid', status=404)
 
         c4.pop('description')
+        c4.pop('penalty')
         contests = app.get('/contests').json
         self.assertEqual(len(contests), 1)
         self.assertEqual(contests[0], c4)
@@ -404,7 +405,7 @@ class TestAPI(unittest.TestCase):
             for i in range(100):
                 submission = Submission(
                     contest_id='id0', problem_id='A', user_id='admin',
-                    code=b'dummy', environment_id=env.id)
+                    code=b'dummy', code_bytes=1, environment_id=env.id)
                 s.add(submission)
                 s.flush()
                 test_data.append(submission.to_dict())
@@ -464,7 +465,7 @@ class TestAPI(unittest.TestCase):
 
         with transaction() as s:
             problem_kwargs = [dict(
-                contest_id='abc000', problem_id=id, code=b'',
+                contest_id='abc000', problem_id=id, code=b'', code_bytes=0,
                 environment_id=env_id) for id in problem_ids]
             start = datetime.now(tz=timezone.utc)
             d = timedelta(seconds=1)

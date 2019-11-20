@@ -366,7 +366,8 @@ def post_submission(contest_id: str) -> Response:
     problem_id, code, env_id = body.problem_id, body.code, body.environment_id
 
     cctx = ZstdCompressor()
-    code = cctx.compress(code.encode('utf8'))
+    code_encoded = code.encode('utf8')
+    code = cctx.compress(code_encoded)
 
     with transaction() as s:
         u = _validate_token(s, required=True)
@@ -379,8 +380,8 @@ def post_submission(contest_id: str) -> Response:
         if not tests:
             abort(400)
         submission = Submission(
-            contest_id=contest_id, problem_id=problem_id,
-            user_id=u['id'], code=code, environment_id=env_id)
+            contest_id=contest_id, problem_id=problem_id, user_id=u['id'],
+            code=code, code_bytes=len(code_encoded), environment_id=env_id)
         s.add(submission)
         s.flush()
         ret = submission.to_summary_dict()
