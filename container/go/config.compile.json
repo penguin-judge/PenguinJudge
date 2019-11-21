@@ -1,0 +1,7 @@
+{
+    "compile": {
+        "ext": ".go",
+        "cmd": "go",
+        "args": ["build", "-o", "<output>", "<path>"]
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "test": {
+        "ext": ".js",
+        "cmd": "/usr/local/bin/node",
+        "args": ["<path>"]
+    }
+}

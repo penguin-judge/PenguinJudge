@@ -1,0 +1,7 @@
+{
+    "compile": {
+        "ext": ".rs",
+        "cmd": "rustc",
+        "args": ["-O", "-o", "<output>", "<path>"]
+    }
+}
