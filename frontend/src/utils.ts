@@ -28,14 +28,13 @@ export function format_datetime_detail(s: string | Date): string {
 export function format_timespan(ts: number): string {
   ts = Math.floor(ts / (60 * 1000)); // tsはミリ秒なので分未満は切り捨て
   const m = ts % 60;
-  let h = Math.floor(ts / 60);
-  const days = Math.floor(h / 24);
+  const h = Math.floor((ts / 60) % 24);
+  const days = Math.floor(ts / 1440);
   let ret = '';
   if (days >= 1) {
     ret = days.toString() + ' days ';
-    h = h % 24;
     if (h === 0)
-      return ret;
+      return ret.trim();
   }
   ret += h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
   return ret;

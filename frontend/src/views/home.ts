@@ -34,20 +34,21 @@ export class AppHomeElement extends LitElement {
   render() {
     const panels: Array<any> = [];
     const build_table = (title: string, contests: Array<Contest>) => {
-      const table = new ContestListElement();
-      table.setItems(contests);
-      panels.push(html`<x-panel header="${title}">${table}</x-panel>`);
+      const body = (() => {
+        if (contests.length > 0) {
+          const table = new ContestListElement();
+          table.setItems(contests);
+          return table;
+        } else {
+          return html`とくにありません`;
+        }
+      })();
+      panels.push(html`<x-panel header="${title}">${body}</x-panel>`);
     };
     panels.push(html`<x-panel header="Welcome!"><div>ようこそ！<br><br>お知らせは特に無いよ</div></x-panel>`);
-    if (this._runnings.length > 0) {
-      build_table('開催中のコンテスト', this._runnings);
-    }
-    if (this._scheduleds.length > 0) {
-      build_table('開催予定のコンテスト', this._scheduleds);
-    }
-    if (this._finisheds.length > 0) {
-      build_table('終了したコンテスト', this._finisheds);
-    }
+    build_table('開催中のコンテスト', this._runnings);
+    build_table('開催予定のコンテスト', this._scheduleds);
+    build_table('終了したコンテスト', this._finisheds);
     return html`${panels}`;
   }
 
