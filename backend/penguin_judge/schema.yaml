@@ -90,6 +90,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParams"
         - $ref: "#/components/parameters/PerPageParams"
+        - $ref: "#/components/parameters/ContestStatusFilter"
       responses:
         '200':
           description: Responses contest list
@@ -535,6 +536,15 @@ components:
         minimum: 1
         default: 20
         maximum: 100
+    ContestStatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum:
+          - scheduled
+          - running
+          - finished
   headers:
     TotalItemsHeader:
       schema:

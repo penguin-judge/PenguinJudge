@@ -152,8 +152,7 @@ def list_environments() -> Response:
 
 @app.route('/contests')
 def list_contests() -> Response:
-    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
-    params, body = _validate_request()
+    params, _ = _validate_request()
     page, per_page = params.query['page'], params.query['per_page']
     ret = []
     with transaction() as s:
@@ -162,7 +161,20 @@ def list_contests() -> Response:
         if not (u and u['admin']):
             q = q.filter(Contest.published.is_(True))
 
+        if 'status' in params.query:
+            v = params.query['status']
+            now = datetime.now(tz=timezone.utc)
+            if v == 'running':
+                q = q.filter(
+                    Contest.start_time <= now,
+                    now < Contest.end_time)
+            elif v == 'scheduled':
+                q = q.filter(now < Contest.start_time)
+            elif v == 'finished':
+                q = q.filter(Contest.end_time <= now)
+
         count = q.count()
+        q = q.order_by(Contest.start_time.desc())
         for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
     return jsonify(ret, headers=pagination_header(count, page, per_page))

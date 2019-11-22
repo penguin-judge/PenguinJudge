@@ -360,6 +360,8 @@ class TestAPI(unittest.TestCase):
             test_data.append(app.post_json(
                 '/contests', c, headers=self.admin_headers).json)
 
+        test_data.reverse()
+
         resp = app.get('/contests')
         self.assertEqual(len(resp.json), 20)
         self.assertEqual(int(resp.headers['X-Page']), 1)

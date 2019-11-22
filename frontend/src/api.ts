@@ -47,6 +47,10 @@ export interface Token {
   expires_in: number;
 }
 
+export interface ListContestsFilter {
+  status?: string;
+}
+
 export class API {
   private static _fetch<T>(url: string, init?: RequestInit): Promise<T> {
     // 以下の情報を返却するPromiseを返す
@@ -78,8 +82,16 @@ export class API {
     return API._fetch('/api/user');
   }
 
-  static list_contests(): Promise<Array<Contest>> {
-    return API._fetch('/api/contests');
+  static list_contests(filter?: ListContestsFilter): Promise<Array<Contest>> {
+    let q = '';
+    if (filter) {
+      let tmp = [];
+      if (filter.status)
+        tmp.push('status=' + encodeURIComponent(filter.status))
+      if (tmp)
+        q = '?' + tmp.join('&');
+    }
+    return API._fetch('/api/contests' + q);
   }
 
   static get_contest(id: string): Promise<Contest> {

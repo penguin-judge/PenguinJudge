@@ -1,6 +1,7 @@
 import { Subscription } from 'rxjs';
 import { customElement, LitElement, html } from 'lit-element';
 import { session } from '../state';
+import { format_datetime_detail } from '../utils';
 
 @customElement('x-contest-top')
 export class AppContestTopElement extends LitElement {
@@ -22,12 +23,15 @@ export class AppContestTopElement extends LitElement {
   }
 
   render() {
-    if (!session.contest) {
+    const contest = session.contest;
+    if (!contest) {
       return html``
     }
+
     // <wc-markdown>の後に改行が必要
-    return html`<wc-markdown>
-${session.contest.description}
+    return html`<div>コンテスト期間: ${format_datetime_detail(contest.start_time)} 〜 ${format_datetime_detail(contest.end_time)}</div>
+<wc-markdown>
+${contest.description}
 </wc-markdown>`
   }
 }
