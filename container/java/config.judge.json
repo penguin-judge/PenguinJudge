@@ -1,0 +1,7 @@
+{
+    "test": {
+        "path": "./Main.class",
+        "cmd": "java",
+        "args": ["-Xss256M", "Main"]
+    }
+}
