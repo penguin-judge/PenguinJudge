@@ -85,13 +85,28 @@ class Environment(Base, _Exportable):
 
 class Contest(Base, _Exportable):
     __tablename__ = 'contests'
-    __updatable_keys__ = ['title', 'description', 'start_time', 'end_time']
-    __summary_keys__ = ['id', 'title', 'start_time', 'end_time']
+    __updatable_keys__ = [
+        'title', 'description', 'start_time', 'end_time', 'published']
+    __summary_keys__ = ['id', 'title', 'start_time', 'end_time', 'published']
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
+    published = Column(Boolean, server_default='False', nullable=False)
+    penalty = Column(Interval, server_default='300', nullable=False)
+
+    def is_begun(self) -> bool:
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        return self.start_time <= now
+
+    def is_finished(self) -> bool:
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        return self.end_time <= now
+
+    def is_accessible(self, user_info: Optional[dict]) -> bool:
+        return self.published or (  # type: ignore
+            user_info is not None and user_info['admin'])
 
 
 class Problem(Base, _Exportable):
@@ -243,6 +258,7 @@ def _insert_debug_data() -> None:
         id="abc000",
         title="ABC000",
         description="# Title\nMarkdown Test\n\n* Item0\n* Item1\n",
+        published=True,
         start_time=datetime.datetime.now(tz=datetime.timezone.utc),
         end_time=datetime.datetime.now(
             tz=datetime.timezone.utc) + datetime.timedelta(days=365)))

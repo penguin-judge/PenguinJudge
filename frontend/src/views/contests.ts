@@ -1,43 +1,25 @@
-import { customElement, LitElement, html, property, css } from 'lit-element';
+import { customElement, LitElement, html, css } from 'lit-element';
 
-import { API } from '../api';
+import { API, Contest } from '../api';
 import { MainAreaPaddingPx } from './consts';
-import { router } from '../state';
-import { format_datetime, format_timespan } from '../utils';
+import { ContestListElement } from '../components/contest-list';
 
 @customElement('x-contests')
 export class AppContentsElement extends LitElement {
-  @property({ type: Object }) contests = html``;
+  _table = new ContestListElement();
+  _contests: Contest[] = [];
 
   constructor() {
     super()
-    API.list_contests().then((contests) => {
-      const tmp: Array<Object> = [];
-      contests.forEach((c) => {
-        tmp.push(html`<tr>
-          <td>${format_datetime(c.start_time)}</td>
-          <td><a is="router-link" href="${router.generate('contest-top', { id: c.id })}">${c.title}</a></td>
-          <td>${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</td>
-        </tr>`);
-      });
-      this.contests = html`
-        <table><thead><tr><td>開始時刻</td><td>コンテスト名</td><td>時間</td></tr></thead>
-        <tbody>${tmp}</tbody></table>`;
+    API.list_contests().then(contests => {
+      this._contests = contests;
+      this.requestUpdate();
     });
   }
 
   render() {
-    return html`
-      <x-panel header="開催中のコンテスト">
-        ${this.contests}
-      </x-panel>
-      <x-panel header="開催予定のコンテスト">
-        <div>ほげほげ</div>
-      </x-panel>
-      <x-panel header="終了したコンテスト">
-        <div>ほげほげ</div>
-      </x-panel>
-    `;
+    this._table.setItems(this._contests);
+    return html`${this._table}`;
   }
 
   static get styles() {
@@ -46,9 +28,6 @@ export class AppContentsElement extends LitElement {
         display: flex;
         flex-direction: column;
         padding: ${MainAreaPaddingPx}px;
-      }
-      x-panel {
-        margin-bottom: 20px;
       }
     `
   }

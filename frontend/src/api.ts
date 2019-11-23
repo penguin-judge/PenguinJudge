@@ -60,6 +60,7 @@ interface UnacceptedProblem {
 export function implementsAccepted(arg: any): arg is AcceptedProblem {
   return arg !== null && typeof arg === 'object' && arg.score !== undefined && arg.time !== undefined;
 }
+
 export interface Standing {
   user_id: string;
   score: number;
@@ -70,6 +71,10 @@ export interface Standing {
   problems: {
     [index: string]: AcceptedProblem | UnacceptedProblem;
   }
+}
+
+export interface ListContestsFilter {
+  status?: string;
 }
 
 export class API {
@@ -103,8 +108,16 @@ export class API {
     return API._fetch('/api/user');
   }
 
-  static list_contests(): Promise<Array<Contest>> {
-    return API._fetch('/api/contests');
+  static list_contests(filter?: ListContestsFilter): Promise<Array<Contest>> {
+    let q = '';
+    if (filter) {
+      let tmp = [];
+      if (filter.status)
+        tmp.push('status=' + encodeURIComponent(filter.status))
+      if (tmp)
+        q = '?' + tmp.join('&');
+    }
+    return API._fetch('/api/contests' + q);
   }
 
   static get_contest(id: string): Promise<Contest> {
