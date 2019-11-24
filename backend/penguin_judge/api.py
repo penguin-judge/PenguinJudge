@@ -241,7 +241,7 @@ def list_problems(contest_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        if not (contest.is_begun() or getattr(u, 'admin', False)):
+        if not (contest.is_begun() or (u and u['admin'])):
             abort(403)
         ret = [p.to_summary_dict() for p in s.query(Problem).filter(
             Problem.contest_id == contest_id).all()]
@@ -309,7 +309,7 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        if not (contest.is_begun() or getattr(u, 'admin', False)):
+        if not (contest.is_begun() or (u and u['admin'])):
             abort(404)  # ここは403ではなく404にする
         ret = s.query(Problem).filter(
             Problem.contest_id == contest_id,
@@ -331,7 +331,7 @@ def list_submissions(contest_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        is_admin = getattr(u, 'admin', False)
+        is_admin = (u and u['admin'])
         if not (contest.is_begun() or is_admin):
             abort(403)
 
@@ -389,10 +389,16 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
     params, _ = _validate_request()
     zctx = ZstdDecompressor()
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
         submission = s.query(Submission).filter(
             Submission.contest_id == contest_id,
             Submission.id == submission_id).first()
-        if not submission or submission.contest_id != contest_id:
+        if not submission:
+            abort(404)
+        if not submission.is_accessible(contest, u):
             abort(404)
         ret = submission.to_dict()
     ret['code'] = zctx.decompress(ret['code']).decode('utf-8')

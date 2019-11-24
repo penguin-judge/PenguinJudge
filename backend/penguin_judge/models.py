@@ -165,6 +165,12 @@ class Submission(Base, _Exportable):
         Index('submissions_contest_problem_idx', contest_id, problem_id),
     )
 
+    def is_accessible(self, contest: Contest,
+                      user_info: Optional[dict]) -> bool:
+        if contest.is_finished() or (user_info and user_info['admin']):
+            return True
+        return self.user_id == (user_info['id'] if user_info else '')
+
 
 class JudgeResult(Base, _Exportable):
     __tablename__ = 'judge_results'
