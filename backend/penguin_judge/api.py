@@ -1,9 +1,10 @@
 from base64 import b64encode, b64decode
 from datetime import datetime, timezone, timedelta
-from typing import Any, Union, Tuple, Optional, Dict
+from typing import Any, Union, Tuple, Optional, Dict, List
 import pickle
 from hashlib import pbkdf2_hmac
 import os
+from itertools import groupby
 
 import pika  # type: ignore
 from flask import Flask, abort, request, Response, make_response
@@ -14,11 +15,11 @@ from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 
 from penguin_judge.models import (
-    transaction, scoped_session,
-    User, Submission, Contest, Environment, Problem, TestCase, Token,
+    transaction, scoped_session, Contest, Environment, JudgeStatus, Problem,
+    Submission, TestCase, Token, User,
 )
 from penguin_judge.mq import get_mq_conn_params
-from penguin_judge.utils import json_dumps
+from penguin_judge.utils import json_dumps, pagination_header
 
 DEFAULT_MEMORY_LIMIT = 256  # MiB
 
@@ -40,7 +41,7 @@ def _kdf(password: str, salt: bytes) -> bytes:
     return pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
 
 
-def _validate_request() -> Tuple[dict, Any]:
+def _validate_request() -> Tuple[Any, Any]:
     ret = _request_validator.validate(FlaskOpenAPIRequest(request))
     if ret.errors:
         abort(400)
@@ -151,12 +152,32 @@ def list_environments() -> Response:
 
 @app.route('/contests')
 def list_contests() -> Response:
-    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
+    params, _ = _validate_request()
+    page, per_page = params.query['page'], params.query['per_page']
     ret = []
     with transaction() as s:
-        for c in s.query(Contest):
+        u = _validate_token(s)
+        q = s.query(Contest)
+        if not (u and u['admin']):
+            q = q.filter(Contest.published.is_(True))
+
+        if 'status' in params.query:
+            v = params.query['status']
+            now = datetime.now(tz=timezone.utc)
+            if v == 'running':
+                q = q.filter(
+                    Contest.start_time <= now,
+                    now < Contest.end_time)
+            elif v == 'scheduled':
+                q = q.filter(now < Contest.start_time)
+            elif v == 'finished':
+                q = q.filter(Contest.end_time <= now)
+
+        count = q.count()
+        q = q.order_by(Contest.start_time.desc())
+        for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
-    return jsonify(ret)
+    return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
 @app.route('/contests', methods=['POST'])
@@ -171,8 +192,10 @@ def create_contest() -> Response:
             title=body.title,
             description=body.description,
             start_time=body.start_time,
-            end_time=body.end_time)
+            end_time=body.end_time,
+            published=getattr(body, 'published', None))
         s.add(contest)
+        s.flush()
         ret = contest.to_dict()
     return jsonify(ret)
 
@@ -198,20 +221,28 @@ def update_contest(contest_id: str) -> Response:
 @app.route('/contests/<contest_id>')
 def get_contest(contest_id: str) -> Response:
     with transaction() as s:
-        ret = s.query(Contest).filter(Contest.id == contest_id).first()
-        if not ret:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
             abort(404)
-        ret = ret.to_dict()
-        problems = s.query(Problem).filter(
-            Problem.contest_id == contest_id).all()
-        if problems:
-            ret['problems'] = [p.to_dict() for p in problems]
+        ret = contest.to_dict()
+        if contest.is_begun():
+            problems = s.query(Problem).filter(
+                Problem.contest_id == contest_id).all()
+            if problems:
+                ret['problems'] = [p.to_dict() for p in problems]
     return jsonify(ret)
 
 
 @app.route('/contests/<contest_id>/problems')
 def list_problems(contest_id: str) -> Response:
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
+        if not (contest.is_begun() or getattr(u, 'admin', False)):
+            abort(403)
         ret = [p.to_summary_dict() for p in s.query(Problem).filter(
             Problem.contest_id == contest_id).all()]
     return jsonify(ret)
@@ -274,6 +305,12 @@ def delete_problem(contest_id: str, problem_id: str) -> Response:
 @app.route('/contests/<contest_id>/problems/<problem_id>')
 def get_problem(contest_id: str, problem_id: str) -> Response:
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
+        if not (contest.is_begun() or getattr(u, 'admin', False)):
+            abort(404)  # ここは403ではなく404にする
         ret = s.query(Problem).filter(
             Problem.contest_id == contest_id,
             Problem.id == problem_id).first()
@@ -285,17 +322,30 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
 
 @app.route('/contests/<contest_id>/submissions')
 def list_submissions(contest_id: str) -> Response:
+    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
+    params, body = _validate_request()
+    page, per_page = params.query['page'], params.query['per_page']
     ret = []
     with transaction() as s:
-        submissions = s.query(Submission).filter(
-            Submission.contest_id == contest_id,
-        ).all()
-        if (not submissions and s.query(Contest).filter(
-                Contest.id == contest_id).count() == 0):
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
             abort(404)
-        for c in submissions:
+        is_admin = getattr(u, 'admin', False)
+        if not (contest.is_begun() or is_admin):
+            abort(403)
+
+        q = s.query(Submission).filter(Submission.contest_id == contest_id)
+        if not (contest.is_finished() or is_admin):
+            if not u:
+                # 未ログイン時は開催中コンテストの投稿一覧は見えない
+                abort(403)
+            q = q.filter(Submission.user_id == u['id'])
+
+        count = q.count()
+        for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
-    return jsonify(ret)
+    return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
 @app.route('/contests/<contest_id>/submissions', methods=['POST'])
@@ -347,3 +397,69 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
         ret = submission.to_dict()
     ret['code'] = zctx.decompress(ret['code']).decode('utf-8')
     return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/rankings')
+def list_rankings(contest_id: str) -> Response:
+    params, _ = _validate_request()
+    with transaction() as s:
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not contest:
+            abort(404)
+        if not contest.is_begun():
+            abort(403)
+        contest_penalty = contest.penalty
+
+        problems = {p.id: p.score for p in s.query(
+            Problem.id, Problem.score).filter(Problem.contest_id == contest_id)
+        }
+
+        q = s.query(
+            Submission.user_id, Submission.problem_id,
+            Submission.status, Submission.created,
+        ).filter(
+            Submission.contest_id == contest_id,
+            Submission.created >= contest.start_time,
+            Submission.created < contest.end_time,
+        )
+
+        users: Dict[str, List[Tuple[str, timedelta, JudgeStatus]]] = {}
+        for (uid, pid, st, t) in q:
+            if uid not in users:
+                users[uid] = []
+            users[uid].append((pid, t - contest.start_time, st))
+
+    results = []
+    for uid, all_submission in users.items():
+        all_submission.sort(key=lambda x: (x[0], x[1]))
+        total_time = timedelta()
+        total_score = 0
+        total_penalties = 0
+        ret = dict(user_id=uid, problems={})
+        for problem_id, submissions in groupby(
+                all_submission, key=lambda x: x[0]):
+            n_penalties = 0
+            tmp: Dict[str, Union[float, int, timedelta]] = {}
+            for (_, submit_time, submit_status) in submissions:
+                if submit_status == JudgeStatus.Accepted:
+                    time = tmp['time'] = submit_time
+                    score = tmp['score'] = problems[problem_id]
+                    total_time += time
+                    total_score += score
+                    total_penalties += n_penalties
+                    break
+                elif submit_status not in (
+                        JudgeStatus.CompilationError,
+                        JudgeStatus.InternalError):
+                    n_penalties += 1
+            tmp['penalties'] = n_penalties
+            ret['problems'][problem_id] = tmp
+        ret.update(dict(
+            time=total_time, score=total_score, penalties=total_penalties,
+            adjusted_time=total_time + total_penalties * contest_penalty))
+        results.append(ret)
+
+    results.sort(key=lambda x: (-x['score'], x['adjusted_time']))
+    for i, r in enumerate(results):
+        r['ranking'] = i + 1
+    return jsonify(results)

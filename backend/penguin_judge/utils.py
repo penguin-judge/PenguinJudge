@@ -6,9 +6,11 @@ import json
 
 
 class _JsonEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> str:
+    def default(self, o: Any) -> Union[str, float]:
         if isinstance(o, datetime.datetime):
             return o.astimezone(tz=datetime.timezone.utc).isoformat()
+        if isinstance(o, datetime.timedelta):
+            return o.total_seconds()
         if isinstance(o, bytes):
             return b64encode(o).decode('ascii')
         if isinstance(o, Enum):
@@ -18,3 +20,12 @@ class _JsonEncoder(json.JSONEncoder):
 
 def json_dumps(o: Union[dict, list]) -> str:
     return json.dumps(o, cls=_JsonEncoder, separators=(',', ':'))
+
+
+def pagination_header(count: int, page: int, per_page: int) -> dict:
+    return {
+        'X-Page': page,
+        'X-Per-Page': per_page,
+        'X-Total': count,
+        'X-Total-Pages': (count + (per_page - 1)) // per_page,
+    }

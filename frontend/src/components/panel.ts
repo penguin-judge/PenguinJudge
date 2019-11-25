@@ -26,7 +26,8 @@ export class PanelElement extends LitElement {
         font-size: 110%;
       }
       #contents {
-        padding: 10px;
+        padding: 1em;
+        display: flex;
       }
     `
   }
