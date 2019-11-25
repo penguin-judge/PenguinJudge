@@ -93,19 +93,20 @@ export class PenguinJudgeContestStandings extends LitElement {
             ${
             this.problems.map(s => {
                 const problem = user.problems[s];
+                const NotSubmitYet = !implementsAccepted(problem) && problem.penalties === 0;
+                if (NotSubmitYet) return html`<div>-</div>`;
+
                 const score = implementsAccepted(problem) ? `${problem.score}` : '';
                 const acceptedTime = implementsAccepted(problem) ? `${problem.time}` : '';
-                const NotSubmitYet = !implementsAccepted(problem) && problem.penalties === 0;
-                const penalties = NotSubmitYet ? '' : `(${problem.penalties})`;
+                const penalties = problem.penalties;
                 return html`
-                    <p>
+                    <div>
                         <span class="score">${score}</span>
                         <span class="penalties">${penalties}</span>
-                    </p>
-                    <p>
+                    </div>
+                    <div>
                         <span class="time">${acceptedTime}</span>
-                    </p>
-                    ${NotSubmitYet ? html`<p>-</p>` : ''}
+                    </div>
                 `;
             }).map(s => html`<td>${s}</td>`)
             }</tr>`)}</tbody>
