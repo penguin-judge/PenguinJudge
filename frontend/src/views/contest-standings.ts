@@ -1,5 +1,4 @@
-import { customElement, LitElement, html, css } from 'lit-element';
-import { from, Subscription } from 'rxjs';
+import { customElement, LitElement, html, css, TemplateResult } from 'lit-element';
 import { API, Submission, Standing, implementsAccepted } from '../api';
 import { router, session } from '../state';
 
@@ -42,26 +41,44 @@ export class PenguinJudgeContestStandings extends LitElement {
         };
     }
 
-    render() {
-        const pageNum = Math.floor((this.standings.length + this.userPerPage - 1) / this.userPerPage);
-        const pages = [this.page];
+    createPagenation(pageNum: number): Array<TemplateResult> {
+        // TODO: 別コンポーネントに切り出す
+        const isShowAllPage = pageNum <= 10;
         const index = this.page;
+        const pages = [index];
+        if (isShowAllPage) {
+            for (let i = index - 1; i >= 1; --i) {
+                pages.push(i);
+            }
+            pages.reverse();
+            for (let i = index + 1; i <= pageNum; ++i) {
+                pages.push(i);
+            }
+        } else {
+            for (let i = 2; index - i >= 1; i *= 2) {
+                pages.push(index - (i - 1));
+            }
+            if (index > 1) pages.push(1);
+            pages.reverse();
 
-        for (let i = 2; index - i >= 1; i *= 2) {
-            pages.push(index - (i - 1));
+            for (let i = 2; index + i <= pageNum; i *= 2) {
+                pages.push(index + (i - 1));
+            }
+            if (index < pageNum) pages.push(pageNum);
         }
-        if (index > 1) pages.push(1);
-        pages.reverse();
-
-        for (let i = 2; index + i <= pageNum; i *= 2) {
-            pages.push(index + (i - 1));
-        }
-        if (index < pageNum) pages.push(pageNum);
-
         const pagenation = pages.map(i => {
             const isCurrentPage = i === index;
             return html`<button class="page ${isCurrentPage ? 'disable' : ''}" @click="${this.changePage(i)}">${i}</button>`;
         });
+
+        return pagenation;
+    }
+
+    render() {
+        const pageNum = Math.floor((this.standings.length + this.userPerPage - 1) / this.userPerPage);
+        const index = this.page;
+
+        const pagenation = this.createPagenation(pageNum);
 
         const isInCurrentPage = (i: number) => i >= ((index - 1) * this.userPerPage) && i < (index * this.userPerPage);
 
