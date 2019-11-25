@@ -7,7 +7,6 @@ import { router, session } from '../state';
 export class PenguinJudgeContestStandings extends LitElement {
     standings: Standing[] = [];
 
-    subscription: Subscription | null = null;
     submissions: Submission[] = [];
 
     problems: string[] = [];
@@ -20,21 +19,20 @@ export class PenguinJudgeContestStandings extends LitElement {
         if (!session.contest || !session.contest.id) {
             throw 'あり得ないエラー';
         }
-        this.subscription = from(API.get_standings(session.contest.id)).subscribe(
-            standings => { this.standings = standings; },
-            err => { console.log(err); router.navigate('login'); },
-            () => { this.requestUpdate(); }
-        );
+
+        API.get_standings(session.contest.id).then(standings => {
+            this.standings = standings;
+            this.requestUpdate();
+        }).catch(err => {
+            console.log(err);
+            router.navigate('login');
+        })
 
         this.problems = session!.contest!.problems!.map((problem) => problem.id);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-            this.subscription = null;
-        }
     }
 
     changePage(n: number): Function {
