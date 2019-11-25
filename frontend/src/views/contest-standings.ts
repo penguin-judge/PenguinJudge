@@ -27,8 +27,6 @@ export class PenguinJudgeContestStandings extends LitElement {
         );
 
         this.problems = session!.contest!.problems!.map((problem) => problem.id);
-        console.log(this.problems);
-        console.log(this.standings);
     }
 
     disconnectedCallback() {
