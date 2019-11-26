@@ -39,3 +39,21 @@ export function format_timespan(ts: number): string {
   ret += h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
   return ret;
 }
+
+export function check_contest_status(start: string | Date, end: string | Date) {
+  if (!(start instanceof Date)) {
+      start = new Date(start);
+  }
+  if (!(end instanceof Date)) {
+      end = new Date(end);
+  }
+  var now = new Date();
+
+  if (now.getTime() < start.getTime()) {
+    return 'scheduled';
+  } else if (now.getTime() < end.getTime()) {
+    return 'running';
+  } else {
+    return 'finished';
+  }
+}

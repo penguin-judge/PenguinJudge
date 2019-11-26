@@ -2,6 +2,8 @@ import { Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
 import { session } from '../state';
+import { check_contest_status } from '../utils';
+
 
 @customElement('x-contest-task')
 export class AppContestTaskElement extends LitElement {
@@ -43,6 +45,10 @@ export class AppContestTaskElement extends LitElement {
     });
     if (!task)
       return html`??`;
+
+    if (check_contest_status(session.contest.start_time, session.contest.end_time) == 'scheduled')
+        return html`コンテスト開催前です`;
+
 
     const dom_langs = session.environments.map((e) => {
       return html`<option value="${e.id}">${e.name}</option>`;

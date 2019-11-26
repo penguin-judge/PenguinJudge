@@ -2,7 +2,7 @@ import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription } from 'rxjs';
 import { API, Submission } from '../api';
 import { session } from '../state';
-import { format_datetime_detail } from '../utils';
+import { format_datetime_detail, check_contest_status } from '../utils';
 
 @customElement('penguin-judge-contest-submission-results')
 export class PenguinJudgeContestSubmissionResults extends LitElement {
@@ -30,6 +30,12 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
   }
 
   render() {
+    if (!session.contest)
+      return html`?`;
+
+    if (check_contest_status(session.contest.start_time, session.contest.end_time) == 'scheduled')
+      return html`コンテスト開催前です`;
+
     const nodes: any[] = [];
     this.submissions.forEach((s) => {
       nodes.push(html`<tr><td>${format_datetime_detail(s.created)}</td><td>${s.problem_id}</td><td>${s.user_id}</td><td>${s.environment_id}</td><td>${s.status}</td></tr>`);
