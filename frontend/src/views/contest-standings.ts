@@ -1,6 +1,7 @@
 import { customElement, LitElement, html, css, TemplateResult } from 'lit-element';
 import { API, Submission, Standing, implementsAccepted } from '../api';
 import { router, session } from '../state';
+import './pagenation';
 
 @customElement('penguin-judge-contest-standings')
 export class PenguinJudgeContestStandings extends LitElement {
@@ -39,6 +40,11 @@ export class PenguinJudgeContestStandings extends LitElement {
             this.page = n;
             this.requestUpdate();
         };
+    }
+
+    changePage2(e: CustomEvent) {
+        this.page = e.detail[1];
+        this.requestUpdate();
     }
 
     createPagenation(pageNum: number): Array<TemplateResult> {
@@ -83,6 +89,7 @@ export class PenguinJudgeContestStandings extends LitElement {
         const isInCurrentPage = (i: number) => i >= ((index - 1) * this.userPerPage) && i < (index * this.userPerPage);
 
         return html`
+        <!--<penguin-judge-pagenation pages="${pageNum}" currentPage="${index}" @page-changed="${this.changePage2}"></penguin-judge-pagenation>-->
         <div class="pagenation">${pagenation}</div>
         <table id="standings">
         <thead>
@@ -119,7 +126,7 @@ export class PenguinJudgeContestStandings extends LitElement {
                 return html`
                     <div>
                         <span class="score">${score}</span>
-                        <span class="penalties">${penalties}</span>
+                        <span class="penalties">(${penalties})</span>
                     </div>
                     <div>
                         <span class="time">${acceptedTime}</span>
