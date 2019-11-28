@@ -84,7 +84,7 @@ export class PenguinJudgeContestStandings extends LitElement {
 
         return html`
         <div class="pagenation">${pagenation}</div>
-        <table>
+        <table id="standings">
         <thead>
             <tr>
                 <td>順位</td>
@@ -133,9 +133,12 @@ export class PenguinJudgeContestStandings extends LitElement {
 
     static get styles() {
         return css`
-    table {
+    #standings {
       border-collapse:collapse;
       margin: auto;
+    }
+    #standings a {
+        color: #005CAF;
     }
     td {
       border: 1px solid #bbb;
@@ -170,11 +173,12 @@ export class PenguinJudgeContestStandings extends LitElement {
     }
     .page {
         border: 1px solid black;
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         margin: 4px;
         text-align: center;
         vertical-align: middle;
+        background-color: white;
     }
     .page.disable {
         opacity: 0.5;
