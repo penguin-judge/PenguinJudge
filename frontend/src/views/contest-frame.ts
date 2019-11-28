@@ -30,7 +30,7 @@ export class PenguinJudgeContestFrame extends LitElement {
     const tabs = [
       ['トップ', router.generate('contest-top', { id: c.id }), false],
       ['問題', router.generate('contest-tasks', { id: c.id }), items.length > 0 && items[0] === 'tasks'],
-      ['提出結果', router.generate('contest-submissions-me', { id: c.id }), items.length > 0 && items[0] === 'submissions'],
+      ['提出結果', router.generate('contest-submissions', { id: c.id }), items.length > 0 && items[0] === 'submissions'],
     ];
     const has_selected = tabs.reduce((accum, v) => {
       return accum || v[2];
