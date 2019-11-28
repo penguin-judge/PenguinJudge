@@ -104,8 +104,8 @@ export class PenguinJudgeContestStandings extends LitElement {
             <td class="rank">${user.ranking}</td>
             <td class="user-id">${user.user_id}</td>
             <td class="score-time">
-                <p class="score">${user.score}</p>
-                <p class="time">${user.adjusted_time}</p>        
+                <div class="score">${user.score}</div>
+                <div class="time">${user.adjusted_time}</div>        
             </td>
             ${
             this.problems.map(s => {
@@ -146,9 +146,6 @@ export class PenguinJudgeContestStandings extends LitElement {
       font-weight: bold;
       text-align: center;
       min-width: 60px;
-    }
-    td > p {
-        margin: 5px 0;
     }
     .user-id {
         font-weight: bold;
