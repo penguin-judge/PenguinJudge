@@ -313,7 +313,9 @@ class TestAPI(unittest.TestCase):
         }, headers=self.admin_headers).json
         self.assertEqual([resp], app.get(
             '{}/submissions'.format(prefix), headers=self.admin_headers).json)
-        resp2 = app.get('{}/submissions/{}'.format(prefix, resp['id'])).json
+        app.get('{}/submissions/{}'.format(prefix, resp['id']), status=404)
+        resp2 = app.get('{}/submissions/{}'.format(prefix, resp['id']),
+                        headers=self.admin_headers).json
         self.assertEqual(resp2.pop('code'), code)
         self.assertEqual(resp, resp2)
 
