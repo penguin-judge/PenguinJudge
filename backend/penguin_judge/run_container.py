@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 import os
-from io import RawIOBase
-from typing import Any, Union, Tuple, Optional
+from io import RawIOBase, BufferedIOBase, BufferedReader, BufferedWriter
+from typing import Any, Union, Tuple, Optional, MutableSequence
 import struct
 
 import docker  # type: ignore
@@ -33,33 +33,15 @@ class JudgeDriver(ABC):
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         pass
 
-    def _send(self, strm: RawIOBase, obj: Any) -> None:
+    def _send(self, strm: BufferedIOBase, obj: Any) -> None:
         b = msgpack.packb(obj, use_bin_type=True)
-        fd = strm.fileno()
+        strm.write(struct.pack('<I', len(b)))
+        strm.write(b)
+        strm.flush()
 
-        def _write_all(x: bytes) -> None:
-            off = 0
-            while off < len(x):
-                ret = os.write(fd, x[off:])
-                if not ret:
-                    raise IOError
-                off += ret
-        _write_all(struct.pack('<I', len(b)))
-        _write_all(b)
-
-    def _recv(self, strm: RawIOBase) -> dict:
-        def _read_exact(sz: int) -> bytearray:
-            off, buf = 0, memoryview(bytearray(sz))
-            while off < sz:
-                ret = strm.readinto(buf[off:])  # type: ignore
-                if not ret:
-                    raise IOError
-                off += ret
-            return buf.obj  # type: ignore
-
-        _read_exact(8)  # 何故か8バイトゴミが入ってる...
-        sz = struct.unpack('<I', _read_exact(4))[0]
-        return msgpack.unpackb(_read_exact(sz), raw=False)
+    def _recv(self, strm: BufferedIOBase) -> dict:
+        sz = struct.unpack('<I', strm.read(4))[0]
+        return msgpack.unpackb(strm.read(sz), raw=False)
 
 
 class DockerJudgeDriver(JudgeDriver):
@@ -106,14 +88,16 @@ class DockerJudgeDriver(JudgeDriver):
             s = self.client.attach_socket(
                 self.compile_container,
                 params={'stdin': 1, 'stdout': 1, 'stream': 1})
+            reader = BufferedReader(DockerStdoutReader(s))
+            writer = BufferedWriter(DockerStdinWriter(s))
             # TODO(*): コンパイルのタイムアウト/メモリ上限はどうする?
-            self._send(s, {
+            self._send(writer, {
                 'type': 'Compilation',
                 'code': task['code'],
                 'time_limit': self.time_limit,
                 'memory_limit': self.memory_limit,
             })
-            resp = self._recv(s)
+            resp = self._recv(reader)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
                 return (resp['binary'], resp['time'])
             return JudgeStatus.CompilationError
@@ -145,7 +129,9 @@ class DockerJudgeDriver(JudgeDriver):
             s = self.client.attach_socket(
                 self.test_container,
                 params={'stdin': 1, 'stdout': 1, 'stream': 1})
-            self._send(s, {
+            reader = BufferedReader(DockerStdoutReader(s))
+            writer = BufferedWriter(DockerStdinWriter(s))
+            self._send(writer, {
                 'type': 'Preparation',
                 'code': task['code'],
                 'time_limit': self.time_limit,
@@ -156,11 +142,11 @@ class DockerJudgeDriver(JudgeDriver):
             status_set = set()
             for test in task['tests']:
                 _update_status(test['id'], JudgeStatus.Running)
-                self._send(s, {
+                self._send(writer, {
                     'type': 'Test',
                     'input': test['input']
                 })
-                resp = self._recv(s)
+                resp = self._recv(reader)
                 typ = resp.get('type')
                 kind = resp.get('kind')
                 if typ == 'Test':
@@ -198,6 +184,51 @@ class DockerJudgeDriver(JudgeDriver):
             raise RuntimeError  # 未知のkindの場合はInternalError
         except Exception:
             return JudgeStatus.InternalError, max_time, max_memory
+
+
+class DockerStdoutReader(RawIOBase):
+    def __init__(self, raw: RawIOBase) -> None:
+        self._raw = BufferedReader(raw)
+        self._cur = b''
+        self._eos = False
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, b: MutableSequence[int]) -> int:
+        if not self._cur:
+            self._read_next_frame()
+        if self._eos or not self._cur:
+            return -1
+        sz = min(len(b), len(self._cur))
+        b[0:sz] = self._cur[0:sz]
+        self._cur = self._cur[sz:]
+        return sz
+
+    def _read_next_frame(self) -> None:
+        while True:
+            header = self._raw.read(8)
+            if not header:
+                self._eos = True
+                return
+            if len(header) != 8:
+                raise IOError
+            sz = struct.unpack('>I', header[4:])[0]
+            body = self._raw.read(sz)
+            if header[0] == 0x01:
+                self._cur = body
+                return
+
+
+class DockerStdinWriter(RawIOBase):
+    def __init__(self, raw: RawIOBase) -> None:
+        self._fd = raw.fileno()
+
+    def writable(self) -> bool:
+        return True
+
+    def write(self, b: bytes) -> int:
+        return os.write(self._fd, b)
 
 
 def run(task: dict) -> None:

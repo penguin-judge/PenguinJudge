@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Read, Result, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::ExitStatusExt;
+use std::mem::drop;
 use std::process::{id as get_pid, Command, ExitStatus, Stdio};
 use std::sync::mpsc::channel;
 use std::thread::{current as current_thread, spawn};
@@ -221,6 +222,7 @@ impl<R: Read, W: Write> Agent<R, W> {
             if child_stdin.write_all(&req.input).is_err() || child_stdin.flush().is_err() {
                 return;
             }
+            drop(child_stdin);
             let mut total_bytes: usize = 0;
             loop {
                 let mut v: Vec<u8> = Vec::new();

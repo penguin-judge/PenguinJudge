@@ -1,0 +1,7 @@
+{
+    "test": {
+        "ext": ".rb",
+        "cmd": "/usr/local/bin/ruby",
+        "args": ["--disable-gems", "<path>"]
+    }
+}

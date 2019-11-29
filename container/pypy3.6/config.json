@@ -1,0 +1,7 @@
+{
+    "test": {
+        "ext": ".py",
+        "cmd": "/usr/local/bin/pypy3",
+        "args": ["<path>"]
+    }
+}
