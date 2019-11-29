@@ -38,15 +38,15 @@ class JudgeStatus(enum.Enum):
 
 class _Exportable(object):
     VALID_TYPES = (
-        str, int, list, dict, float, bool, bytes, datetime.datetime, enum.Enum)
+        str, int, list, dict, float, bool, bytes,
+        datetime.datetime, datetime.timedelta, enum.Enum)
 
     def to_dict(self, *, keys: Optional[List[str]] = None) -> dict:
         if not keys:
-            keys = [
-                k for k in dir(self)
-                if (not k.startswith('_') and
-                    isinstance(getattr(self, k), self.VALID_TYPES))]
-        return {k: getattr(self, k) for k in keys}
+            keys = [k for k in dir(self) if not k.startswith('_')]
+        return {
+            k: getattr(self, k) for k in keys
+            if isinstance(getattr(self, k), self.VALID_TYPES)}
 
     def to_summary_dict(self) -> dict:
         return self.to_dict(keys=getattr(self, '__summary_keys__', None))
@@ -117,7 +117,7 @@ class Problem(Base, _Exportable):
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
     time_limit = Column(Integer, nullable=False)
-    memory_limit = Column(Integer, nullable=False)
+    memory_limit = Column(Integer, nullable=False)  # MiB
     description = Column(String, nullable=False)
     score = Column(Integer, nullable=False)
     __table_args__ = (
@@ -140,18 +140,22 @@ class TestCase(Base, _Exportable):
 
 class Submission(Base, _Exportable):
     __tablename__ = 'submissions'
-    __summary_keys__ = ['contest_id', 'problem_id', 'id', 'user_id',
-                        'environment_id', 'status', 'created']
+    __summary_keys__ = [
+        'contest_id', 'problem_id', 'id', 'user_id', 'code_bytes',
+        'environment_id', 'status', 'max_time', 'max_memory', 'created']
     id = Column(Integer, primary_key=True, autoincrement=True)
     contest_id = Column(String, nullable=False)
     problem_id = Column(String, nullable=False)
     user_id = Column(String, nullable=False)
     code = Column(LargeBinary, nullable=False)
+    code_bytes = Column(Integer, nullable=False)
     environment_id = Column(Integer, nullable=False)
     status = Column(
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,
         nullable=False)
     compile_time = Column(Interval, nullable=True)
+    max_time = Column(Interval, nullable=True)
+    max_memory = Column(Integer, nullable=True)  # KiB
     created = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False)
     __table_args__ = (
@@ -176,6 +180,7 @@ class JudgeResult(Base, _Exportable):
         Enum(JudgeStatus), server_default=JudgeStatus.Waiting.name,
         nullable=False)
     time = Column(Interval, nullable=True)
+    memory = Column(Integer, nullable=True)  # KiB
     __table_args__ = (
         ForeignKeyConstraint(
             [submission_id],  # type: ignore
