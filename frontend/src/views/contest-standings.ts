@@ -79,11 +79,11 @@ export class PenguinJudgeContestStandings extends LitElement {
 
                 const score = implementsAccepted(problem) ? `${problem.score}` : '';
                 const acceptedTime = implementsAccepted(problem) ? `${problem.time}` : '';
-                const penalties = problem.penalties;
+                const penalties = problem.penalties > 0 ? `(${problem.penalties})` : '';
                 return html`
                     <div>
                         <span class="score">${score}</span>
-                        <span class="penalties">(${penalties})</span>
+                        <span class="penalties">${penalties}</span>
                     </div>
                     <div>
                         <span class="time">${acceptedTime}</span>
