@@ -30,12 +30,13 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
   }
 
   render() {
-    const nodes: any[] = [];
-    this.submissions.forEach((s) => {
-      if (session.contest) {
-        const url = router.generate('contest-submission', { id: session.contest.id, submission_id: s.id });
-        nodes.push(html`<tr><td>${format_datetime_detail(s.created)}</td><td>${s.problem_id}</td><td>${s.user_id}</td><td>${s.environment_id}</td><td>${s.status}</td><td><a is="router_link" href="${url}">詳細</td></tr>`);
-      }
+    if (!session.contest) {
+      return html``;
+    }
+
+    const nodes = this.submissions.map(s => {
+      const url = router.generate('contest-submission', { id: session.contest!.id, submission_id: s.id });
+      return html`<tr><td>${format_datetime_detail(s.created)}</td><td>${s.problem_id}</td><td>${s.user_id}</td><td>${s.environment_id}</td><td>${s.status}</td><td><a is="router_link" href="${url}">詳細</td></tr>`;
     });
     return html`
       <table>
