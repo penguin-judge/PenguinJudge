@@ -156,6 +156,11 @@ paths:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/PageParams"
         - $ref: "#/components/parameters/PerPageParams"
+        - $ref: "#/components/parameters/ProblemFilter"
+        - $ref: "#/components/parameters/EnvironmentFilter"
+        - $ref: "#/components/parameters/JudgeStatusFilter"
+        - $ref: "#/components/parameters/UserIDFilter"
+        - $ref: "#/components/parameters/SubmissionSortKey"
       responses:
         '200':
           description: Responses submissions
@@ -441,7 +446,16 @@ components:
         environment_id:
           type: integer
         status:
-          type: string
+          $ref: "#/components/schemas/JudgeStatus"
+        code_bytes:
+          type: integer
+          nullable: true
+        max_time:
+          type: number
+          nullable: true
+        max_memory:
+          type: integer
+          nullable: true
         created:
           type: string
           format: date-time
@@ -496,6 +510,19 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Ranking"
+    JudgeStatus:
+      type: string
+      enum:
+        - Waiting
+        - Running
+        - Accepted
+        - CompilationError
+        - RuntimeError
+        - WrongAnswer
+        - MemoryLimitExceeded
+        - TimeLimitExceeded
+        - OutputLimitExceeded
+        - InternalError
   parameters:
     UserID:
       name: user_id
@@ -545,6 +572,44 @@ components:
           - scheduled
           - running
           - finished
+    ProblemFilter:
+      name: problem_id
+      in: query
+      schema:
+        type: string
+    EnvironmentFilter:
+      name: environment_id
+      in: query
+      schema:
+        type: integer
+    JudgeStatusFilter:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/JudgeStatus"
+    UserIDFilter:
+      name: user_id
+      in: query
+      schema:
+        type: string
+    SubmissionSortKey:
+      name: sort
+      in: query
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - created
+            - -created
+            - code_bytes
+            - -code_bytes
+            - max_time
+            - -max_time
+            - max_memory
+            - -max_memory
   headers:
     TotalItemsHeader:
       schema:

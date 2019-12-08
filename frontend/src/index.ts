@@ -9,6 +9,7 @@ import './views/contest-top';
 import './views/contest-tasks';
 import './views/contest-task';
 import './views/contest-submission-results';
+import './views/contest-submission';
 import './views/contest-standings';
 import './components/anchor';
 import './components/contest-list';
@@ -32,7 +33,8 @@ export class AppRootElement extends LitElement {
       ['contests/:id', 'contest-top', html`<x-contest-top></x-contest-top>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks', 'contest-tasks', html`<x-contest-tasks></x-contest-tasks>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks/:task_id', 'contest-task', html`<x-contest-task></x-contest-task>`, this._wait_fetch_contest_info],
-      ['contests/:id/submissions/me', 'contest-submissions-me', html`<penguin-judge-contest-submission-results />`, this._wait_fetch_contest_info],
+      ['contests/:id/submissions', 'contest-submissions', html`<penguin-judge-contest-submission-results />`, this._wait_fetch_contest_info],
+      ['contests/:id/submissions/:submission_id', 'contest-submission', html`<penguin-judge-contest-submission />`, this._wait_fetch_contest_info],
       ['contests/:id/standings', 'contest-standings', html`<penguin-judge-contest-standings />`, this._wait_fetch_contest_info],
       ['login', 'login', html`<x-login></x-login>`, null],
       ['', 'home', html`<x-home></x-home>`, null],

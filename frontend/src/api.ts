@@ -144,6 +144,12 @@ export class API {
       '/api/contests/' + encodeURIComponent(contest_id) + '/submissions');
   }
 
+  static get_submission(contest_id: string, submission_id: string): Promise<Submission> {
+    return API._fetch(
+      '/api/contests/' + encodeURIComponent(contest_id) +
+      '/submissions/' + encodeURIComponent(submission_id));
+  }
+
   static login(id: string, password: string): Promise<Token> {
     return API._fetch('/api/auth', {
       method: 'POST',

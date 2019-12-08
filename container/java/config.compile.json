@@ -1,0 +1,8 @@
+{
+    "compile": {
+        "cmd": "javac",
+        "path": "./Main.java",
+        "output": "./Main.class",
+        "args": ["<path>"]
+    }
+}

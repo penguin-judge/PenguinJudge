@@ -241,7 +241,7 @@ def list_problems(contest_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        if not (contest.is_begun() or getattr(u, 'admin', False)):
+        if not (contest.is_begun() or (u and u['admin'])):
             abort(403)
         ret = [p.to_summary_dict() for p in s.query(Problem).filter(
             Problem.contest_id == contest_id).all()]
@@ -309,7 +309,7 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        if not (contest.is_begun() or getattr(u, 'admin', False)):
+        if not (contest.is_begun() or (u and u['admin'])):
             abort(404)  # ここは403ではなく404にする
         ret = s.query(Problem).filter(
             Problem.contest_id == contest_id,
@@ -322,7 +322,6 @@ def get_problem(contest_id: str, problem_id: str) -> Response:
 
 @app.route('/contests/<contest_id>/submissions')
 def list_submissions(contest_id: str) -> Response:
-    # TODO(kazuki): フィルタ＆最低限の情報に絞り込み
     params, body = _validate_request()
     page, per_page = params.query['page'], params.query['per_page']
     ret = []
@@ -331,7 +330,7 @@ def list_submissions(contest_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        is_admin = getattr(u, 'admin', False)
+        is_admin = (u and u['admin'])
         if not (contest.is_begun() or is_admin):
             abort(403)
 
@@ -342,7 +341,29 @@ def list_submissions(contest_id: str) -> Response:
                 abort(403)
             q = q.filter(Submission.user_id == u['id'])
 
+        filters = [
+            ('problem_id', Submission.problem_id.__eq__),
+            ('environment_id', Submission.environment_id.__eq__),
+            ('status', Submission.status.__eq__),
+            ('user_id', Submission.user_id.contains),
+        ]
+        for key, expr in filters:
+            v = params.query.get(key)
+            if v is None:
+                continue
+            q = q.filter(expr(v))  # type: ignore
+
         count = q.count()
+
+        if params.query.get('sort'):
+            sort_keys = []
+            for key in params.query['sort']:
+                f = getattr(Submission, key.lstrip('-'))
+                if key[0] == '-':
+                    f = f.desc()
+                sort_keys.append(f)
+            q = q.order_by(*sort_keys)
+
         for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())
     return jsonify(ret, headers=pagination_header(count, page, per_page))
@@ -354,7 +375,8 @@ def post_submission(contest_id: str) -> Response:
     problem_id, code, env_id = body.problem_id, body.code, body.environment_id
 
     cctx = ZstdCompressor()
-    code = cctx.compress(code.encode('utf8'))
+    code_encoded = code.encode('utf8')
+    code = cctx.compress(code_encoded)
 
     with transaction() as s:
         u = _validate_token(s, required=True)
@@ -367,8 +389,8 @@ def post_submission(contest_id: str) -> Response:
         if not tests:
             abort(400)
         submission = Submission(
-            contest_id=contest_id, problem_id=problem_id,
-            user_id=u['id'], code=code, environment_id=env_id)
+            contest_id=contest_id, problem_id=problem_id, user_id=u['id'],
+            code=code, code_bytes=len(code_encoded), environment_id=env_id)
         s.add(submission)
         s.flush()
         ret = submission.to_summary_dict()
@@ -389,10 +411,16 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
     params, _ = _validate_request()
     zctx = ZstdDecompressor()
     with transaction() as s:
+        u = _validate_token(s)
+        contest = s.query(Contest).filter(Contest.id == contest_id).first()
+        if not (contest and contest.is_accessible(u)):
+            abort(404)
         submission = s.query(Submission).filter(
             Submission.contest_id == contest_id,
             Submission.id == submission_id).first()
-        if not submission or submission.contest_id != contest_id:
+        if not submission:
+            abort(404)
+        if not submission.is_accessible(contest, u):
             abort(404)
         ret = submission.to_dict()
     ret['code'] = zctx.decompress(ret['code']).decode('utf-8')
