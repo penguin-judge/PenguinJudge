@@ -47,6 +47,32 @@ export interface Token {
   expires_in: number;
 }
 
+interface AcceptedProblem {
+  penalties: number;
+  score: number;
+  time: number;
+}
+
+interface UnacceptedProblem {
+  penalties: number;
+}
+
+export function implementsAccepted(arg: any): arg is AcceptedProblem {
+  return arg !== null && typeof arg === 'object' && arg.score !== undefined && arg.time !== undefined;
+}
+
+export interface Standing {
+  user_id: string;
+  score: number;
+  penalties: number;
+  time: number;
+  adjusted_time: number;
+  ranking: number;
+  problems: {
+    [index: string]: AcceptedProblem | UnacceptedProblem;
+  }
+}
+
 export interface ListContestsFilter {
   status?: string;
 }
@@ -134,5 +160,9 @@ export class API {
         password,
       })
     });
+  }
+
+  static get_standings(contest_id: string): Promise<Array<Standing>> {
+    return API._fetch(`/api/contests/${contest_id}/rankings`);
   }
 }
