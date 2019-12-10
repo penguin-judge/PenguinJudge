@@ -28,6 +28,19 @@ export interface Contest {
   problems: Array<Problem> | null;
 }
 
+export enum JudgeStatus {
+  Waiting = 'Waiting',
+  Running = 'Running',
+  Accepted = 'Accepted',
+  CompilationError = 'CompilationError',
+  RuntimeError = 'RuntimeError',
+  WrongAnswer = 'WrongAnswer',
+  MemoryLimitExceeded = 'MemoryLimitExceeded',
+  TimeLimitExceeded = 'TimeLimitExceeded',
+  OutputLimitExceeded = 'OutputLimitExceeded',
+  InternalError = 'InternalError',
+}
+
 export interface PartialSubmission {
   contest_id: string;
   problem_id: string;
@@ -40,6 +53,14 @@ export interface Submission extends PartialSubmission {
   status: string;
   created: string;
   user_id: string;
+  tests: Array<TestResult>;
+}
+
+export interface TestResult {
+  id: string;
+  status: JudgeStatus;
+  time: number | null;
+  memory: number | null;
 }
 
 export interface Token {

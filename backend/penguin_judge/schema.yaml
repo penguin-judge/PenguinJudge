@@ -469,6 +469,8 @@ components:
         - properties:
             code:
               type: string
+            tests:
+              $ref: "#/components/schemas/TestResults"
           required:
             - problem_id
             - environment_id
@@ -523,6 +525,24 @@ components:
         - TimeLimitExceeded
         - OutputLimitExceeded
         - InternalError
+    TestResult:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: "#/components/schemas/JudgeStatus"
+        time:
+          type: number
+          format: double
+          description: コンテスト後にのみ得られます
+        memory:
+          type: number
+          description: コンテスト後にのみ得られます
+    TestResults:
+      type: array
+      items:
+        $ref: "#/components/schemas/TestResult"
   parameters:
     UserID:
       name: user_id

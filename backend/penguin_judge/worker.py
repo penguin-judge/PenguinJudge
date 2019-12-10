@@ -4,6 +4,7 @@ import multiprocessing as mp
 from functools import partial
 from typing import Any
 import pickle
+from random import shuffle
 
 import pika  # type: ignore
 from pika.channel import Channel  # type: ignore
@@ -128,6 +129,9 @@ class Worker(object):
                     submission_id=submission_id,
                     test_id=test.id))
                 task['tests'].append(test.to_dict())
+
+        # テストの実行順序をシャッフルする
+        shuffle(task['tests'])
 
         def _submit() -> None:
             print('submit to child process', flush=True)

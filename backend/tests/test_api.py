@@ -317,6 +317,7 @@ class TestAPI(unittest.TestCase):
         resp2 = app.get('{}/submissions/{}'.format(prefix, resp['id']),
                         headers=self.admin_headers).json
         self.assertEqual(resp2.pop('code'), code)
+        resp['tests'] = []
         self.assertEqual(resp, resp2)
 
         app.post_json('{}/submissions'.format(prefix), {
