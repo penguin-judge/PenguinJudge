@@ -1,7 +1,7 @@
 import { Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
-import { session } from '../state';
+import { router, session } from '../state';
 
 @customElement('x-contest-task')
 export class AppContestTaskElement extends LitElement {
@@ -28,9 +28,16 @@ export class AppContestTaskElement extends LitElement {
       problem_id: session.task_id,
       code: code,
       environment_id: parseInt(env),
-    }).catch(e => {
-      if (e.status === 401)
+    }).then(s => {
+      router.navigate(router.generate('contest-submission', {
+        id: session.contest!.id,
+        submission_id: s.id,
+      }));
+    }, e => {
+      if (e.status === 401) {
         alert("ログインが必要です");
+        router.navigate('login');
+      }
     });
   }
 
