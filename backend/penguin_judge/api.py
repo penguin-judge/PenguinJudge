@@ -15,9 +15,8 @@ from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 
 from penguin_judge.models import (
-    transaction, scoped_session, Contest, Environment, JudgeStatus, Problem,
-    Submission, TestCase, Token, User,
-)
+    transaction, scoped_session, Contest, Environment, JudgeResult,
+    JudgeStatus, Problem, Submission, TestCase, Token, User)
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.utils import json_dumps, pagination_header
 
@@ -423,6 +422,26 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
         if not submission.is_accessible(contest, u):
             abort(404)
         ret = submission.to_dict()
+        ret['tests'] = []
+        for t_raw in s.query(JudgeResult).filter(
+                JudgeResult.submission_id == submission_id).order_by(
+                    JudgeResult.status, JudgeResult.test_id):
+            t = t_raw.to_dict()
+
+            # 不要な情報を削除
+            t.pop('contest_id')
+            t.pop('problem_id')
+            t.pop('submission_id')
+            t['id'] = t['test_id']
+            t.pop('test_id')
+            if not (contest.is_finished() or (u and u['admin'])):
+                # コンテスト中＆非管理者の場合は
+                # 実行時間とメモリ消費量を返却しない
+                # (NULLの場合はto_dictで設定されないのでpopの引数にNoneを指定)
+                t.pop('time', None)
+                t.pop('memory', None)
+            ret['tests'].append(t)
+
     ret['code'] = zctx.decompress(ret['code']).decode('utf-8')
     return jsonify(ret)
 
