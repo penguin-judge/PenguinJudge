@@ -28,8 +28,8 @@ export class AppHomeElement extends LitElement {
         session.update_current_user();
       },
       err => {
-        this.errorStr = err;
-        console.log(2, err, this.errorStr);
+        if (err.status === 404) this.errorStr = 'ユーザ名またはパスワードが違います';
+        if (err.status >= 500 && err.status <= 503) this.errorStr = 'サーバ側のエラーです';
         this.requestUpdate();
       },
       () => {

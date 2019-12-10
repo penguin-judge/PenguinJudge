@@ -362,6 +362,8 @@ def list_submissions(contest_id: str) -> Response:
                     f = f.desc()
                 sort_keys.append(f)
             q = q.order_by(*sort_keys)
+        else:
+            q = q.order_by(Submission.created)
 
         for c in q.offset((page - 1) * per_page).limit(per_page):
             ret.append(c.to_summary_dict())

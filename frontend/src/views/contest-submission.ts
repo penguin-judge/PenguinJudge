@@ -1,5 +1,5 @@
 import { customElement, LitElement, html, css } from 'lit-element';
-import { Subscription } from 'rxjs';
+import { Subscription, zip } from 'rxjs';
 import { API, Submission } from '../api';
 import { session } from '../state';
 import { format_datetime_detail } from '../utils';
@@ -11,7 +11,13 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
   constructor() {
     super();
-    this.subscription = session.contest_subject.subscribe((s) => {
+    this.subscription = zip(
+      session.environment_mapping_subject,
+      session.contest_subject
+    ).subscribe(_ => {
+      // ２つのsubjectが解決できれば
+      // session.contest/session.environment_mapping経由でアクセスできる
+      const s = session.contest;
       if (s) {
         const submission_id = location.hash.split('/').pop() || '';
         API.get_submission(s.id, submission_id).then((submission) => {
@@ -32,7 +38,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
   render() {
     if (!this.submission) {
-        return;
+      return;
     }
     const tests = this.submission.tests.map(
       t => html`<tr><td>${t.id}</td><td>${t.status}</td><td>${t.time === undefined ? '-' : t.time}</td><td>${t.memory === undefined ? '-' : t.memory}</td></tr>`);
@@ -46,7 +52,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
         <tr><th>提出日時</th><td>${format_datetime_detail(this.submission.created)}</td></tr>
         <tr><th>問題</th><td>${this.submission.problem_id}</td></tr>
         <tr><th>ユーザ</th><td>${this.submission.user_id}</td></tr>
-        <tr><th>言語</th><td>${this.submission.environment_id}</td></tr>
+        <tr><th>言語</th><td>${session.environment_mapping[this.submission.environment_id].name}</td></tr>
         <tr><th>結果</th><td>${this.submission.status}</td></tr>
       </table>
       <h3>テストケース</h3>
