@@ -1,5 +1,6 @@
-const _datetime_formatter = new Intl.DateTimeFormat('ja', {weekday: 'short'});
+import { JudgeStatus } from './api';
 
+const _datetime_formatter = new Intl.DateTimeFormat('ja', { weekday: 'short' });
 
 export function format_datetime(s: string | Date): string {
   if (!(s instanceof Date)) {
@@ -38,4 +39,10 @@ export function format_timespan(ts: number): string {
   }
   ret += h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
   return ret;
+}
+
+export function getSubmittionStatusClass(str: string): string {
+  if (str === JudgeStatus.Accepted) return 'AC';
+  if (str === JudgeStatus.Running || str === JudgeStatus.Waiting) return '';
+  return 'WA';
 }
