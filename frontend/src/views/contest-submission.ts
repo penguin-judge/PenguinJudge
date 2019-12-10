@@ -6,11 +6,19 @@ import { format_datetime_detail } from '../utils';
 
 @customElement('penguin-judge-contest-submission')
 export class PenguinJudgeContestSubmission extends LitElement {
+  contestEnvSubscription: Subscription | null = null;
   subscription: Subscription | null = null;
   submission: Submission | null = null;
+  languageNames: { [key: number]: string } = {};
 
   constructor() {
     super();
+    this.contestEnvSubscription = session.environment_subject.subscribe((s) => {
+      this.languageNames = s.reduce((obj: { [key: number]: string }, { id, name }) => {
+        obj[id] = name;
+        return obj;
+      }, {});
+    });
     this.subscription = session.contest_subject.subscribe((s) => {
       if (s) {
         const submission_id = location.hash.split('/').pop() || '';
@@ -24,6 +32,10 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this.contestEnvSubscription) {
+      this.contestEnvSubscription.unsubscribe();
+      this.contestEnvSubscription = null;
+    }
     if (this.subscription) {
       this.subscription.unsubscribe();
       this.subscription = null;
@@ -32,7 +44,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
   render() {
     if (!this.submission) {
-        return;
+      return;
     }
     return html`
       <h2>提出: #${this.submission.id}</h2>
@@ -43,7 +55,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
         <tbody><td>提出日時</td><td>${format_datetime_detail(this.submission.created)}</td></tbody>
         <tbody><td>問題</td><td>${this.submission.problem_id}</td></tbody>
         <tbody><td>ユーザ</td><td>${this.submission.user_id}</td></tbody>
-        <tbody><td>言語</td><td>${this.submission.environment_id}</td></tbody>
+        <tbody><td>言語</td><td>${this.languageNames[this.submission.environment_id]}</td></tbody>
         <tbody><td>結果</td><td>${this.submission.status}</td></tbody>
       </table>
     `;
