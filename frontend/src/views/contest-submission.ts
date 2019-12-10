@@ -1,25 +1,23 @@
 import { customElement, LitElement, html, css } from 'lit-element';
-import { Subscription } from 'rxjs';
+import { Subscription, zip } from 'rxjs';
 import { API, Submission } from '../api';
 import { session } from '../state';
 import { format_datetime_detail } from '../utils';
 
 @customElement('penguin-judge-contest-submission')
 export class PenguinJudgeContestSubmission extends LitElement {
-  contestEnvSubscription: Subscription | null = null;
   subscription: Subscription | null = null;
   submission: Submission | null = null;
-  languageNames: { [key: number]: string } = {};
 
   constructor() {
     super();
-    this.contestEnvSubscription = session.environment_subject.subscribe((s) => {
-      this.languageNames = s.reduce((obj: { [key: number]: string }, { id, name }) => {
-        obj[id] = name;
-        return obj;
-      }, {});
-    });
-    this.subscription = session.contest_subject.subscribe((s) => {
+    this.subscription = zip(
+      session.environment_mapping_subject,
+      session.contest_subject
+    ).subscribe(_ => {
+      // ２つのsubjectが解決できれば
+      // session.contest/session.environment_mapping経由でアクセスできる
+      const s = session.contest;
       if (s) {
         const submission_id = location.hash.split('/').pop() || '';
         API.get_submission(s.id, submission_id).then((submission) => {
@@ -32,10 +30,6 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this.contestEnvSubscription) {
-      this.contestEnvSubscription.unsubscribe();
-      this.contestEnvSubscription = null;
-    }
     if (this.subscription) {
       this.subscription.unsubscribe();
       this.subscription = null;
@@ -55,7 +49,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
         <tbody><td>提出日時</td><td>${format_datetime_detail(this.submission.created)}</td></tbody>
         <tbody><td>問題</td><td>${this.submission.problem_id}</td></tbody>
         <tbody><td>ユーザ</td><td>${this.submission.user_id}</td></tbody>
-        <tbody><td>言語</td><td>${this.languageNames[this.submission.environment_id]}</td></tbody>
+        <tbody><td>言語</td><td>${session.environment_mapping[this.submission.environment_id].name}</td></tbody>
         <tbody><td>結果</td><td>${this.submission.status}</td></tbody>
       </table>
     `;
