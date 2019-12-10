@@ -32,7 +32,6 @@ export class PenguinJudgeContestStandings extends LitElement {
             this.requestUpdate();
         }).catch(err => {
             console.log(err);
-            router.navigate('login');
         })
 
         this.problems = session!.contest!.problems!.map((problem) => problem.id);
