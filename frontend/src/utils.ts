@@ -42,7 +42,7 @@ export function format_timespan(ts: number): string {
 }
 
 export function getSubmittionStatusClass(str: string): string {
-  if (str == JudgeStatus.Accepted) return 'AC';
-  if (str == JudgeStatus.Running || str == JudgeStatus.Waiting) return '';
+  if (str === JudgeStatus.Accepted) return 'AC';
+  if (str === JudgeStatus.Running || str === JudgeStatus.Waiting) return '';
   return 'WA';
 }
