@@ -3,6 +3,13 @@ import { API, Submission, Standing, implementsAccepted } from '../api';
 import { router, session } from '../state';
 import './pagenation';
 
+const formatElapsedTime = (time: number) => {
+    time = Math.floor(time);
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${`${minutes}`.padStart(2, '0')}:${`${seconds}`.padStart(2, '0')}`;
+}
+
 @customElement('penguin-judge-contest-standings')
 export class PenguinJudgeContestStandings extends LitElement {
     standings: Standing[] = [];
@@ -69,7 +76,7 @@ export class PenguinJudgeContestStandings extends LitElement {
             <td class="user-id">${user.user_id}</td>
             <td class="score-time">
                 <div class="score">${user.score}</div>
-                <div class="time">${user.adjusted_time}</div>        
+                <div class="time">${formatElapsedTime(user.adjusted_time)}</div>        
             </td>
             ${
             this.problems.map(s => {
@@ -78,7 +85,7 @@ export class PenguinJudgeContestStandings extends LitElement {
                 if (NotSubmitYet) return html`<div>-</div>`;
 
                 const score = implementsAccepted(problem) ? `${problem.score}` : '';
-                const acceptedTime = implementsAccepted(problem) ? `${problem.time}` : '';
+                const acceptedTime = implementsAccepted(problem) ? `${formatElapsedTime(problem.time)}` : '';
                 const penalties = problem.penalties > 0 ? `(${problem.penalties})` : '';
                 return html`
                     <div>
