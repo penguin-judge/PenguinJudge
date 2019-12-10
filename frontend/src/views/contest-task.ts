@@ -28,13 +28,17 @@ export class AppContestTaskElement extends LitElement {
       problem_id: session.task_id,
       code: code,
       environment_id: parseInt(env),
-    }).catch(e => {
+    }).then(s => {
+      router.navigate(router.generate('contest-submission', {
+        id: session.contest!.id,
+        submission_id: s.id,
+      }));
+    }, e => {
       if (e.status === 401) {
         alert("ログインが必要です");
         router.navigate('login');
       }
     });
-    router.navigate(`/contests/${session.contest.id}/submissions`, true);
   }
 
   render() {
