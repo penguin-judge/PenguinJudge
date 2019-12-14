@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
+from os import sched_getaffinity
 from typing import Mapping
 
 from penguin_judge.models import configure, get_db_config
@@ -35,7 +36,9 @@ def start_worker(args: Namespace) -> None:
     config = _load_config(args, 'worker')
     configure(**config)
     configure_mq(**config)
-    max_processes = int(config.get('max_processes', '1'))
+    max_processes = int(config.get('max_processes', 0))
+    if max_processes <= 0:
+        max_processes = len(sched_getaffinity(0))
     worker_main(get_db_config(), max_processes)
 
 
