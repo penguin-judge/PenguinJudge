@@ -25,7 +25,7 @@ export interface Contest {
   description: string;
   start_time: string;
   end_time: string;
-  problems: Array<Problem> | null;
+  problems?: Array<Problem> | null;
 }
 
 export enum JudgeStatus {
@@ -185,5 +185,13 @@ export class API {
 
   static get_standings(contest_id: string): Promise<Array<Standing>> {
     return API._fetch(`/api/contests/${contest_id}/rankings`);
+  }
+
+  static create_contest(contest: Contest): Promise<Contest> {
+    return API._fetch('/api/contests', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(contest),
+    });
   }
 }

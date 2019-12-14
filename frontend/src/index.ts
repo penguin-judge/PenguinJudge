@@ -4,6 +4,7 @@ import './views/header';
 import './views/home';
 import './views/login';
 import './views/contests';
+import './views/contest-new';
 import './views/contest-frame';
 import './views/contest-top';
 import './views/contest-tasks';
@@ -30,6 +31,7 @@ export class AppRootElement extends LitElement {
 
     const routes: Array<[string, string, any, any]> = [
       ['contests', 'contests', html`<x-contests></x-contests>`, null],
+      ['new', 'contest-new', html`<x-contest-new></x-contest-new>`, null],
       ['contests/:id', 'contest-top', html`<x-contest-top></x-contest-top>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks', 'contest-tasks', html`<x-contest-tasks></x-contest-tasks>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks/:task_id', 'contest-task', html`<x-contest-task></x-contest-task>`, this._wait_fetch_contest_info],
