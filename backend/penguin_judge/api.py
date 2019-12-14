@@ -5,6 +5,7 @@ import pickle
 from hashlib import pbkdf2_hmac
 import os
 from itertools import groupby
+import secrets
 
 import pika  # type: ignore
 from flask import Flask, abort, request, Response, make_response
@@ -88,7 +89,7 @@ def _validate_token(
 @app.route('/auth', methods=['POST'])
 def authenticate() -> Response:
     _, body = _validate_request()
-    token = os.urandom(32)
+    token = secrets.token_bytes()
     expires_in = 365 * 24 * 60 * 60
     expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     with transaction() as s:
@@ -126,7 +127,7 @@ def get_user(user_id: str) -> Response:
 @app.route('/users', methods=['POST'])
 def create_user() -> Response:
     _, body = _validate_request()
-    salt = os.urandom(16)
+    salt = secrets.token_bytes()
     password = _kdf(body.password, salt)
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)

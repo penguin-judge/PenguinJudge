@@ -215,7 +215,7 @@ def configure(**kwargs: str) -> None:
             import random
             time.sleep(random.uniform(0.05, 0.1))
     Session.configure(bind=engine)  # type: ignore
-    _insert_debug_data()  # デバッグ用に初期データを投入
+    _insert_initial_data()
 
 
 def get_db_config() -> Dict[str, str]:
@@ -234,62 +234,11 @@ def transaction() -> Iterator[scoped_session]:
         Session.remove()
 
 
-def _insert_debug_data() -> None:
-    import datetime
-    from typing import Any
-    from zstandard import ZstdCompressor  # type: ignore
+def _insert_initial_data() -> None:
+    from secrets import token_bytes
     from penguin_judge.api import _kdf
-
-    def _add(o: Any) -> None:
-        try:
-            with transaction() as s:
-                if isinstance(o, Environment):
-                    if s.query(Environment).filter(
-                            Environment.name == o.name).first():
-                        return
-                s.add(o)
-        except Exception:
-            pass
-
-    ctx = ZstdCompressor()
-
-    salt = b'penguin'
-    passwd = _kdf('penguinpenguin', salt)
-    _add(User(
-        id='admin', name='Administrator', salt=salt, admin=True,
-        password=passwd))
-    _add(Environment(
-        name="C (gcc 8.2)",
-        compile_image_name="penguin_judge_c_compile:8.2",
-        test_image_name="penguin_judge_c_judge:8.2"))
-    _add(Environment(
-        name="Python3 (3.8.0)",
-        test_image_name="penguin_judge_python:3.8"))
-    _add(Contest(
-        id="abc000",
-        title="ABC000",
-        description="# Title\nMarkdown Test\n\n* Item0\n* Item1\n",
-        published=True,
-        start_time=datetime.datetime.now(tz=datetime.timezone.utc),
-        end_time=datetime.datetime.now(
-            tz=datetime.timezone.utc) + datetime.timedelta(days=365)))
-    _add(Problem(
-        contest_id="abc000",
-        id="A",
-        title="Increment",
-        description="# Increment\n\n標準入力から与えられた整数を1インクリメントした値を出力する",
-        time_limit=1,
-        memory_limit=1024,
-        score=100))
-    _add(TestCase(
-        contest_id="abc000",
-        problem_id="A",
-        id="1",
-        input=ctx.compress(b'1\n'),
-        output=ctx.compress(b'2\n')))
-    _add(TestCase(
-        contest_id="abc000",
-        problem_id="A",
-        id="100",
-        input=ctx.compress(b'100\n'),
-        output=ctx.compress(b'101\n')))
+    with transaction() as s:
+        if s.query(User).count() == 0:
+            salt = token_bytes()
+            s.add(User(id='admin', name='Administrator', salt=salt, admin=True,
+                       password=_kdf('penguinpenguin', salt)))
