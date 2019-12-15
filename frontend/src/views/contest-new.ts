@@ -2,28 +2,13 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
 import { router } from '../state';
-//import { format_datetime_detail } from '../utils';
+import { input_date_time_elements_to_iso8601 } from '../utils';
 
 @customElement('x-contest-new')
 export class AppContestNewElement extends LitElement {
   handleCreate() {
-    const tz = (() => {
-      const offset = -new Date().getTimezoneOffset();
-      if (offset === 0)
-        return 'Z';
-      const s = offset < 0 ? '-' : '+';
-      const h = Math.floor(Math.abs(offset) / 60).toString().padStart(2, '0');
-      const m = Math.floor(Math.abs(offset) % 60).toString().padStart(2, '0');
-      return s + h + ':' + m;
-    })();
-    const pad_sec = (x: string) => {
-      if (x.length == 5)
-        return x + ':00';
-      return x;
-    };
-
     const root = this.shadowRoot!;
-    const names = ['id', 'title', 'start-date', 'start-time', 'end-date', 'end-time'];
+    const names = ['id', 'title'];
     const values = names.map(name => {
       return (<HTMLInputElement>root.querySelector('input[name=' + name + ']')).value;
     });
@@ -32,11 +17,23 @@ export class AppContestNewElement extends LitElement {
       alert(names[empty_idx] + 'を入力してください');
       return;
     }
+    const start_time = input_date_time_elements_to_iso8601(
+      <HTMLInputElement>root.querySelector('input[name=start-date]'),
+      <HTMLInputElement>root.querySelector('input[name=start-time]'),
+    );
+    const end_time = input_date_time_elements_to_iso8601(
+      <HTMLInputElement>root.querySelector('input[name=end-date]'),
+      <HTMLInputElement>root.querySelector('input[name=end-time]'),
+    );
+    if (!start_time || !end_time) {
+      alert('開始日時または終了日時を入力してください');
+      return;
+    }
     const body = {
       'id': values[0],
       'title': values[1],
-      'start_time': values[2] + 'T' + pad_sec(values[3]) + tz,
-      'end_time': values[4] + 'T' + pad_sec(values[5]) + tz,
+      'start_time': start_time,
+      'end_time': end_time,
       'published': false,
       'description': '# ' + values[1] + '\n\n' + 'ここにコンテストの説明を書いてね',
     };

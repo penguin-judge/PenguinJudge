@@ -25,6 +25,7 @@ export interface Contest {
   description: string;
   start_time: string;
   end_time: string;
+  published: boolean;
   problems?: Array<Problem> | null;
 }
 
@@ -192,6 +193,14 @@ export class API {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(contest),
+    });
+  }
+
+  static update_contest(contest_id: string, patch: any): Promise<Contest> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id), {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch),
     });
   }
 }

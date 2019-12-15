@@ -56,6 +56,9 @@ class Session {
       }).catch(reject);
     });
   }
+  update_contest(contest: Contest) {
+    this._contest.next(contest);
+  }
   leave_contest() {
     if (this.contest)
       this._contest.next(null);
