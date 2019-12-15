@@ -98,7 +98,7 @@ export class AppContestTopElement extends LitElement {
   render() {
     const contest = session.contest;
     const user = session.current_user.value;
-    if (!contest || !user) {
+    if (!contest) {
       return html``
     }
 
@@ -131,7 +131,7 @@ ${contest.description}</wc-markdown>`;
       </div>`;
     } else {
       let admin_toolbar;
-      if (user.admin) {
+      if (user && user.admin) {
         const buttons = [html`<a href="javascript:" title="編集" @click="${this.handleEdit}"><x-icon>edit</x-icon></a>`];
         if (contest.published) {
           buttons.push(html`<a href="javascript:" title="非公開にする" @click="${this.handleUnpublish}"><x-icon>block</x-icon></a>`);

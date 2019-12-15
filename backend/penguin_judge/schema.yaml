@@ -364,11 +364,14 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Environment"
+    ContestProblemID:
+      type: string
+      pattern: '[^\~]\w*'
     ContestSummary:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         title:
           type: string
         start_time:
@@ -404,9 +407,9 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         contest_id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         title:
           type: string
         time_limit:

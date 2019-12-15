@@ -203,4 +203,24 @@ export class API {
       body: JSON.stringify(patch),
     });
   }
+
+  static create_problem(contest_id: string, problem: Problem): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(problem),
+    });
+  }
+
+  static update_problem(contest_id: string, problem_id: string, patch: any): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id), {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch),
+    });
+  }
+
+  static get_problem(contest_id: string, problem_id: string): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id));
+  }
 }

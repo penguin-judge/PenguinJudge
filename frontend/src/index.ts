@@ -9,6 +9,8 @@ import './views/contest-frame';
 import './views/contest-top';
 import './views/contest-tasks';
 import './views/contest-task';
+import './views/contest-task-new';
+import './views/contest-task-edit';
 import './views/contest-submission-results';
 import './views/contest-submission';
 import './views/contest-standings';
@@ -31,10 +33,12 @@ export class AppRootElement extends LitElement {
 
     const routes: Array<[string, string, any, any]> = [
       ['contests', 'contests', html`<x-contests></x-contests>`, null],
-      ['new', 'contest-new', html`<x-contest-new></x-contest-new>`, null],
+      ['contests/~new', 'contest-new', html`<x-contest-new></x-contest-new>`, null],
       ['contests/:id', 'contest-top', html`<x-contest-top></x-contest-top>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks', 'contest-tasks', html`<x-contest-tasks></x-contest-tasks>`, this._wait_fetch_contest_info],
+      ['contests/:id/tasks/~new', 'contest-task-new', html`<x-contest-task-new></x-contest-task-new>`, this._wait_fetch_contest_info],
       ['contests/:id/tasks/:task_id', 'contest-task', html`<x-contest-task></x-contest-task>`, this._wait_fetch_contest_info],
+      ['contests/:id/tasks/:task_id/edit', 'contest-task-edit', html`<x-contest-task-edit></x-contest-task-edit>`, this._wait_fetch_contest_info],
       ['contests/:id/submissions', 'contest-submissions', html`<penguin-judge-contest-submission-results />`, this._wait_fetch_contest_info],
       ['contests/:id/submissions/:submission_id', 'contest-submission', html`<penguin-judge-contest-submission />`, this._wait_fetch_contest_info],
       ['contests/:id/standings', 'contest-standings', html`<penguin-judge-contest-standings />`, this._wait_fetch_contest_info],
@@ -60,7 +64,7 @@ export class AppRootElement extends LitElement {
   }
 
   private _route_handler(path: string, body: any, params: { [key: string]: string }) {
-    if (path.startsWith('contests/')) {
+    if (path.startsWith('contests/') && params) {
       body = html`<penguin-judge-contest-frame>${body}</penguin-judge-contest-frame>`;
     } else {
       session.leave_contest();

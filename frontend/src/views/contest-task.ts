@@ -1,22 +1,29 @@
-import { Subscription } from 'rxjs';
+import { Subscription, merge } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
 import { router, session } from '../state';
 
 @customElement('x-contest-task')
 export class AppContestTaskElement extends LitElement {
-  subscriptions: Array<Subscription> = [];
+  subscription: Subscription | null = null;
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscriptions.push(session.environment_subject.subscribe(_ => this.requestUpdate()));
-    this.subscriptions.push(session.contest_subject.subscribe(_ => this.requestUpdate()));
+    this.subscription = merge(
+      session.environment_subject,
+      session.contest_subject,
+      session.current_user,
+    ).subscribe(_ => {
+      this.requestUpdate();
+    });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.subscriptions.forEach((s) => s.unsubscribe());
-    this.subscriptions.splice(0);
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = null;
+    }
   }
 
   post() {
@@ -51,6 +58,17 @@ export class AppContestTaskElement extends LitElement {
     if (!task)
       return html`??`;
 
+    let admin_links;
+    if (session.current_user.value && session.current_user.value.admin) {
+      admin_links = html`
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('contest-task-edit', {id: session.contest.id, task_id: task.id})}" title="問題を追加">
+            <x-icon>edit</x-icon>
+          </a>
+        </span>
+      `;
+    }
+
     const dom_langs = session.environments.map((e) => {
       return html`<option value="${e.id}">${e.name}</option>`;
     });
@@ -58,7 +76,7 @@ export class AppContestTaskElement extends LitElement {
     // <wc-markdown>の後に改行が必要
     return html`
       <div id="problem">
-        <div id="title">${task.title}</div>
+        <div id="title">${task.title}${admin_links}</div>
         <wc-markdown>
 ${task.description}
 </wc-markdown>

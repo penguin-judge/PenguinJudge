@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs';
+import { Subscription, zip } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { router, session } from '../state';
 
@@ -8,7 +8,10 @@ export class AppContestTasksElement extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = session.contest_subject.subscribe(_ => {
+    this.subscription = zip(
+      session.contest_subject,
+      session.current_user,
+    ).subscribe(_ => {
       this.requestUpdate();
     });
   }
@@ -22,11 +25,14 @@ export class AppContestTasksElement extends LitElement {
   }
 
   render() {
+    const is_admin = (session.current_user.value && session.current_user.value.admin);
+    const contest = session.contest!;
+    if (!contest)
+      return html``;  // 404?
     const dom_problems: Array<Object> = [];
-    if (session.contest && session.contest.problems) {
-      const contest_id = session.contest.id;
-      session.contest.problems.forEach((problem) => {
-        const url = router.generate('contest-task', { id: contest_id, task_id: problem.id });
+    if (contest.problems) {
+      contest.problems.forEach((problem) => {
+        const url = router.generate('contest-task', { id: contest.id, task_id: problem.id });
         dom_problems.push(html`<tr>
                           <td><a is="router-link" href="${url}">${problem.id}</a></td>
                           <td><a is="router-link" href="${url}">${problem.title}</a></td>
@@ -36,9 +42,19 @@ export class AppContestTasksElement extends LitElement {
                           </tr>`)
       });
     }
+    let admin_links;
+    if (is_admin) {
+      admin_links = html`
+        <span tabindex="0">
+          <a is="router-link" href="${router.generate('contest-task-new', {id: contest.id})}" title="問題を追加">
+            <x-icon>add</x-icon>
+          </a>
+        </span>
+      `;
+    }
     return html`
       <table>
-        <thead><tr><th></th><th>問題名</th><th>実行時間制限</th><th>メモリ制限</th><th>配点</th></tr></thead>
+        <thead><tr><th>${admin_links}</th><th>問題名</th><th>実行時間制限</th><th>メモリ制限</th><th>配点</th></tr></thead>
         <tbody>${dom_problems}</tbody>
       </table>
     `
