@@ -119,7 +119,8 @@ class TestAPI(unittest.TestCase):
         envs = app.get('/environments').json
         self.assertEqual(envs, [])
 
-        env = dict(name='Python 3.7', test_image_name='docker-image')
+        env = dict(name='Python 3.7', test_image_name='docker-image',
+                   published=True)
         with transaction() as s:
             s.add(Environment(**env))
         envs = app.get('/environments').json

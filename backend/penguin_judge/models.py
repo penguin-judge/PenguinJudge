@@ -76,9 +76,13 @@ class Token(Base, _Exportable):
 
 class Environment(Base, _Exportable):
     __tablename__ = 'environments'
-    __summary_keys__ = ['id', 'name']
+    __summary_keys__ = ['id', 'name', 'active']
+    __updatable_keys__ = [
+        'name', 'active', 'published', 'compile_image_name', 'test_image_name']
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    active = Column(Boolean, server_default='True')
+    published = Column(Boolean, server_default='False')
     compile_image_name = Column(String, nullable=True)
     test_image_name = Column(String)
 

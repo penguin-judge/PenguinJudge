@@ -84,6 +84,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Environments"
+    post:
+      operationId: registerEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvironmentCreation"
+      responses:
+        '201':
+          description: registered environment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Environment"
+  /environments/{environment_id}:
+    patch:
+      operationId: updateEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/EnvironmentID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Environment"
+      responses:
+        '200':
+          description: updated environment info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Environment"
+        '404':
+          description: not found
+    delete:
+      operationId: deleteEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/EnvironmentID"
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: not found
   /contests:
     get:
       operationId: listContests
@@ -445,6 +499,24 @@ components:
           type: integer
         name:
           type: string
+        active:
+          type: boolean
+          description: 新規に投稿可能な言語かどうか
+        published:
+          type: boolean
+          description: 管理者のみ参照可能
+        compile_image_name:
+          type: string
+          description: 管理者のみ参照可能
+        test_image_name:
+          type: string
+          description: 管理者のみ参照可能
+    EnvironmentCreation:
+      allOf:
+        - $ref: "#/components/schemas/Environment"
+        - required:
+            - name
+            - test_image_name
     Environments:
       type: array
       items:
@@ -662,6 +734,12 @@ components:
       required: true
       schema:
         type: string
+    EnvironmentID:
+      name: environment_id
+      in: path
+      required: true
+      schema:
+        type: integer
     PageParams:
       name: page
       in: query
