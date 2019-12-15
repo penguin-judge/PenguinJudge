@@ -56,6 +56,9 @@ export class AppHomeElement extends LitElement {
             <button @click="${this.post}">ログイン</button>
           </form>
         </div>
+        <div>
+          登録がまだの場合は<a is="router-link" href="${router.generate('register')}">こちら</a>
+        </div>
       </x-panel>
     `
   }

@@ -60,6 +60,7 @@ export class RegisterElement extends LitElement {
             <br>
             <button @click="${this.post}">送信</button>
           </div>
+          <div>登録済みの場合は<a is="router-link" href="${router.generate('login')}">こちら</a></div>
         </form>
       </x-panel>
     `
