@@ -223,4 +223,16 @@ export class API {
   static get_problem(contest_id: string, problem_id: string): Promise<Problem> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id));
   }
+
+  static list_test_dataset(contest_id: string, problem_id: string): Promise<Array<string>> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/tests');
+  }
+
+  static upload_test_dataset(contest_id: string, problem_id: string, file: File): Promise<Array<string>> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/tests', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/zip'},
+      body: file,
+    });
+  }
 }

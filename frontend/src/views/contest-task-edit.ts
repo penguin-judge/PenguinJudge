@@ -7,6 +7,7 @@ import { router, session } from '../state';
 export class AppContestTaskEditElement extends LitElement {
   previewSubscription : Subscription | null = null;
   problem: Problem | null = null;
+  test_dataset: Array<string> = [];
 
   constructor() {
     super();
@@ -20,6 +21,10 @@ export class AppContestTaskEditElement extends LitElement {
         (<HTMLDivElement>root.querySelector('#title'))!.textContent = (<HTMLInputElement>root.querySelector('input[name=title]')).value;
         (<any>root.querySelector('wc-markdown')).value = (<HTMLTextAreaElement>root.querySelector('textarea')).value;
       });
+    });
+    API.list_test_dataset(session.contest.id, session.task_id).then(test_dataset => {
+      this.test_dataset = test_dataset;
+      this.requestUpdate();
     });
   }
 
@@ -77,6 +82,25 @@ export class AppContestTaskEditElement extends LitElement {
     }));
   }
 
+  handleReplace(e: Event) {
+    e.preventDefault();
+    const tempInput = <HTMLInputElement>document.createElement('input');
+    tempInput.setAttribute('type', 'file');
+    tempInput.setAttribute('accept', 'application/zip,.zip');
+    tempInput.addEventListener('change', _ => {
+      if (!tempInput.files || tempInput.files.length == 0)
+        return;
+      API.upload_test_dataset(session.contest!.id, this.problem!.id, tempInput.files[0]).then(lst => {
+        this.test_dataset = lst;
+        this.requestUpdate();
+      }, e => {
+        alert('error');
+        console.error(e);
+      });
+    });
+    tempInput.click();
+  }
+
   render() {
     if (!this.problem) {
       return html``;
@@ -86,6 +110,12 @@ export class AppContestTaskEditElement extends LitElement {
     const md_preview = html`<div id="preview-pane">
       <div id="title">${this.problem.title}</div><wc-markdown>
 ${this.problem.description}</wc-markdown></div>`;
+
+    const href_base = '/api/contests/' +
+      encodeURIComponent(session.contest!.id) + '/problems/' + encodeURIComponent(this.problem.id) + '/tests/'
+    const test_dataset = this.test_dataset.map(name => {
+      return html`<tr><td>${name}</td><td><a href="${href_base + name + '/in'}">Input</a></td><td><a href="${href_base + name + '/out'}">Output</a></td></tr>`;
+    });
 
     return html`<div id="edit-container">
       ${md_preview}
@@ -111,8 +141,12 @@ ${this.problem.description}</wc-markdown></div>`;
           <input type="number" name="memory-limit" value="${this.problem.memory_limit}">
         </div>
         <textarea>${this.problem.description}</textarea>
+        <div>
+          <div id="test-io"><span>テスト用入出力セット</span><a href="#" @click="${this.handleReplace}">差し替え</a></div>
+          <div id="test-io-list"><table><tbody>${test_dataset}</tbody></table></div>
+        </div>
       </div>
-      </div>`;
+    </div>`;
   }
 
   static get styles() {
@@ -131,12 +165,36 @@ ${this.problem.description}</wc-markdown></div>`;
       #edit-pane textarea {
         flex-grow: 1;
       }
-      #title {
+      #title, #test-io {
         font-size: 120%;
         font-weight: bold;
         border-bottom: 1px solid #ddd;
         margin-right: 1em;
         margin-bottom: 1em;
+      }
+      #test-io {
+        font-size: 100%;
+        margin-top: 1em;
+        display: flex;
+      }
+      #test-io > span:first-child {
+        flex-grow: 1;
+      }
+      #test-io-list {
+        max-height: 10em;
+        overflow: auto;
+      }
+      #test-io-list table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      #test-io-list table td {
+        border: 1px solid #ccc;
+        padding: 0.5ex;
+      }
+      #test-io-list table td:first-child {
+        font-weight: bold;
+        width: 100%;
       }
     `;
   }
