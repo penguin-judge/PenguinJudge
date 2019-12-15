@@ -39,6 +39,17 @@ class Session {
   get environments() { return this._envs.value; }
   get environment_mapping_subject() { return this._env_map; }
   get environment_mapping() { return this._env_map.value; }
+  update_environments() {
+    API.list_environments().then((envs) => {
+      if (envs) {
+        this._envs.next(envs);
+        this._env_map.next(envs.reduce((obj: { [key: number]: Environment }, e) => {
+          obj[e.id!] = e;
+          return obj;
+        }, {}));
+      }
+    });
+  }
 
   // Contest
   private _contest = new BehaviorSubject<Contest | null>(null);
@@ -71,15 +82,7 @@ class Session {
 
   // Init
   init() {
-    API.list_environments().then((envs) => {
-      if (envs) {
-        this._envs.next(envs);
-        this._env_map.next(envs.reduce((obj: { [key: number]: Environment }, e) => {
-          obj[e.id] = e;
-          return obj;
-        }, {}));
-      }
-    });
+    this.update_environments();
     this.update_current_user();
   }
 }

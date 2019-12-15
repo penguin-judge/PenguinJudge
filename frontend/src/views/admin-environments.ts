@@ -33,7 +33,7 @@ export class AppEnvironmentsElement extends LitElement {
       active: (<HTMLInputElement>root.getElementById('active')).checked,
     };
     API.register_environment(body).then(_ => {
-      session.update_environment();
+      session.update_environments();
     }, e => {
       alert('error');
       console.error(e);
@@ -52,7 +52,7 @@ export class AppEnvironmentsElement extends LitElement {
       const e = session.environment_mapping[env_id];
       if (confirm('"' + e.name + '"を削除しても良いですか？')) {
         API.delete_environment(env_id).catch(() => {}).finally(() => {
-          session.update_environment();
+          session.update_environments();
         });
       }
     };
@@ -67,11 +67,13 @@ export class AppEnvironmentsElement extends LitElement {
       name: (<HTMLInputElement>root.getElementById('name')).value,
       compile_image_name: (<HTMLInputElement>root.getElementById('compile_image_name')).value,
       test_image_name: (<HTMLInputElement>root.getElementById('test_image_name')).value,
+      published: (<HTMLInputElement>root.getElementById('published')).checked,
       active: (<HTMLInputElement>root.getElementById('active')).checked,
     };
     if (body.name === e.name) delete body.name;
     if (body.compile_image_name === e.compile_image_name) delete body.compile_image_name;
     if (body.test_image_name === e.test_image_name) delete body.test_image_name;
+    if (body.published === e.published) delete body.published;
     if (body.active === e.active) delete body.active;
     if (Object.keys(body).length === 0) {
       alert('差分がないので更新をスキップします');
@@ -79,7 +81,7 @@ export class AppEnvironmentsElement extends LitElement {
       return;
     }
     API.update_environment(this.editing, body).then(_ => {
-      session.update_environment();
+      session.update_environments();
     }, e => {
       alert('error');
       console.error(e);
@@ -106,7 +108,8 @@ export class AppEnvironmentsElement extends LitElement {
         <label for="name">名前:</label><input type="text" id="name" value="${e.name}">
         <label for="compile_image_name">コンパイル用イメージ名:</label><input type="text" id="compile_image_name" value="${e.compile_image_name}">
         <label for="test_image_name">実行用イメージ名:</label><input type="text" id="test_image_name" value="${e.test_image_name}">
-        <label for="active">ユーザに公開</label><div><input type="checkbox" id="active" .checked="${e.active}"></div>
+        <label for="published">ユーザに公開</label><div><input type="checkbox" id="published" .checked="${e.published}"></div>
+        <label for="active">ユーザが新規に利用可能</label><div><input type="checkbox" id="active" .checked="${e.active}"></div>
         <div></div><div style="text-align:right">
           <button @click="${this.handleUpdate}">更新</button>
         <button @click="${this.handleCancel}">キャンセル</button>
@@ -118,17 +121,18 @@ export class AppEnvironmentsElement extends LitElement {
         <label for="name">名前:</label><input type="text" id="name">
         <label for="compile_image_name">コンパイル用イメージ名:</label><input type="text" id="compile_image_name">
         <label for="test_image_name">実行用イメージ名:</label><input type="text" id="test_image_name">
-        <label for="active">ユーザに公開</label><div><input type="checkbox" id="active"></div>
+        <label for="published">ユーザに公開</label><div><input type="checkbox" id="published"></div>
+        <label for="active">ユーザが新規に利用可能</label><div><input type="checkbox" id="active"></div>
         <div></div><div style="text-align:right"><button @click="${this.handleRegister}">新規登録</button></div>
       </div>`;
     }
 
     const done = html`<x-icon>done</x-icon>`;
-    const rows = envs.map(e => html`<tr><td><button @click="${this.editButtonHandler(e.id!)}"><x-icon>edit</x-icon></button><button @click="${this.deleteButtonHandler(e.id!)}"><x-icon>delete</x-icon></button></td><td>${e.id}</td><td>${e.active ? done : undefined}</td><td>${e.name}</td><td>${e.compile_image_name}</td><td>${e.test_image_name}</td></tr>`);
+    const rows = envs.map(e => html`<tr><td><button @click="${this.editButtonHandler(e.id!)}"><x-icon>edit</x-icon></button><button @click="${this.deleteButtonHandler(e.id!)}"><x-icon>delete</x-icon></button></td><td>${e.id}</td><td>${e.published ? done : undefined}</td><td>${e.active ? done : undefined}</td><td>${e.name}</td><td>${e.compile_image_name}</td><td>${e.test_image_name}</td></tr>`);
     return html`<h1>実行環境の設定</h1>
       <div id="container">
         <table>
-          <thead><tr><th></th><th>#</th><th>公開</th><th>名前</th><th>コンパイル用イメージ名</th><th>実行用イメージ名</th></tr></thead>
+          <thead><tr><th></th><th>#</th><th>公開</th><th>利用可</th><th>名前</th><th>コンパイル用イメージ名</th><th>実行用イメージ名</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
         <div>${right_pane}</div>

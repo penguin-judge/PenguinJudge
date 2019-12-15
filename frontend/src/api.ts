@@ -6,8 +6,12 @@ export interface User {
 }
 
 export interface Environment {
-  id: number;
+  id?: number;
   name: string;
+  active: boolean;
+  published?: boolean;
+  compile_image_name?: string;
+  test_image_name?: string;
 }
 
 export interface Problem {
@@ -148,6 +152,28 @@ export class API {
 
   static list_environments(): Promise<Array<Environment>> {
     return API._fetch('/api/environments');
+  }
+
+  static register_environment(e: Environment): Promise<Environment> {
+    return API._fetch('/api/environments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(e)
+    });
+  }
+
+  static update_environment(env_id: number, e: any): Promise<Environment> {
+    return API._fetch('/api/environments/' + encodeURIComponent(env_id.toString()), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(e)
+    });
+  }
+
+  static delete_environment(env_id: number): Promise<any> {
+    return API._fetch('/api/environments/' + encodeURIComponent(env_id.toString()), {
+      method: 'DELETE'
+    });
   }
 
   static submit(submission: PartialSubmission): Promise<Submission> {
