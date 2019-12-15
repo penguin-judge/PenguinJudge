@@ -231,6 +231,10 @@ paths:
     post:
       operationId: createProblem
       description: コンテストの問題を作成する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
       requestBody:
@@ -264,6 +268,10 @@ paths:
     patch:
       operationId: updateProblem
       description: コンテストの問題を修正する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
@@ -284,12 +292,89 @@ paths:
     delete:
       operationId: deleteProblem
       description: コンテストの問題を削除する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
       responses:
         '204':
           description: 削除成功
+  /contests/{contest_id}/problems/{problem_id}/tests:
+    get:
+      operationId: listTests
+      description: 問題のテスト用入出力データセットの一覧を返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    put:
+      operationId: replaceTestDataset
+      description: 問題のテスト用入出力データセットを置き換えます。zipで圧縮し、ファイル名はテスト名、拡張子.inが入力、.outが出力のデータとなるようにします
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /contests/{contest_id}/problems/{problem_id}/tests/{test_id}/in:
+    get:
+      operationId: getTestData
+      description: 問題のテスト用入力データを返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+        - $ref: "#/components/parameters/TestID"
+      responses:
+        '200':
+          description: データ
+          content:
+            '*/*': {}
+  /contests/{contest_id}/problems/{problem_id}/tests/{test_id}/out:
+    get:
+      operationId: getTestData
+      description: 問題のテスト用出力データを返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+        - $ref: "#/components/parameters/TestID"
+      responses:
+        '200':
+          description: データ
+          content:
+            '*/*': {}
   /contests/{contest_id}/rankings:
     get:
       operationId: listRankings
@@ -571,6 +656,12 @@ components:
       required: true
       schema:
         type: integer
+    TestID:
+      name: test_id
+      in: path
+      required: true
+      schema:
+        type: string
     PageParams:
       name: page
       in: query

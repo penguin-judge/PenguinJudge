@@ -8,7 +8,7 @@ from itertools import groupby
 import secrets
 
 import pika  # type: ignore
-from flask import Flask, abort, request, Response, make_response
+from flask import Flask, abort, request, Response, make_response, send_file
 from zstandard import ZstdCompressor, ZstdDecompressor  # type: ignore
 from openapi_core import create_spec  # type: ignore
 from openapi_core.shortcuts import RequestValidator  # type: ignore
@@ -513,3 +513,98 @@ def list_rankings(contest_id: str) -> Response:
     for i, r in enumerate(results):
         r['ranking'] = i + 1
     return jsonify(results)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/tests')
+def list_tests(contest_id: str, problem_id: str) -> Response:
+    ret = []
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        q = s.query(TestCase.id).filter(
+            TestCase.contest_id == contest_id,
+            TestCase.problem_id == problem_id
+        )
+        for (test_case_id,) in q:
+            ret.append(test_case_id)
+    return jsonify(ret)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/tests',
+           methods=['PUT'])
+def upload_test_dataset(contest_id: str, problem_id: str) -> Response:
+    from collections import Counter
+    import shutil
+    from zipfile import ZipFile
+    from contextlib import ExitStack
+    from tempfile import TemporaryFile
+
+    ret = []
+    with ExitStack() as stack:
+        s = stack.enter_context(transaction())
+        _ = _validate_token(s, admin_required=True)
+
+        s.query(TestCase).filter(
+            TestCase.contest_id == contest_id,
+            TestCase.problem_id == problem_id
+        ).delete(synchronize_session=False)
+
+        f = stack.enter_context(TemporaryFile())
+        shutil.copyfileobj(request.stream, f)
+        f.seek(0)
+        z = stack.enter_context(ZipFile(f))
+        counts = Counter()  # type: ignore
+        path_mapping = {}
+        for x in z.namelist():
+            if not (x.endswith('.in') or x.endswith('.out')):
+                continue
+            name = os.path.basename(x)
+            counts.update([os.path.splitext(name)[0]])
+            path_mapping[name] = x
+
+        for k, v in counts.items():
+            if v != 2:
+                continue
+            try:
+                with z.open(path_mapping[k + '.in']) as zi:
+                    in_data = zi.read()
+                with z.open(path_mapping[k + '.out']) as zo:
+                    out_data = zo.read()
+            except Exception:
+                continue
+            s.add(TestCase(
+                contest_id=contest_id,
+                problem_id=problem_id,
+                id=k,
+                input=in_data,
+                output=out_data))
+            ret.append(k)
+    return jsonify(ret)
+
+
+def _get_test_data(contest_id: str, problem_id: str, test_id: str,
+                   is_input: bool) -> Response:
+    from io import BytesIO
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        tc = s.query(TestCase).filter(
+            TestCase.contest_id == contest_id,
+            TestCase.problem_id == problem_id,
+            TestCase.id == test_id).first()
+        if not tc:
+            abort(404)
+        f = BytesIO(tc.input if is_input else tc.output)
+        return send_file(
+            f, as_attachment=True, attachment_filename='{}.{}'.format(
+                test_id, 'in' if is_input else 'out'))
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/tests/<test_id>/in')
+def get_test_input_data(contest_id: str, problem_id: str,
+                        test_id: str) -> Response:
+    return _get_test_data(contest_id, problem_id, test_id, True)
+
+
+@app.route('/contests/<contest_id>/problems/<problem_id>/tests/<test_id>/out')
+def get_test_output_data(contest_id: str, problem_id: str,
+                         test_id: str) -> Response:
+    return _get_test_data(contest_id, problem_id, test_id, False)
