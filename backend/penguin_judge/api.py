@@ -282,7 +282,7 @@ def update_problem(contest_id: str, problem_id: str) -> Response:
                                           Problem.id == problem_id).first()
         if not problem:
             abort(404)
-        for key in Contest.__updatable_keys__:
+        for key in Problem.__updatable_keys__:
             if not hasattr(body, key):
                 continue
             setattr(problem, key, getattr(body, key))
