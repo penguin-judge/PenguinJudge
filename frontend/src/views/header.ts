@@ -29,7 +29,10 @@ export class PenguinJudgeHeaderElement extends LitElement {
         <span>${session.current_user.value.name}</span>
         <span class="dropdown-caret"></span>`;
     } else {
-      user_area = html`<a is="router-link" href="${router.generate('login')}">ログイン</a>`
+      user_area = html`
+        <a is="router-link" href="${router.generate('register')}">登録</a>
+        <a is="router-link" href="${router.generate('login')}">ログイン</a>
+      `
     }
     return html`
       <span id="icon-area">

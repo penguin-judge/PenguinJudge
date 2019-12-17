@@ -183,6 +183,19 @@ export class API {
     });
   }
 
+  static register(id: string, name: string, password: string): Promise<User> {
+    return API._fetch('/api/users', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        name,
+        password,
+      })
+    });
+  }
+
   static get_standings(contest_id: string): Promise<Array<Standing>> {
     return API._fetch(`/api/contests/${contest_id}/rankings`);
   }

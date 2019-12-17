@@ -3,6 +3,7 @@ import '@vanillawc/wc-markdown';
 import './views/header';
 import './views/home';
 import './views/login';
+import './views/register';
 import './views/contests';
 import './views/contest-frame';
 import './views/contest-top';
@@ -37,6 +38,7 @@ export class AppRootElement extends LitElement {
       ['contests/:id/submissions/:submission_id', 'contest-submission', html`<penguin-judge-contest-submission />`, this._wait_fetch_contest_info],
       ['contests/:id/standings', 'contest-standings', html`<penguin-judge-contest-standings />`, this._wait_fetch_contest_info],
       ['login', 'login', html`<x-login></x-login>`, null],
+      ['register', 'register', html`<x-register></x-register>`, null],
       ['', 'home', html`<x-home></x-home>`, null],
     ];
     routes.forEach((v) => {
