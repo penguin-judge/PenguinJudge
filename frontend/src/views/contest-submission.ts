@@ -3,6 +3,8 @@ import { Subscription, zip } from 'rxjs';
 import { API, Submission } from '../api';
 import { session } from '../state';
 import { format_datetime_detail, getSubmittionStatusClass } from '../utils';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+const hljs = require('highlight.js');
 
 @customElement('penguin-judge-contest-submission')
 export class PenguinJudgeContestSubmission extends LitElement {
@@ -44,9 +46,10 @@ export class PenguinJudgeContestSubmission extends LitElement {
       t => html`<tr><td>${t.id}</td><td class="${getSubmittionStatusClass(t.status)}">${t.status}</td><td>${t.time === undefined ? '-' : t.time}</td><td>${t.memory === undefined ? '-' : t.memory}</td></tr>`);
 
     return html`
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css" />
       <h2>提出: #${this.submission.id}</h2>
       <h3>ソースコード</h3>
-      <pre>${this.submission.code}</pre>
+      <pre><code>${unsafeHTML(hljs.highlightAuto(this.submission.code).value)}</code></pre>
       <h3>提出情報</h3>
       <table>
         <tr><th>提出日時</th><td>${format_datetime_detail(this.submission.created)}</td></tr>
