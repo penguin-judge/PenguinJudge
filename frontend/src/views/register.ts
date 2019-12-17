@@ -1,4 +1,3 @@
-import { from, Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { MainAreaPaddingPx } from './consts';
 import { API } from '../api';
@@ -6,39 +5,34 @@ import { router, session } from '../state';
 
 @customElement('x-register')
 export class RegisterElement extends LitElement {
-  subscription: Subscription | null = null;
   errorMsg: String | null = null;
+  isWaitingResponce: boolean = false;
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
   }
 
-  post(e: Event) {
+  async post(e: Event) {
     if (!this.shadowRoot) return;
     const userid = (<HTMLInputElement>this.shadowRoot.getElementById("userid")).value;
     const username = (<HTMLInputElement>this.shadowRoot.getElementById("username")).value;
     const password = (<HTMLInputElement>this.shadowRoot.getElementById("password")).value;
 
-    this.subscription = from(API.register(userid, username, password)).subscribe(
-      _ => {
-        session.update_current_user();
-      },
-      err => {
-        if (err.status === 409) this.errorMsg = '既に存在するユーザIDです';
-        if (err.status >= 500 && err.status <= 503) this.errorMsg = 'サーバ側のエラーです';
-        this.requestUpdate();
-      },
-      () => {
-        // redirect
-        router.navigate('login');
-      }
-    );
-
     e.preventDefault();
+    this.isWaitingResponce = true;
+    this.requestUpdate();
+    try {
+      await API.register(userid, username, password);
+      session.update_current_user();
+      router.navigate('login');
+    } catch (err) {
+      if (err.status === 409) this.errorMsg = '既に存在するユーザIDです';
+      else if (err.status >= 500 && err.status <= 503) this.errorMsg = 'サーバ側のエラーです';
+      else this.errorMsg = err.status;
+    } finally {
+      this.isWaitingResponce = false;
+      this.requestUpdate();
+    }
   }
 
   render() {
@@ -58,7 +52,7 @@ export class RegisterElement extends LitElement {
             <br>
             <label>パスワード:&nbsp;<input id="password" type="password" minlength="8"></label>
             <br>
-            <button @click="${this.post}">送信</button>
+            <button @click="${this.post}" ?disabled="${this.isWaitingResponce}">登録</button>
           </div>
           <div>登録済みの場合は<a is="router-link" href="${router.generate('login')}">こちら</a></div>
         </form>
