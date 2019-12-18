@@ -591,16 +591,10 @@ def upload_test_dataset(contest_id: str, problem_id: str) -> Response:
     from contextlib import ExitStack
     from tempfile import TemporaryFile
 
+    zctx = ZstdCompressor()
+    test_cases = []
     ret = []
     with ExitStack() as stack:
-        s = stack.enter_context(transaction())
-        _ = _validate_token(s, admin_required=True)
-
-        s.query(TestCase).filter(
-            TestCase.contest_id == contest_id,
-            TestCase.problem_id == problem_id
-        ).delete(synchronize_session=False)
-
         f = stack.enter_context(TemporaryFile())
         shutil.copyfileobj(request.stream, f)
         f.seek(0)
@@ -619,18 +613,28 @@ def upload_test_dataset(contest_id: str, problem_id: str) -> Response:
                 continue
             try:
                 with z.open(path_mapping[k + '.in']) as zi:
-                    in_data = zi.read()
+                    in_data = zctx.compress(zi.read())
                 with z.open(path_mapping[k + '.out']) as zo:
-                    out_data = zo.read()
+                    out_data = zctx.compress(zo.read())
             except Exception:
                 continue
-            s.add(TestCase(
+            test_cases.append(dict(
                 contest_id=contest_id,
                 problem_id=problem_id,
                 id=k,
                 input=in_data,
                 output=out_data))
             ret.append(k)
+
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        s.query(TestCase).filter(
+            TestCase.contest_id == contest_id,
+            TestCase.problem_id == problem_id
+        ).delete()
+        for kwargs in test_cases:
+            s.add(TestCase(**kwargs))
+
     return jsonify(ret)
 
 
