@@ -40,7 +40,10 @@ export class PenguinJudgeHeaderElement extends LitElement {
         `;
       }
     } else {
-      user_area = html`<a is="router-link" href="${router.generate('login')}">ログイン</a>`
+      user_area = html`
+        <a is="router-link" href="${router.generate('register')}">登録</a>
+        <a is="router-link" href="${router.generate('login')}">ログイン</a>
+      `
     }
     return html`
       <span id="icon-area">
