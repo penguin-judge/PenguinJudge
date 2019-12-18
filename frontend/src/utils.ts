@@ -1,3 +1,4 @@
+import { html, TemplateResult } from 'lit-element';
 import { JudgeStatus } from './api';
 
 const _datetime_formatter = new Intl.DateTimeFormat('ja', { weekday: 'short' });
@@ -41,12 +42,6 @@ export function format_timespan(ts: number): string {
   return ret;
 }
 
-export function getSubmittionStatusClass(str: string): string {
-  if (str === JudgeStatus.Accepted) return 'AC';
-  if (str === JudgeStatus.Running || str === JudgeStatus.Waiting) return '';
-  return 'WA';
-}
-
 export function split_datetime(
   s: string,
 ): Array<string> {
@@ -80,4 +75,10 @@ export function input_date_time_elements_to_iso8601(
   if (!dateElement.value || !timeElement.value)
     return null;
   return dateElement.value + 'T' + pad_sec(timeElement.value) + tz;
+}
+
+export function getSubmittionStatusMark(str: string): TemplateResult {
+  if (str === JudgeStatus.Accepted) return html`<span class="AC"><x-icon>check_circle</x-icon></span>`;
+  if (str === JudgeStatus.Running || str === JudgeStatus.Waiting) return html``;
+  return html`<span class="WA"><x-icon>error</x-icon></span>`;
 }
