@@ -3,4 +3,8 @@ sqlalchemy.url = postgresql://user:password@localhost:5432/penguin_judge
 mq.url = amqp://guest:guest@localhost:5672/penguin_judge
 
 [worker]
-max_processes = 1
+# max_processes = 2
+
+[gunicorn]
+# workers = 4
+# worker_class = gevent
