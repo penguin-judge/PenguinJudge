@@ -1,4 +1,4 @@
-import { BehaviorSubject, Subscription, merge, interval } from 'rxjs';
+import { Subscription, merge, interval } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
 import { session } from '../state';
@@ -11,7 +11,6 @@ import {
 @customElement('x-contest-top')
 export class AppContestTopElement extends LitElement {
   subscription: Subscription | null = null;
-  notify = new BehaviorSubject<any>(null);
   previewSubscription : Subscription | null = null;
   editing = false;
 
@@ -20,7 +19,6 @@ export class AppContestTopElement extends LitElement {
     this.subscription = merge(
       session.current_user,
       session.contest_subject,
-      this.notify,
     ).subscribe(_ => {
       this.requestUpdate();
     });
@@ -53,7 +51,9 @@ export class AppContestTopElement extends LitElement {
 
   handleEdit() {
     this.editing = true;
-    this.notify.next(null);
+    this.requestUpdate();
+
+    // Markdownプレビューのために500ms間隔で編集内容をwc-markdownエレメントに反映させる
     this.previewSubscription = interval(500).subscribe(_ => {
       if (!this.editing) return;
       const root = this.shadowRoot!;
@@ -92,7 +92,7 @@ export class AppContestTopElement extends LitElement {
   handleCancel() {
     this._unsubscribePreview();
     this.editing = false;
-    this.notify.next(null);
+    this.requestUpdate();
   }
 
   render() {
