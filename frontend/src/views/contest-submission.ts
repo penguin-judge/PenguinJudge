@@ -2,7 +2,9 @@ import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription, zip } from 'rxjs';
 import { API, Submission } from '../api';
 import { session } from '../state';
-import { format_datetime_detail, getSubmittionStatusClass } from '../utils';
+import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+const hljs = require('highlight.js');
 
 @customElement('penguin-judge-contest-submission')
 export class PenguinJudgeContestSubmission extends LitElement {
@@ -41,19 +43,27 @@ export class PenguinJudgeContestSubmission extends LitElement {
       return;
     }
     const tests = this.submission.tests.map(
-      t => html`<tr><td>${t.id}</td><td class="${getSubmittionStatusClass(t.status)}">${t.status}</td><td>${t.time === undefined ? '-' : t.time}</td><td>${t.memory === undefined ? '-' : t.memory}</td></tr>`);
+      t => html`
+        <tr>
+          <td>${t.id}</td>
+          <td>${getSubmittionStatusMark(t.status)}${t.status}</td>
+          <td>${t.time === undefined ? '-' : t.time}</td>
+          <td>${t.memory === undefined ? '-' : t.memory}</td>
+        </tr>
+      `);
 
     return html`
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css" />
       <h2>提出: #${this.submission.id}</h2>
       <h3>ソースコード</h3>
-      <pre>${this.submission.code}</pre>
+      <pre><code>${unsafeHTML(hljs.highlightAuto(this.submission.code).value)}</code></pre>
       <h3>提出情報</h3>
       <table>
         <tr><th>提出日時</th><td>${format_datetime_detail(this.submission.created)}</td></tr>
         <tr><th>問題</th><td>${this.submission.problem_id}</td></tr>
         <tr><th>ユーザ</th><td>${this.submission.user_id}</td></tr>
         <tr><th>言語</th><td>${session.environment_mapping[this.submission.environment_id].name}</td></tr>
-        <tr><th>結果</th><td class="${getSubmittionStatusClass(this.submission.status)}">${this.submission.status}</td></tr>
+        <tr><th>結果</th><td>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</td></tr>
       </table>
       <h3>テストケース</h3>
       <table class="testcase">
@@ -87,11 +97,11 @@ export class PenguinJudgeContestSubmission extends LitElement {
         text-align: right;
       }
       .AC {
-        background-color: #86C166;
+        color: green;
       }
       .WA {
-        background-color: #F05E1C;
-      }  
+        color: red;
+      }
     `;
   }
 }
