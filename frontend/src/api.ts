@@ -187,9 +187,9 @@ export class API {
     });
   }
 
-  static list_submissions(contest_id: string): Promise<Array<Submission>> {
+  static list_submissions(contest_id: string, page: number): Promise<Array<Submission>> {
     return API._fetch(
-      '/api/contests/' + encodeURIComponent(contest_id) + '/submissions');
+      '/api/contests/' + encodeURIComponent(contest_id) + '/submissions?page=' + page);
   }
 
   static get_submission(contest_id: string, submission_id: string): Promise<Submission> {
@@ -230,7 +230,7 @@ export class API {
   static create_contest(contest: Contest): Promise<Contest> {
     return API._fetch('/api/contests', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(contest),
     });
   }
@@ -238,7 +238,7 @@ export class API {
   static update_contest(contest_id: string, patch: any): Promise<Contest> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id), {
       method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
   }
@@ -246,7 +246,7 @@ export class API {
   static create_problem(contest_id: string, problem: Problem): Promise<Problem> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(problem),
     });
   }
@@ -254,7 +254,7 @@ export class API {
   static update_problem(contest_id: string, problem_id: string, patch: any): Promise<Problem> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id), {
       method: 'PATCH',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     });
   }
@@ -270,7 +270,7 @@ export class API {
   static upload_test_dataset(contest_id: string, problem_id: string, file: File): Promise<Array<string>> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/tests', {
       method: 'PUT',
-      headers: {'Content-Type': 'application/zip'},
+      headers: { 'Content-Type': 'application/zip' },
       body: file,
     });
   }

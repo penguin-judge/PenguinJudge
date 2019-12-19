@@ -8,6 +8,8 @@ import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
 export class PenguinJudgeContestSubmissionResults extends LitElement {
   subscription: Subscription | null = null;
   submissions: Submission[] = [];
+  page: number = 1;
+  contestId: string | null = null;
 
   constructor() {
     super();
@@ -19,12 +21,32 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
       // session.contest/session.environment_mapping経由でアクセスできる
       const s = session.contest;
       if (s) {
-        API.list_submissions(s.id).then((submissions) => {
+        this.contestId = s.id;
+        API.list_submissions(this.contestId, 1).then((submissions) => {
           this.submissions = submissions;
           this.requestUpdate();
         });
       }
     });
+  }
+
+  goToPage() {
+    API.list_submissions(this.contestId!, this.page).then(submissions => {
+      this.submissions = submissions;
+      this.requestUpdate();
+    });
+  }
+
+  goToPrev() {
+    if (this.page > 1) {
+      this.page--;
+      this.goToPage();
+    }
+  }
+
+  goToNext() {
+    this.page = this.page + 1;
+    this.goToPage();
   }
 
   disconnectedCallback() {
@@ -53,6 +75,11 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
         </tr>`;
     });
     return html`
+      <div id="pagenation">
+        <button @click="${this.goToPrev}">&lt;</button>
+        <span>${this.page}ページ目</span>
+        <button @click="${this.goToNext}">&gt;</button>
+      </div>
       <table>
         <thead><tr><td>提出日時</td><td>問題</td><td>ユーザ</td><td>言語</td><td>結果</td><td></td></tr></thead>
         <tbody>${nodes}</tbody>

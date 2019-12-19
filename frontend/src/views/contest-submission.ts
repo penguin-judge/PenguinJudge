@@ -1,7 +1,7 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription, zip } from 'rxjs';
-import { API, Submission } from '../api';
-import { session } from '../state';
+import { API, Submission, JudgeStatus } from '../api';
+import { router, session } from '../state';
 import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 const hljs = require('highlight.js');
@@ -42,7 +42,8 @@ export class PenguinJudgeContestSubmission extends LitElement {
     if (!this.submission) {
       return;
     }
-    const tests = this.submission.tests.map(
+    this.submission.tests = [{ "memory": 4, "status": JudgeStatus.Accepted, "time": 0.005163, "id": "1" }];
+    const tests = this.submission!.tests.map(
       t => html`
         <tr>
           <td>${t.id}</td>
@@ -54,16 +55,16 @@ export class PenguinJudgeContestSubmission extends LitElement {
 
     return html`
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css" />
-      <h2>提出: #${this.submission.id}</h2>
+      <h2>提出: #${this.submission!.id}</h2>
       <h3>ソースコード</h3>
-      <pre><code>${unsafeHTML(hljs.highlightAuto(this.submission.code).value)}</code></pre>
+      <pre><code>${unsafeHTML(hljs.highlightAuto(this.submission!.code).value)}</code></pre>
       <h3>提出情報</h3>
       <table>
-        <tr><th>提出日時</th><td>${format_datetime_detail(this.submission.created)}</td></tr>
-        <tr><th>問題</th><td>${this.submission.problem_id}</td></tr>
+        <tr><th>提出日時</th><td>${format_datetime_detail(this.submission!.created)}</td></tr>
+        <tr><th>問題</th><td><a is="router_link" href="${router.generate('contest-task', { id: session.contest!.id, task_id: this.submission.problem_id })}">${this.submission.problem_id}</a></td></tr>
         <tr><th>ユーザ</th><td>${this.submission.user_id}</td></tr>
         <tr><th>言語</th><td>${session.environment_mapping[this.submission.environment_id].name}</td></tr>
-        <tr><th>結果</th><td>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</td></tr>
+        <tr><th>結果</th><td>${getSubmittionStatusMark(this.submission!.status)}${this.submission.status}</td></tr>
       </table>
       <h3>テストケース</h3>
       <table class="testcase">
