@@ -284,7 +284,7 @@ def get_contest(contest_id: str) -> Response:
         if not (contest and contest.is_accessible(u)):
             abort(404)
         ret = contest.to_dict()
-        if contest.is_begun():
+        if contest.is_begun() or (u and u['admin']):
             problems = s.query(Problem).filter(
                 Problem.contest_id == contest_id).all()
             if problems:
