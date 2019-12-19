@@ -51,13 +51,15 @@ export class AppHomeElement extends LitElement {
             </div>` : html``}
         <div>
           <form>
-            <input id="userid" autofocus>
-            <input id="password" type="password" minlength="8">
+            <label>ユーザID:&nbsp;<input id="userid" autofocus>
+            <br>
+            <label>パスワード:&nbsp;<input id="password" type="password" minlength="8">
+            <br>
             <button @click="${this.post}">ログイン</button>
           </form>
         </div>
         <div>
-          登録がまだの場合は<a is="router-link" href="${router.generate('register')}">こちら</a>
+          <br>登録がまだの場合は<a is="router-link" href="${router.generate('register')}">こちら</a>
         </div>
       </x-panel>
     `
