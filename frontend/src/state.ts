@@ -31,6 +31,10 @@ class Session {
         this._user.next(user);
     });
   }
+  delete_current_user() {
+    document.cookie = '';
+    this._user.next(null);
+  }
 
   // Environment
   private _envs = new BehaviorSubject<Array<Environment>>([]);
