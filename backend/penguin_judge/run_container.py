@@ -10,7 +10,7 @@ from zstandard import ZstdDecompressor  # type: ignore
 import msgpack  # type: ignore
 
 from penguin_judge.models import (
-    JudgeStatus, Submission, JudgeResult, transaction)
+    JudgeStatus, Submission, JudgeResult, transaction, scoped_session)
 from penguin_judge.check_result import equal_binary
 
 
@@ -238,11 +238,24 @@ def run(task: dict) -> None:
     print('  submission_id: {}'.format(task['id']))
     print('  user_id: {}'.format(task['user_id']), flush=True)
 
+    def update_submission_status(
+            s: scoped_session, status: JudgeStatus) -> None:
+        s.query(Submission).filter(
+            Submission.contest_id == task['contest_id'],
+            Submission.problem_id == task['problem_id'],
+            Submission.id == task['id'],
+        ).update({Submission.status: status}, synchronize_session=False)
+
     zctx = ZstdDecompressor()
-    task['code'] = zctx.decompress(task['code'])
-    for test in task['tests']:
-        test['input'] = zctx.decompress(test['input'])
-        test['output'] = zctx.decompress(test['output'])
+    try:
+        task['code'] = zctx.decompress(task['code'])
+        for test in task['tests']:
+            test['input'] = zctx.decompress(test['input'])
+            test['output'] = zctx.decompress(test['output'])
+    except Exception:
+        with transaction() as s:
+            update_submission_status(s, JudgeStatus.InternalError)
+        return
 
     compile_time = None
     with DockerJudgeDriver() as judge:
@@ -250,30 +263,19 @@ def run(task: dict) -> None:
             judge.prepare(task)
         except Exception:
             with transaction() as s:
-                s.query(Submission).filter(
-                    Submission.contest_id == task['contest_id'],
-                    Submission.problem_id == task['problem_id'],
-                    Submission.id == task['id']
-                ).update({
-                    Submission.status: JudgeStatus.InternalError
-                }, synchronize_session=False)
+                update_submission_status(s, JudgeStatus.InternalError)
             return
         if task['environment'].get('compile_image_name'):
             ret = judge.compile(task)
             if isinstance(ret, JudgeStatus):
                 with transaction() as s:
-                    s.query(Submission).filter(
-                        Submission.contest_id == task['contest_id'],
-                        Submission.problem_id == task['problem_id'],
-                        Submission.id == task['id']
-                    ).update({
-                        Submission.status: ret}, synchronize_session=False)
+                    update_submission_status(s, ret)
                     s.query(JudgeResult).filter(
                         JudgeResult.contest_id == task['contest_id'],
                         JudgeResult.problem_id == task['problem_id'],
                         JudgeResult.submission_id == task['id']
                     ).update({
-                        Submission.status: ret}, synchronize_session=False)
+                        JudgeResult.status: ret}, synchronize_session=False)
                 print('judge failed: {}'.format(ret), flush=True)
                 return
             task['code'], compile_time = ret[0], timedelta(seconds=ret[1])

@@ -6,8 +6,12 @@ export interface User {
 }
 
 export interface Environment {
-  id: number;
+  id?: number;
   name: string;
+  active: boolean;
+  published?: boolean;
+  compile_image_name?: string;
+  test_image_name?: string;
 }
 
 export interface Problem {
@@ -25,7 +29,8 @@ export interface Contest {
   description: string;
   start_time: string;
   end_time: string;
-  problems: Array<Problem> | null;
+  published: boolean;
+  problems?: Array<Problem> | null;
 }
 
 export enum JudgeStatus {
@@ -149,6 +154,28 @@ export class API {
     return API._fetch('/api/environments');
   }
 
+  static register_environment(e: Environment): Promise<Environment> {
+    return API._fetch('/api/environments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(e)
+    });
+  }
+
+  static update_environment(env_id: number, e: any): Promise<Environment> {
+    return API._fetch('/api/environments/' + encodeURIComponent(env_id.toString()), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(e)
+    });
+  }
+
+  static delete_environment(env_id: number): Promise<any> {
+    return API._fetch('/api/environments/' + encodeURIComponent(env_id.toString()), {
+      method: 'DELETE'
+    });
+  }
+
   static submit(submission: PartialSubmission): Promise<Submission> {
     const contest_id = submission.contest_id;
     delete submission.contest_id;
@@ -198,5 +225,53 @@ export class API {
 
   static get_standings(contest_id: string): Promise<Array<Standing>> {
     return API._fetch(`/api/contests/${contest_id}/rankings`);
+  }
+
+  static create_contest(contest: Contest): Promise<Contest> {
+    return API._fetch('/api/contests', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(contest),
+    });
+  }
+
+  static update_contest(contest_id: string, patch: any): Promise<Contest> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id), {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch),
+    });
+  }
+
+  static create_problem(contest_id: string, problem: Problem): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(problem),
+    });
+  }
+
+  static update_problem(contest_id: string, problem_id: string, patch: any): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id), {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch),
+    });
+  }
+
+  static get_problem(contest_id: string, problem_id: string): Promise<Problem> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id));
+  }
+
+  static list_test_dataset(contest_id: string, problem_id: string): Promise<Array<string>> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/tests');
+  }
+
+  static upload_test_dataset(contest_id: string, problem_id: string, file: File): Promise<Array<string>> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/tests', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/zip'},
+      body: file,
+    });
   }
 }

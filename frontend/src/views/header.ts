@@ -22,12 +22,23 @@ export class PenguinJudgeHeaderElement extends LitElement {
       title_link = router.generate('contest-top', { id: session.contest.id });
     }
 
-    let user_area;
+    let admin_area, user_area;
+    let is_admin = false;
     if (session.current_user.value) {
       user_area = html`
         <x-icon>person</x-icon>
         <span>${session.current_user.value.name}</span>
         <span class="dropdown-caret"></span>`;
+      is_admin = session.current_user.value.admin;
+      if (is_admin) {
+        admin_area = html`
+          <span tabindex="0">
+            <a is="router-link" href="${router.generate('contest-new')}" title="新規コンテスト">
+              <x-icon>add</x-icon>
+            </a>
+          </span>
+        `;
+      }
     } else {
       user_area = html`
         <a is="router-link" href="${router.generate('register')}">登録</a>
@@ -42,6 +53,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
         <a href="${title_link}" is="router-link">${title}</a>
       </span>
       <span id="extra">
+        ${admin_area}
         <span tabindex="0">
           <a is="router-link" href="${router.generate('home')}" title="ホームに戻る">
             <x-icon>home</x-icon>

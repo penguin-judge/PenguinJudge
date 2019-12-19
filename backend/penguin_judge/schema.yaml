@@ -84,6 +84,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Environments"
+    post:
+      operationId: registerEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnvironmentCreation"
+      responses:
+        '201':
+          description: registered environment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Environment"
+  /environments/{environment_id}:
+    patch:
+      operationId: updateEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/EnvironmentID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Environment"
+      responses:
+        '200':
+          description: updated environment info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Environment"
+        '404':
+          description: not found
+    delete:
+      operationId: deleteEnvironment
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/EnvironmentID"
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: not found
   /contests:
     get:
       operationId: listContests
@@ -231,6 +285,10 @@ paths:
     post:
       operationId: createProblem
       description: コンテストの問題を作成する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
       requestBody:
@@ -264,6 +322,10 @@ paths:
     patch:
       operationId: updateProblem
       description: コンテストの問題を修正する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
@@ -284,12 +346,89 @@ paths:
     delete:
       operationId: deleteProblem
       description: コンテストの問題を削除する
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
       parameters:
         - $ref: "#/components/parameters/ContestID"
         - $ref: "#/components/parameters/ProblemID"
       responses:
         '204':
           description: 削除成功
+  /contests/{contest_id}/problems/{problem_id}/tests:
+    get:
+      operationId: listTests
+      description: 問題のテスト用入出力データセットの一覧を返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+    put:
+      operationId: replaceTestDataset
+      description: 問題のテスト用入出力データセットを置き換えます。zipで圧縮し、ファイル名はテスト名、拡張子.inが入力、.outが出力のデータとなるようにします
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: 一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /contests/{contest_id}/problems/{problem_id}/tests/{test_id}/in:
+    get:
+      operationId: getTestData
+      description: 問題のテスト用入力データを返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+        - $ref: "#/components/parameters/TestID"
+      responses:
+        '200':
+          description: データ
+          content:
+            '*/*': {}
+  /contests/{contest_id}/problems/{problem_id}/tests/{test_id}/out:
+    get:
+      operationId: getTestData
+      description: 問題のテスト用出力データを返却します
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+        - $ref: "#/components/parameters/TestID"
+      responses:
+        '200':
+          description: データ
+          content:
+            '*/*': {}
   /contests/{contest_id}/rankings:
     get:
       operationId: listRankings
@@ -360,15 +499,36 @@ components:
           type: integer
         name:
           type: string
+        active:
+          type: boolean
+          description: 新規に投稿可能な言語かどうか
+        published:
+          type: boolean
+          description: 管理者のみ参照可能
+        compile_image_name:
+          type: string
+          description: 管理者のみ参照可能
+        test_image_name:
+          type: string
+          description: 管理者のみ参照可能
+    EnvironmentCreation:
+      allOf:
+        - $ref: "#/components/schemas/Environment"
+        - required:
+            - name
+            - test_image_name
     Environments:
       type: array
       items:
         $ref: "#/components/schemas/Environment"
+    ContestProblemID:
+      type: string
+      pattern: '[^\~]\w*'
     ContestSummary:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         title:
           type: string
         start_time:
@@ -404,9 +564,9 @@ components:
       type: object
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         contest_id:
-          type: string
+          $ref: "#/components/schemas/ContestProblemID"
         title:
           type: string
         time_limit:
@@ -564,6 +724,18 @@ components:
         type: string
     SubmissionID:
       name: submission_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    TestID:
+      name: test_id
+      in: path
+      required: true
+      schema:
+        type: string
+    EnvironmentID:
+      name: environment_id
       in: path
       required: true
       schema:
