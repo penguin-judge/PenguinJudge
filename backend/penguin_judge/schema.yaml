@@ -43,10 +43,7 @@ paths:
   /users:
     post:
       operationId: registerUser
-      security:
-        - BearerAuth: []
-        - ApiToken: []
-        - CookieToken: []
+      security: []
       requestBody:
         content:
           application/json:
