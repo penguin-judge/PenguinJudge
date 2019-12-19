@@ -1,7 +1,7 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { Subscription, zip } from 'rxjs';
 import { API, Submission } from '../api';
-import { session } from '../state';
+import { router, session } from '../state';
 import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 const hljs = require('highlight.js');
@@ -60,7 +60,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
       <h3>提出情報</h3>
       <table>
         <tr><th>提出日時</th><td>${format_datetime_detail(this.submission.created)}</td></tr>
-        <tr><th>問題</th><td>${this.submission.problem_id}</td></tr>
+        <tr><th>問題</th><td><a is="router_link" href="${router.generate('contest-task', { id: session.contest!.id, task_id: this.submission.problem_id })}">${this.submission.problem_id}</a></td></tr>
         <tr><th>ユーザ</th><td>${this.submission.user_id}</td></tr>
         <tr><th>言語</th><td>${session.environment_mapping[this.submission.environment_id].name}</td></tr>
         <tr><th>結果</th><td>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</td></tr>

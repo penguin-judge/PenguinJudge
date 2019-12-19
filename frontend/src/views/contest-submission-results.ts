@@ -45,7 +45,7 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
       return html`
         <tr>
           <td>${format_datetime_detail(s.created)}</td>
-          <td>${[s.problem_id]}</td>
+          <td><a is="router_link" href="${router.generate('contest-task', { id: session.contest!.id, task_id: [s.problem_id] })}">${[s.problem_id]}</a></td>
           <td>${s.user_id}</td>
           <td>${session.environment_mapping[s.environment_id].name}</td>
           <td>${getSubmittionStatusMark(s.status)}${s.status}</td>
