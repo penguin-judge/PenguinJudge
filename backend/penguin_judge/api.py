@@ -139,7 +139,7 @@ def create_user() -> Response:
         u = _validate_token(s)
         admin: bool = getattr(body, 'admin', False)
         if not u or not u['admin']:
-            admin = False  # 管理者のみ管理者ユーザを作成できない
+            admin = False  # 管理者のみ管理者ユーザを作成できる
         if s.query(User).filter(User.id == body.id).first():
             abort(409)
         user = User(id=body.id, password=password, name=body.name, salt=salt,
