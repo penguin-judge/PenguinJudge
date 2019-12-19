@@ -136,11 +136,14 @@ def create_user() -> Response:
     salt = secrets.token_bytes()
     password = _kdf(body.password, salt)
     with transaction() as s:
-        _ = _validate_token(s, admin_required=True)
+        u = _validate_token(s)
+        admin: bool = getattr(body, 'admin', False)
+        if not u or not u['admin']:
+            admin = False  # 管理者のみ管理者ユーザを作成できない
         if s.query(User).filter(User.id == body.id).first():
             abort(409)
         user = User(id=body.id, password=password, name=body.name, salt=salt,
-                    admin=getattr(body, 'admin', False))
+                    admin=admin)
         s.add(user)
         s.flush()
         resp = user.to_summary_dict()
