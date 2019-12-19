@@ -34,6 +34,11 @@ def start_api(args: Namespace) -> None:
 
     config = _load_config(args, 'api')
     configure_mq(**config)
+    defines = [
+        ('user_judge_queue_limit', '10', int),
+    ]
+    for name, default_value, parser in defines:
+        app.config[name] = parser(config.get(name, default_value))
 
     class App(BaseApplication):
         def load_config(self) -> None:

@@ -439,13 +439,19 @@ def post_submission(contest_id: str) -> Response:
     with transaction() as s:
         u = _validate_token(s, required=True)
         assert(u)
-        if not s.query(Environment).filter(Environment.id == env_id).first():
-            abort(400)
-        tests = s.query(TestCase).filter(
-            TestCase.contest_id == contest_id,
-            TestCase.problem_id == problem_id).all()
-        if not tests:
-            abort(400)
+        if not s.query(Environment).filter(Environment.id == env_id).count():
+            abort(400)  # bodyが不正なので400
+        if not s.query(Contest).filter(Contest.id == contest_id).count():
+            abort(404)  # contest_idはURLに含まれるため404
+        if not s.query(Problem).filter(Problem.contest_id == contest_id,
+                                       Problem.id == problem_id).count():
+            abort(400)  # bodyが不正なので400
+        queued_submission_count = s.query(Submission).filter(
+            Submission.user_id == u['id'],
+            Submission.status.in_([JudgeStatus.Waiting, JudgeStatus.Running])
+        ).count()
+        if queued_submission_count > app.config['user_judge_queue_limit']:
+            abort(429)
         submission = Submission(
             contest_id=contest_id, problem_id=problem_id, user_id=u['id'],
             code=code, code_bytes=len(code_encoded), environment_id=env_id)
