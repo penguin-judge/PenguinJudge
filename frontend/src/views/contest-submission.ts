@@ -47,8 +47,8 @@ export class PenguinJudgeContestSubmission extends LitElement {
         <tr>
           <td>${t.id}</td>
           <td>${getSubmittionStatusMark(t.status)}${t.status}</td>
-          <td>${t.time === undefined ? '-' : t.time}</td>
-          <td>${t.memory === undefined ? '-' : t.memory}</td>
+          <td>${t.time === undefined ? '-' : `${Math.ceil(t.time! * 1000)} msec`}</td>
+          <td>${t.memory === undefined ? '-' : `${Math.ceil(t.memory! / 1000)} MB`}</td>
         </tr>
       `);
 
