@@ -231,7 +231,7 @@ class DockerStdinWriter(RawIOBase):
         return os.write(self._fd, b)
 
 
-def run(task: dict) -> None:
+def run(task: dict) -> JudgeStatus:
     print('judge start with below id')
     print('  contest_id: {}'.format(task['contest_id']))
     print('  problem_id: {}'.format(task['problem_id']))
@@ -239,12 +239,13 @@ def run(task: dict) -> None:
     print('  user_id: {}'.format(task['user_id']), flush=True)
 
     def update_submission_status(
-            s: scoped_session, status: JudgeStatus) -> None:
+            s: scoped_session, status: JudgeStatus) -> JudgeStatus:
         s.query(Submission).filter(
             Submission.contest_id == task['contest_id'],
             Submission.problem_id == task['problem_id'],
             Submission.id == task['id'],
         ).update({Submission.status: status}, synchronize_session=False)
+        return status
 
     zctx = ZstdDecompressor()
     try:
@@ -254,8 +255,7 @@ def run(task: dict) -> None:
             test['output'] = zctx.decompress(test['output'])
     except Exception:
         with transaction() as s:
-            update_submission_status(s, JudgeStatus.InternalError)
-        return
+            return update_submission_status(s, JudgeStatus.InternalError)
 
     compile_time = None
     with DockerJudgeDriver() as judge:
@@ -263,8 +263,7 @@ def run(task: dict) -> None:
             judge.prepare(task)
         except Exception:
             with transaction() as s:
-                update_submission_status(s, JudgeStatus.InternalError)
-            return
+                return update_submission_status(s, JudgeStatus.InternalError)
         if task['environment'].get('compile_image_name'):
             ret = judge.compile(task)
             if isinstance(ret, JudgeStatus):
@@ -277,7 +276,7 @@ def run(task: dict) -> None:
                     ).update({
                         JudgeResult.status: ret}, synchronize_session=False)
                 print('judge failed: {}'.format(ret), flush=True)
-                return
+                return ret
             task['code'], compile_time = ret[0], timedelta(seconds=ret[1])
         ret, max_time, max_memory = judge.tests(task)
         with transaction() as s:
@@ -292,3 +291,4 @@ def run(task: dict) -> None:
                 Submission.max_memory: max_memory,
             }, synchronize_session=False)
         print('judge finished: {}'.format(ret), flush=True)
+        return ret

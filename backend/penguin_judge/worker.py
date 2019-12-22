@@ -1,10 +1,13 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime, timezone, timedelta
 import multiprocessing as mp
 from functools import partial
-from typing import Any
+from typing import Any, Optional
 import pickle
-from random import shuffle
+from random import shuffle, uniform
+from socket import gethostname
+import os
 
 import pika  # type: ignore
 from pika.channel import Channel  # type: ignore
@@ -13,7 +16,7 @@ from pika.adapters.asyncio_connection import AsyncioConnection  # type: ignore
 
 from penguin_judge.models import (
     Environment, Problem, Submission, JudgeStatus, JudgeResult, TestCase,
-    transaction)
+    Worker as WorkerTable, transaction)
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.run_container import run
 
@@ -28,6 +31,10 @@ class Worker(object):
         self._queue_name = 'judge_queue'
         self._conn: AsyncioConnection = None
         self._ch: Channel = None
+        self._hostname: Optional[str] = None
+        self._pid = os.getpid()
+        self._task_processed, self._task_errors = 0, 0
+        self._maint_interval = timedelta(seconds=60)
 
     def __enter__(self) -> 'Worker':
         return self
@@ -45,7 +52,46 @@ class Worker(object):
             on_open_callback=self._conn_on_open,
             on_open_error_callback=self._conn_on_open_error,
             on_close_callback=self._conn_on_close)
+        asyncio.get_event_loop().call_soon_threadsafe(self._update_status)
         asyncio.get_event_loop().run_forever()
+
+    def _schedule_update_status(self) -> None:
+        asyncio.get_event_loop().call_later(
+            uniform(
+                self._maint_interval.total_seconds() - 1,
+                self._maint_interval.total_seconds() + 1,
+            ), self._update_status)
+
+    def _update_status(self) -> None:
+        now = datetime.now(tz=timezone.utc)
+        updates = dict(
+            last_contact=now,
+            processed=self._task_processed,
+            errors=self._task_errors,
+        )
+        try:
+            hostname = self._hostname or gethostname()
+            with transaction() as s:
+                if self._hostname:
+                    s.query(WorkerTable).filter(
+                        WorkerTable.hostname == self._hostname,
+                        WorkerTable.pid == self._pid
+                    ).update(updates)
+                else:
+                    updates.update(dict(
+                        hostname=hostname, pid=self._pid,
+                        max_processes=self._max_processes, startup_time=now))
+                    s.add(WorkerTable(**updates))
+                if uniform(0, 1) <= 0.01 or not self._hostname:
+                    threshold = now - self._maint_interval * 10
+                    s.query(WorkerTable).filter(
+                        WorkerTable.last_contact < threshold
+                    ).delete(synchronize_session=False)
+            self._hostname = hostname
+        except Exception as e:
+            print(e)
+            pass
+        self._schedule_update_status()
 
     def _conn_on_open(self, _: AsyncioConnection) -> None:
         self._conn.channel(on_open_callback=self._ch_on_open)
@@ -89,6 +135,11 @@ class Worker(object):
             body: bytes) -> None:
         def _done(fut: Any) -> None:
             ch.basic_ack(delivery_tag=method.delivery_tag)
+            self._task_processed += 1
+            if fut.exception() is not None:
+                self._task_errors += 1
+            elif fut.result() == JudgeStatus.InternalError:
+                self._task_errors += 1
 
         try:
             contest_id, problem_id, submission_id = pickle.loads(body)

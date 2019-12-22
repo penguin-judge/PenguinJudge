@@ -17,7 +17,7 @@ import yaml
 
 from penguin_judge.models import (
     transaction, scoped_session, Contest, Environment, JudgeResult,
-    JudgeStatus, Problem, Submission, TestCase, Token, User)
+    JudgeStatus, Problem, Submission, TestCase, Token, User, Worker)
 from penguin_judge.mq import get_mq_conn_params
 from penguin_judge.utils import json_dumps, pagination_header
 
@@ -690,3 +690,19 @@ def get_test_input_data(contest_id: str, problem_id: str,
 def get_test_output_data(contest_id: str, problem_id: str,
                          test_id: str) -> Response:
     return _get_test_data(contest_id, problem_id, test_id, False)
+
+
+@app.route('/status')
+def get_status() -> Response:
+    ret = {}
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        ret['workers'] = [w.to_dict() for w in s.query(Worker)]
+
+    conn = pika.BlockingConnection(get_mq_conn_params())
+    ch = conn.channel()
+    queue = ch.queue_declare(queue='judge_queue')
+    ret['queued'] = queue.method.message_count
+    ch.close()
+    conn.close()
+    return jsonify(ret)
