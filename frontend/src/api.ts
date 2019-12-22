@@ -103,6 +103,10 @@ export interface ListContestsFilter {
   status?: string;
 }
 
+export interface Status {
+  queued: number;
+}
+
 export class API {
   private static _fetch<T>(url: string, init?: RequestInit): Promise<T> {
     // 以下の情報を返却するPromiseを返す
@@ -300,5 +304,9 @@ export class API {
       headers: {'Content-Type': 'application/zip'},
       body: file,
     });
+  }
+
+  static get_status(): Promise<Status> {
+    return API._fetch('/api/status');
   }
 }

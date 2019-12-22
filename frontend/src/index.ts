@@ -6,6 +6,7 @@ import './views/login';
 import './views/logout';
 import './views/register';
 import './views/admin-environments';
+import './views/admin-status';
 import './views/contests';
 import './views/contest-new';
 import './views/contest-frame';
@@ -49,6 +50,7 @@ export class AppRootElement extends LitElement {
       ['logout', 'logout', html`<x-logout></x-logout>`, null],
       ['register', 'register', html`<x-register></x-register>`, null],
       ['admin/environments', 'admin-environments', html`<x-admin-environments></x-admin-environments>`, null],
+      ['admin/status', 'admin-status', html`<x-admin-status></x-admin-status>`, null],
       ['', 'home', html`<x-home></x-home>`, null],
     ];
     routes.forEach((v) => {
