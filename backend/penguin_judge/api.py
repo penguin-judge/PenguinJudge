@@ -85,7 +85,9 @@ def _validate_token(
                 return None
         if admin_required and not ret[1].admin:
             abort(401)
-        return ret[1].to_summary_dict()
+        tmp = ret[1].to_summary_dict()
+        tmp['_token_bytes'] = token_bytes
+        return tmp
     if s:
         return _check(s)
     with transaction() as s:
@@ -111,6 +113,19 @@ def authenticate() -> Response:
             encoded_token, expires_in)}
     return jsonify({
         'token': encoded_token, 'expires_in': expires_in}, headers=headers)
+
+
+@app.route('/auth', methods=['DELETE'])
+def deleteToken() -> Response:
+    with transaction() as s:
+        u = _validate_token(s, required=True)
+        s.query(Token).filter(
+            Token.token == u['_token_bytes']
+        ).delete(synchronize_session=False)
+    resp = make_response((b'', 204))
+    resp.headers.pop('content-type')
+    resp.headers.add('Set-Cookie', 'AuthToken=; Max-Age=0')
+    return resp
 
 
 @app.route('/user')
