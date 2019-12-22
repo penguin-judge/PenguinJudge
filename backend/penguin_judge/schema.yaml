@@ -453,6 +453,21 @@ paths:
           description: コンテスト開催前です
         '404':
           description: not found
+  /status:
+    get:
+      operationId: getStatus
+      description: 状態を取得(管理者のみ)
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      responses:
+        '200':
+          description: 状態
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
 components:
   schemas:
     Token:
@@ -710,6 +725,12 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/TestResult"
+    Status:
+      type: object
+      properties:
+        queued:
+          type: integer
+          description: ジャッジキューに積まれているタスクの数
   parameters:
     UserID:
       name: user_id
