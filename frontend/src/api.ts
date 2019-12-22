@@ -114,9 +114,23 @@ export class API {
     // [サーバとの通信が切断された場合]
     //   reject(undefined)
     return new Promise((resolve, reject) => {
+      API._fetch2<T>(url, init).then(([o, _]) => resolve(o)).catch(e => reject(e));
+    });
+  }
+
+  private static _fetch2<T>(url: string, init?: RequestInit): Promise<[T, Response]> {
+    // 以下の情報を返却するPromiseを返す
+    // [成功した場合]
+    //   <jsonパース成功> resolve([T, Response])
+    //   <jsonパース失敗> reject(undefined)
+    // [サーバからエラーが返却された場合]
+    //   reject({status: HTTPステータスコード, json: bodyが含まれる場合})
+    // [サーバとの通信が切断された場合]
+    //   reject(undefined)
+    return new Promise((resolve, reject) => {
       fetch(url, init).then(resp => {
         if (resp.ok) {
-          resp.json().then(resolve).catch(_ => reject(undefined));
+          resp.json().then(o => resolve([o, resp])).catch(_ => reject(undefined));
         } else {
           resp.json().then(body => {
             reject({ status: resp.status, json: body });
@@ -187,9 +201,11 @@ export class API {
     });
   }
 
-  static list_submissions(contest_id: string): Promise<Array<Submission>> {
-    return API._fetch(
-      '/api/contests/' + encodeURIComponent(contest_id) + '/submissions');
+  static list_submissions(contest_id: string, page?: number): Promise<[Array<Submission>, Response]> {
+    let path = '/api/contests/' + encodeURIComponent(contest_id) + '/submissions';
+    if (page !== undefined)
+      path += '?page=' + page.toString();
+    return API._fetch2(path);
   }
 
   static get_submission(contest_id: string, submission_id: string): Promise<Submission> {

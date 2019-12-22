@@ -8,6 +8,8 @@ import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
 export class PenguinJudgeContestSubmissionResults extends LitElement {
   subscription: Subscription | null = null;
   submissions: Submission[] = [];
+  number_of_pages = 1;
+  page_index = 1;
 
   constructor() {
     super();
@@ -19,10 +21,7 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
       // session.contest/session.environment_mapping経由でアクセスできる
       const s = session.contest;
       if (s) {
-        API.list_submissions(s.id).then((submissions) => {
-          this.submissions = submissions;
-          this.requestUpdate();
-        });
+        this.loadSubmissions();
       }
     });
   }
@@ -35,10 +34,29 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
     }
   }
 
+  changePage(e: CustomEvent) {
+    this.page_index = e.detail;
+    this.loadSubmissions();
+  }
+
+  loadSubmissions() {
+    API.list_submissions(session.contest!.id, this.page_index).then(([submissions, resp]) => {
+      const x_total_pages = resp.headers.get('x-total-pages');
+      if (x_total_pages)
+        this.number_of_pages = parseInt(x_total_pages);
+      this.submissions = submissions;
+      this.requestUpdate();
+    });
+  }
+
   render() {
     if (!session.contest) {
       return html``;
     }
+
+    let pagenation;
+    if (this.number_of_pages >= 1)
+      pagenation = html`<penguin-judge-pagenation pages="${this.number_of_pages}" currentPage="${this.page_index}" @page-changed="${this.changePage}"></penguin-judge-pagenation>`;
 
     const nodes = this.submissions.map(s => {
       const url = router.generate('contest-submission', { id: session.contest!.id, submission_id: s.id });
@@ -53,6 +71,7 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
         </tr>`;
     });
     return html`
+      ${pagenation}
       <table>
         <thead><tr><td>提出日時</td><td>問題</td><td>ユーザ</td><td>言語</td><td>結果</td><td></td></tr></thead>
         <tbody>${nodes}</tbody>
