@@ -131,6 +131,7 @@ export class API {
       fetch(url, init).then(resp => {
         if (resp.ok) {
           if (resp.status === 204) {
+            // @ts-ignore: 204が想定されるエンドポイントの場合はT=anyとなっているがundefinedを返却するため
             resolve([undefined, resp]);
           } else {
             resp.json().then(o => resolve([o, resp])).catch(_ => reject(undefined));
