@@ -731,6 +731,27 @@ components:
         queued:
           type: integer
           description: ジャッジキューに積まれているタスクの数
+        workers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkerStatus"
+    WorkerStatus:
+      type: object
+      properties:
+        hostname:
+          type: string
+        pid:
+          type: integer
+        startup_time:
+          type: string
+          format: date-time
+        last_contact:
+          type: string
+          format: date-time
+        processed:
+          type: integer
+        errors:
+          type: integer
   parameters:
     UserID:
       name: user_id

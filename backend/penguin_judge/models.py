@@ -201,6 +201,17 @@ class JudgeResult(Base, _Exportable):
     )
 
 
+class Worker(Base, _Exportable):
+    __tablename__ = 'workers'
+    hostname = Column(String, primary_key=True)
+    pid = Column(Integer, primary_key=True)
+    max_processes = Column(Integer, nullable=False)
+    startup_time = Column(DateTime(timezone=True), nullable=False)
+    last_contact = Column(DateTime(timezone=True), nullable=False)
+    processed = Column(Integer, nullable=False)
+    errors = Column(Integer, nullable=False)
+
+
 def configure(**kwargs: str) -> None:
     from sqlalchemy import engine_from_config
     global _config
