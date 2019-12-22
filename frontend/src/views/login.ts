@@ -21,7 +21,6 @@ export class AppHomeElement extends LitElement {
     if (!this.shadowRoot) return;
     const userid = (<HTMLInputElement>this.shadowRoot.getElementById("userid")).value;
     const password = (<HTMLInputElement>this.shadowRoot.getElementById("password")).value;
-    console.log(userid, password);
 
     this.subscription = from(API.login(userid, password)).subscribe(
       _ => {
