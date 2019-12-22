@@ -14,6 +14,7 @@ from openapi_core import create_spec  # type: ignore
 from openapi_core.shortcuts import RequestValidator  # type: ignore
 from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
+from sqlalchemy import func
 
 from penguin_judge.models import (
     transaction, scoped_session, Contest, Environment, JudgeResult,
@@ -697,7 +698,10 @@ def get_status() -> Response:
     ret = {}
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
-        ret['workers'] = [w.to_dict() for w in s.query(Worker)]
+        ret['workers'] = [
+            w.to_dict() for w in s.query(Worker).filter(
+                func.now() - Worker.last_contact < timedelta(seconds=60 * 10),
+            ).order_by(Worker.startup_time)]
 
     conn = pika.BlockingConnection(get_mq_conn_params())
     ch = conn.channel()
