@@ -436,6 +436,20 @@ paths:
           description: データ
           content:
             '*/*': {}
+  /contests/{contest_id}/problems/{problem_id}/rejudge:
+    post:
+      operationId: rejudge
+      description: リジャッジします
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/ContestID"
+        - $ref: "#/components/parameters/ProblemID"
+      responses:
+        '200':
+          description: リジャッジ開始
   /contests/{contest_id}/rankings:
     get:
       operationId: listRankings

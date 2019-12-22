@@ -317,6 +317,12 @@ export class API {
     });
   }
 
+  static rejudge(contest_id: string, problem_id: string): Promise<any> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id) + '/rejudge', {
+      method: 'POST',
+    });
+  }
+
   static get_status(): Promise<Status> {
     return API._fetch('/api/status');
   }
