@@ -4,21 +4,31 @@ import { session } from '../state';
 
 @customElement('x-logout')
 export class PenguinJudgeLogoutElement extends LitElement {
+  inflight = true;
+  error = undefined;
+
   constructor() {
     super();
-    session.delete_current_user();
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
+    session.logout().catch(e => {
+      this.error = e;
+    }).finally(() => {
+      this.inflight = false;
+      this.requestUpdate();
+    });
   }
 
   render() {
-    return html`
-      <x-panel header="">
-        <div>ログアウトしました</div>
-      </x-panel>
-    `
+    let contents;
+    if (this.inflight) {
+      contents = html`<div>ログアウト中</div>`;
+    } else {
+      if (this.error) {
+        contents = html`<div>ログアウト処理に失敗しました</div>`;
+      } else {
+        contents = html`<div>ログアウトしました</div>`;
+      }
+    }
+    return html`<x-panel header="">${contents}</x-panel>`;
   }
 
   static get styles() {
@@ -31,6 +41,6 @@ export class PenguinJudgeLogoutElement extends LitElement {
       x-panel {
         margin-bottom: 20px;
       }
-    `
+    `;
   }
 }

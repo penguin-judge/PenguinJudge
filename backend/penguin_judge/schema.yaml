@@ -25,6 +25,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Token"
+    delete:
+      operationId: deleteToken
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      summary: delete/revoke token
+      responses:
+        '204':
+          description: deleted
   /user:
     get:
       operationId: getCurrentUser

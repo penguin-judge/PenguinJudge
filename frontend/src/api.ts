@@ -130,7 +130,11 @@ export class API {
     return new Promise((resolve, reject) => {
       fetch(url, init).then(resp => {
         if (resp.ok) {
-          resp.json().then(o => resolve([o, resp])).catch(_ => reject(undefined));
+          if (resp.status === 204) {
+            resolve([undefined, resp]);
+          } else {
+            resp.json().then(o => resolve([o, resp])).catch(_ => reject(undefined));
+          }
         } else {
           resp.json().then(body => {
             reject({ status: resp.status, json: body });
@@ -223,6 +227,12 @@ export class API {
         id,
         password,
       })
+    });
+  }
+
+  static logout(): Promise<any> {
+    return API._fetch('/api/auth', {
+      method: 'DELETE'
     });
   }
 
