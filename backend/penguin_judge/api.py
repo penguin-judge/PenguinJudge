@@ -119,6 +119,7 @@ def authenticate() -> Response:
 def deleteToken() -> Response:
     with transaction() as s:
         u = _validate_token(s, required=True)
+        assert(u)
         s.query(Token).filter(
             Token.token == u['_token_bytes']
         ).delete(synchronize_session=False)

@@ -21,7 +21,9 @@ class TestAPI(unittest.TestCase):
         configure(**{'sqlalchemy.url': TEST_DB_URL}, drop_all=True)
 
     def setUp(self):
+        from penguin_judge.main import _configure_app
         app.reset()
+        _configure_app({})
         tables = (
             JudgeResult, Submission, TestCase, Problem, Contest, Environment,
             Token, User)

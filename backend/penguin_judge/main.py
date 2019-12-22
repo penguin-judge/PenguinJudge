@@ -28,17 +28,22 @@ def _load_config(args: Namespace, name: str,
     return ret
 
 
+def _configure_app(config: Mapping[str, str]) -> None:
+    from penguin_judge.api import app
+    defines = [
+        ('user_judge_queue_limit', '10', int),
+    ]
+    for name, default_value, parser in defines:
+        app.config[name] = parser(config.get(name, default_value))
+
+
 def start_api(args: Namespace) -> None:
     from gunicorn.app.base import BaseApplication  # type: ignore
     from penguin_judge.api import app
 
     config = _load_config(args, 'api')
     configure_mq(**config)
-    defines = [
-        ('user_judge_queue_limit', '10', int),
-    ]
-    for name, default_value, parser in defines:
-        app.config[name] = parser(config.get(name, default_value))
+    _configure_app(config)
 
     class App(BaseApplication):
         def load_config(self) -> None:
