@@ -19,6 +19,8 @@ class _JsonEncoder(json.JSONEncoder):
 
 
 def json_dumps(o: Union[dict, list]) -> str:
+    if isinstance(o, dict):
+        o = {k: v for k, v in o.items() if not k.startswith('_')}
     return json.dumps(o, cls=_JsonEncoder, separators=(',', ':'))
 
 

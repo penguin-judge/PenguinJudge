@@ -31,9 +31,13 @@ class Session {
         this._user.next(user);
     });
   }
-  delete_current_user() {
-    document.cookie = '';
-    this._user.next(null);
+  logout(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      API.logout().then(_ => {
+        this._user.next(null);
+        resolve();
+      }, reject);
+    });
   }
 
   // Environment
