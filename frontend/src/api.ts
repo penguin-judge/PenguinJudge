@@ -103,8 +103,19 @@ export interface ListContestsFilter {
   status?: string;
 }
 
+export interface WorkerStatus {
+  hostname: string;
+  pid: number;
+  max_processes: number;
+  startup_time: string;
+  last_contact: string;
+  processed: number;
+  errors: number;
+}
+
 export interface Status {
   queued: number;
+  workers: Array<WorkerStatus>;
 }
 
 export class API {
