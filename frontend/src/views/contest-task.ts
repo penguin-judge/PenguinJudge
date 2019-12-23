@@ -30,6 +30,8 @@ export class AppContestTaskElement extends LitElement {
     if (!this.shadowRoot || !session.contest || !session.task_id) return;
     const env = (<HTMLSelectElement>this.shadowRoot.getElementById("env")).value;
     const code = (<HTMLTextAreaElement>this.shadowRoot.getElementById("code")).value;
+    if (localStorage)
+      localStorage.setItem('lang.id', env);
     API.submit({
       contest_id: session.contest.id,
       problem_id: session.task_id,
@@ -82,8 +84,9 @@ export class AppContestTaskElement extends LitElement {
       </span>`;
     }
 
+    const selected_lang_id = localStorage && localStorage.getItem('lang.id');
     const dom_langs = session.environments.map((e) => {
-      return html`<option value="${e.id}">${e.name}</option>`;
+      return html`<option value="${e.id}" ?selected=${e.id!.toString() === selected_lang_id}>${e.name}</option>`;
     });
 
     // <wc-markdown>の後に改行が必要
