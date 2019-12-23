@@ -95,14 +95,12 @@ ${task.description}
 </wc-markdown>
       </div>
       <div id="submission">
-        <div>
+        <div id="submission-header">
           <select id="env">${dom_langs}</select>
-        </div>
-        <div>
-          <textarea id="code"></textarea>
-        </div>
-        <div>
           <button @click="${this.post}">提出</button>
+        </div>
+        <div id="submission-codearea">
+          <textarea id="code"></textarea>
         </div>
       </div>
     `
@@ -131,11 +129,11 @@ ${task.description}
       flex-direction: column;
       flex-grow: 1;
     }
-    #submission > div:last-child {
-      margin-top: 1ex;
-      text-align: right;
+    #submission-header {
+      display: flex;
+      justify-content: space-between;
     }
-    #submission > div:nth-child(2) {
+    #submission-codearea {
       flex-grow: 1;
     }
     textarea {
