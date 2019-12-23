@@ -692,6 +692,40 @@ def get_test_output_data(contest_id: str, problem_id: str,
     return _get_test_data(contest_id, problem_id, test_id, False)
 
 
+@app.route('/contests/<contest_id>/problems/<problem_id>/rejudge',
+           methods=['POST'])
+def rejudge(contest_id: str, problem_id: str) -> Response:
+    with transaction() as s:
+        _ = _validate_token(s, admin_required=True)
+        s.query(JudgeResult).filter(
+            JudgeResult.contest_id == contest_id,
+            JudgeResult.problem_id == problem_id
+        ).delete(synchronize_session=False)
+        s.query(Submission).filter(
+            Submission.contest_id == contest_id,
+            Submission.problem_id == problem_id
+        ).update({
+            Submission.status: JudgeStatus.Waiting,
+        }, synchronize_session=False)
+        q = s.query(Submission.id).filter(
+            Submission.contest_id == contest_id,
+            Submission.problem_id == problem_id
+        )
+        rejudge_list = [x for x, in q]
+
+    conn = pika.BlockingConnection(get_mq_conn_params())
+    ch = conn.channel()
+    ch.queue_declare(queue='judge_queue')
+    for submission_id in rejudge_list:
+        ch.basic_publish(
+            exchange='', routing_key='judge_queue', body=pickle.dumps(
+                (contest_id, problem_id, submission_id)))
+    ch.close()
+    conn.close()
+
+    return jsonify({})
+
+
 @app.route('/status')
 def get_status() -> Response:
     ret = {}

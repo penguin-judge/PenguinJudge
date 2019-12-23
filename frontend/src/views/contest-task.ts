@@ -48,6 +48,18 @@ export class AppContestTaskElement extends LitElement {
     });
   }
 
+  rejudge(e: any) {
+    e.preventDefault();
+    if (confirm('リジャッジを実行しますか？')) {
+      API.rejudge(session.contest!.id, session.task_id!).then(_ => {
+        router.navigate(router.generate('contest-submissions', {id: session.contest!.id}));
+      }, e => {
+        alert('error');
+        console.error(e);
+      });
+    }
+  }
+
   render() {
     if (!session.contest || !session.contest.problems || !session.task_id)
       return html`?`;
@@ -60,13 +72,14 @@ export class AppContestTaskElement extends LitElement {
 
     let admin_links;
     if (session.current_user.value && session.current_user.value.admin) {
-      admin_links = html`
+      admin_links = html`<span id="admin-links">
         <span tabindex="0">
-          <a is="router-link" href="${router.generate('contest-task-edit', {id: session.contest.id, task_id: task.id})}" title="問題を追加">
-            <x-icon>edit</x-icon>
-          </a>
+          <a is="router-link" href="${router.generate('contest-task-edit', {id: session.contest.id, task_id: task.id})}" title="問題を編集"><x-icon>edit</x-icon></a>
         </span>
-      `;
+        <span tabindex="0">
+          <a href="#rejudge" title="リジャッジ" @click="${this.rejudge}"><x-icon>gavel</x-icon></a>
+        </span>
+      </span>`;
     }
 
     const dom_langs = session.environments.map((e) => {
@@ -106,6 +119,9 @@ ${task.description}
       border-bottom: 1px solid #ddd;
       margin-right: 1em;
       margin-bottom: 1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
     }
     #problem {
       flex-grow: 1;
@@ -125,6 +141,14 @@ ${task.description}
     textarea {
       width: 100%;
       height: 100%;
+    }
+    #admin-links {}
+    #admin-links a {
+      font-size: 24px;
+      padding: 5px 5px 0 5px;
+    }
+    #admin-links a:hover {
+      background-color: #ddd;
     }
     `
   }
