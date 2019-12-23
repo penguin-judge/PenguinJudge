@@ -692,7 +692,8 @@ def get_test_output_data(contest_id: str, problem_id: str,
     return _get_test_data(contest_id, problem_id, test_id, False)
 
 
-@app.route('/contests/<contest_id>/problems/<problem_id>/rejudge', methods=['POST'])
+@app.route('/contests/<contest_id>/problems/<problem_id>/rejudge',
+           methods=['POST'])
 def rejudge(contest_id: str, problem_id: str) -> Response:
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
