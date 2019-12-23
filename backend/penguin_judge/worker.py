@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 import multiprocessing as mp
 from functools import partial
 from typing import Any, Optional
@@ -13,6 +13,7 @@ import pika  # type: ignore
 from pika.channel import Channel  # type: ignore
 from pika.exceptions import AMQPError  # type: ignore
 from pika.adapters.asyncio_connection import AsyncioConnection  # type: ignore
+from sqlalchemy import func
 
 from penguin_judge.models import (
     Environment, Problem, Submission, JudgeStatus, JudgeResult, TestCase,
@@ -63,9 +64,8 @@ class Worker(object):
             ), self._update_status)
 
     def _update_status(self) -> None:
-        now = datetime.now(tz=timezone.utc)
         updates = dict(
-            last_contact=now,
+            last_contact=func.now(),
             processed=self._task_processed,
             errors=self._task_errors,
         )
@@ -76,20 +76,20 @@ class Worker(object):
                     s.query(WorkerTable).filter(
                         WorkerTable.hostname == self._hostname,
                         WorkerTable.pid == self._pid
-                    ).update(updates)
+                    ).update(updates, synchronize_session=False)
                 else:
                     updates.update(dict(
                         hostname=hostname, pid=self._pid,
-                        max_processes=self._max_processes, startup_time=now))
+                        max_processes=self._max_processes,
+                        startup_time=func.now()))
                     s.add(WorkerTable(**updates))
                 if uniform(0, 1) <= 0.01 or not self._hostname:
-                    threshold = now - self._maint_interval * 10
+                    threshold = self._maint_interval * 10
                     s.query(WorkerTable).filter(
-                        WorkerTable.last_contact < threshold
+                        func.now() - WorkerTable.last_contact > threshold
                     ).delete(synchronize_session=False)
             self._hostname = hostname
-        except Exception as e:
-            print(e)
+        except Exception:
             pass
         self._schedule_update_status()
 
