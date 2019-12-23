@@ -30,6 +30,8 @@ export class AppContestTaskElement extends LitElement {
     if (!this.shadowRoot || !session.contest || !session.task_id) return;
     const env = (<HTMLSelectElement>this.shadowRoot.getElementById("env")).value;
     const code = (<HTMLTextAreaElement>this.shadowRoot.getElementById("code")).value;
+    if (localStorage)
+      localStorage.setItem('lang.id', env);
     API.submit({
       contest_id: session.contest.id,
       problem_id: session.task_id,
@@ -82,27 +84,27 @@ export class AppContestTaskElement extends LitElement {
       </span>`;
     }
 
+    const selected_lang_id = localStorage && localStorage.getItem('lang.id');
     const dom_langs = session.environments.map((e) => {
-      return html`<option value="${e.id}">${e.name}</option>`;
+      return html`<option value="${e.id}" ?selected=${e.id!.toString() === selected_lang_id}>${e.name}</option>`;
     });
 
     // <wc-markdown>の後に改行が必要
     return html`
       <div id="problem">
         <div id="title">${task.title}${admin_links}</div>
+        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB</div>
         <wc-markdown>
 ${task.description}
 </wc-markdown>
       </div>
       <div id="submission">
-        <div>
+        <div id="submission-header">
           <select id="env">${dom_langs}</select>
-        </div>
-        <div>
-          <textarea id="code"></textarea>
-        </div>
-        <div>
           <button @click="${this.post}">提出</button>
+        </div>
+        <div id="submission-codearea">
+          <textarea id="code"></textarea>
         </div>
       </div>
     `
@@ -117,25 +119,28 @@ ${task.description}
       font-size: 120%;
       font-weight: bold;
       border-bottom: 1px solid #ddd;
-      margin-right: 1em;
-      margin-bottom: 1em;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
+    #limitation {
+      font-size: small;
+      text-align: right;
+    }
     #problem {
       flex-grow: 1;
+      margin-right: 1em;
     }
     #submission {
       display: flex;
       flex-direction: column;
       flex-grow: 1;
     }
-    #submission > div:last-child {
-      margin-top: 1ex;
-      text-align: right;
+    #submission-header {
+      display: flex;
+      justify-content: space-between;
     }
-    #submission > div:nth-child(2) {
+    #submission-codearea {
       flex-grow: 1;
     }
     textarea {
