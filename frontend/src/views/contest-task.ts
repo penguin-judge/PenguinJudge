@@ -90,6 +90,7 @@ export class AppContestTaskElement extends LitElement {
     return html`
       <div id="problem">
         <div id="title">${task.title}${admin_links}</div>
+        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB</div>
         <wc-markdown>
 ${task.description}
 </wc-markdown>
@@ -115,14 +116,17 @@ ${task.description}
       font-size: 120%;
       font-weight: bold;
       border-bottom: 1px solid #ddd;
-      margin-right: 1em;
-      margin-bottom: 1em;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
+    #limitation {
+      font-size: small;
+      text-align: right;
+    }
     #problem {
       flex-grow: 1;
+      margin-right: 1em;
     }
     #submission {
       display: flex;
