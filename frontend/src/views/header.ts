@@ -1,6 +1,7 @@
 import { customElement, LitElement, html, css, unsafeCSS } from 'lit-element';
 import { HeaderHeight, HeaderHeightPx } from './consts';
 import { router, session } from '../state';
+import { DropDownMenuElement } from '../components/dropdown-menu';
 
 @customElement('penguin-judge-header')
 export class PenguinJudgeHeaderElement extends LitElement {
@@ -14,6 +15,15 @@ export class PenguinJudgeHeaderElement extends LitElement {
     });
   }
 
+  showMenu(e: MouseEvent) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const menu = <DropDownMenuElement>this.shadowRoot!.querySelector('x-dropdown-menu');
+    if (menu && e.currentTarget) {
+      menu.show(<HTMLElement>e.currentTarget);
+    }
+  }
+
   render() {
     let title = 'Penguin Judge';
     let title_link = router.generate('home');
@@ -24,12 +34,20 @@ export class PenguinJudgeHeaderElement extends LitElement {
 
     let admin_area, user_area;
     let is_admin = false;
+    let menus = [];
     if (session.current_user.value) {
-      user_area = html`
+      is_admin = session.current_user.value.admin;
+      menus.push(html`<a is="router-link" href="${router.generate('logout')}">ログアウト</b>`);
+      if (is_admin) {
+        menus.push(html`<hr>`);
+        menus.push(html`<a is="router-link" href="${router.generate('admin-status')}">システムの状態</a>`);
+        menus.push(html`<a is="router-link" href="${router.generate('admin-environments')}">言語環境の設定</a>`);
+      }
+      user_area = html`<span tabindex="0" @click="${this.showMenu}">
         <x-icon>person</x-icon>
         <span>${session.current_user.value.name}</span>
-        <span class="dropdown-caret"></span>`;
-      is_admin = session.current_user.value.admin;
+        <span class="dropdown-caret"></span>
+      </span>`;
       if (is_admin) {
         admin_area = html`
           <span tabindex="0">
@@ -41,8 +59,8 @@ export class PenguinJudgeHeaderElement extends LitElement {
       }
     } else {
       user_area = html`
-        <a is="router-link" href="${router.generate('register')}">登録</a>
-        <a is="router-link" href="${router.generate('login')}">ログイン</a>
+        <span><a is="router-link" href="${router.generate('register')}">登録</a></span>
+        <span><a is="router-link" href="${router.generate('login')}">ログイン</a></span>
       `
     }
     return html`
@@ -64,8 +82,9 @@ export class PenguinJudgeHeaderElement extends LitElement {
             <x-icon>insert_chart_outlined</x-icon>
           </a>
         </span>
-        <span tabindex="0">${user_area}</span>
+        ${user_area}
       </span>
+      <x-dropdown-menu tabindex="0">${menus}</x-dropdown-menu>
     `;
   }
 

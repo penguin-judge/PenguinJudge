@@ -22,6 +22,7 @@ import './components/anchor';
 import './components/contest-list';
 import './components/icon';
 import './components/panel';
+import './components/dropdown-menu';
 import { HeaderHeight } from './views/consts';
 import { router, session } from './state';
 
@@ -95,10 +96,14 @@ export class AppRootElement extends LitElement {
       * {
         font-family: sans-serif;
       }
+      penguin-judge-header {
+        z-index: 1;
+      }
       #container {
         padding-top: ${HeaderHeight};
         flex-grow: 1;
         display: flex;
+        z-index: 0;
       }
       #container > * {
         flex-grow: 1;
