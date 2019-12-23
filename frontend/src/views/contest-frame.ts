@@ -52,6 +52,7 @@ export class PenguinJudgeContestFrame extends LitElement {
   }
 
   static get styles() {
+    // #header > * の line-height は (40 - border-top-width - border-bottom-width)
     return css`
       :host {
         display: flex;
@@ -68,14 +69,17 @@ export class PenguinJudgeContestFrame extends LitElement {
         left: 0;
         right: 0;
         height: 40px;
+        background-color: #eee;
       }
       #header > * {
         padding-left: 2ex;
         padding-right: 2ex;
-        line-height: 38px;  // 40 - border-top-width - border-bottom-width
+        line-height: 38px;
         border-top: 1px solid #ddd;
         border-right: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
         background-color: ${BackgroundColor};
         white-space: nowrap;
       }
