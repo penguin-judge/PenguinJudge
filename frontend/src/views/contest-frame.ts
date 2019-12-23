@@ -102,6 +102,7 @@ export class PenguinJudgeContestFrame extends LitElement {
         flex-grow: 1;
       }
       #header > .disabled, #header > .disabled:hover {
+        display: none;
         color: #aaa;
         text-decoration: none;
         cursor: not-allowed;
