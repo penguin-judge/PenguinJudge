@@ -652,15 +652,29 @@ def upload_test_dataset(contest_id: str, problem_id: str) -> Response:
                 output=out_data))
             ret.append(k)
 
+    # 参照がないテストケースのみを削除し、
+    # 参照があるテストケースはUPDATE、
+    # 新規テストケースはINSERTする
+    from sqlalchemy import exists
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
         s.query(TestCase).filter(
             TestCase.contest_id == contest_id,
-            TestCase.problem_id == problem_id
-        ).delete()
+            TestCase.problem_id == problem_id,
+            ~exists().where(JudgeResult.test_id == TestCase.id)
+        ).delete(synchronize_session=False)
         for kwargs in test_cases:
-            s.add(TestCase(**kwargs))
-
+            q = s.query(TestCase).filter(
+                TestCase.contest_id == contest_id,
+                TestCase.problem_id == problem_id,
+                TestCase.id == kwargs['id'])
+            if q.count() == 0:
+                s.add(TestCase(**kwargs))
+            else:
+                kwargs.pop('contest_id')
+                kwargs.pop('problem_id')
+                kwargs.pop('id')
+                q.update(kwargs, synchronize_session=False)
     return jsonify(ret)
 
 
