@@ -13,11 +13,8 @@ const formatElapsedTime = (time: number) => {
 @customElement('penguin-judge-contest-standings')
 export class PenguinJudgeContestStandings extends LitElement {
     standings: Standing[] = [];
-
     submissions: Submission[] = [];
-
     problems: string[] = [];
-
     userPerPage = 20;
     page = 1;
 
@@ -25,6 +22,10 @@ export class PenguinJudgeContestStandings extends LitElement {
         super();
         if (!session.contest || !session.contest.id) {
             throw 'あり得ないエラー';
+        }
+        if (!session.contest.problems) {
+            // コンテスト開催前等で問題情報が読み込めていない
+            return;
         }
 
         API.get_standings(session.contest.id).then(standings => {
@@ -37,16 +38,16 @@ export class PenguinJudgeContestStandings extends LitElement {
         this.problems = session!.contest!.problems!.map((problem) => problem.id);
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-    }
-
     changePage(e: CustomEvent) {
         this.page = e.detail;
         this.requestUpdate();
     }
 
     render() {
+        if (this.problems.length == 0) {
+            return html`<div>コンテスト開催前です</div>`;
+        }
+
         const pageNum = Math.floor((this.standings.length + this.userPerPage - 1) / this.userPerPage);
         const index = this.page;
 

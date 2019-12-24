@@ -29,6 +29,9 @@ export class AppContestTasksElement extends LitElement {
     const contest = session.contest!;
     if (!contest)
       return html``;  // 404?
+    if (!contest.problems) {
+      return html`<div>コンテスト開催前です</div>`;
+    }
     const dom_problems: Array<Object> = [];
     if (contest.problems) {
       contest.problems.forEach((problem) => {

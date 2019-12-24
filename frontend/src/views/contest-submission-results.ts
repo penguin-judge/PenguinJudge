@@ -1,5 +1,5 @@
 import { customElement, LitElement, html, css } from 'lit-element';
-import { Subscription, zip } from 'rxjs';
+import { Subscription, merge } from 'rxjs';
 import { API, Submission } from '../api';
 import { router, session } from '../state';
 import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
@@ -13,14 +13,13 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
 
   constructor() {
     super();
-    this.subscription = zip(
+    this.subscription = merge(
       session.environment_mapping_subject,
       session.contest_subject,
     ).subscribe(_ => {
       // ２つのsubjectが解決できれば
       // session.contest/session.environment_mapping経由でアクセスできる
-      const s = session.contest;
-      if (s) {
+      if (session.contest && session.environments) {
         this.loadSubmissions();
       }
     });
@@ -46,12 +45,15 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
         this.number_of_pages = parseInt(x_total_pages);
       this.submissions = submissions;
       this.requestUpdate();
-    });
+    }, _ => {});
   }
 
   render() {
     if (!session.contest) {
       return html``;
+    }
+    if (!session.contest.problems) {
+      return html`<div>コンテスト開催前です</div>`;
     }
 
     let pagenation;
