@@ -18,6 +18,7 @@ import './views/contest-task-edit';
 import './views/contest-submission-results';
 import './views/contest-submission';
 import './views/contest-standings';
+import './components/ace';
 import './components/anchor';
 import './components/contest-list';
 import './components/icon';
