@@ -97,21 +97,23 @@ export class PenguinJudgeContestFrame extends LitElement {
     if (!c) return html``;
     const [tabName] = session.current_path.split('/').slice(2);
 
+    const contest_not_started = !(session.contest && session.contest.problems);
     const tabs = [
-      ['トップ', router.generate('contest-top', { id: c.id }), undefined],
-      ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks'],
-      ['提出結果', router.generate('contest-submissions', { id: c.id }), 'submissions'],
-      ['順位表', router.generate('contest-standings', { id: c.id }), 'standings'],
+      ['トップ', router.generate('contest-top', { id: c.id }), undefined, false],
+      ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks', contest_not_started],
+      ['提出結果', router.generate('contest-submissions', { id: c.id }), 'submissions', contest_not_started],
+      ['順位表', router.generate('contest-standings', { id: c.id }), 'standings', contest_not_started],
     ];
-    const tabs_html = tabs.map(([title, link, path]) => html`<a is="router-link" href="${link}" class="${tabName === path ? 'selected' : ''}">${title}</a>`);
+    const tabs_html = tabs.map(([title, link, path, disabled]) => html`
+      <a is="router-link" href="${link}" class="${tabName === path ? 'selected' : ''} ${disabled ? 'disabled' : ''}">${title}</a>`);
 
     return html`
       <div id="frame">
         <div id="header">
           ${tabs_html}
-          <a class="disabled">コードテスト</a>
-          <a class="disabled">質問</a>
-          <a class="disabled">解説</a>
+          <a class="hidden">コードテスト</a>
+          <a class="hidden">質問</a>
+          <a class="hidden">解説</a>
           <div id="spacer"></div>
         </div>
         <div id="contents">
@@ -178,11 +180,13 @@ export class PenguinJudgeContestFrame extends LitElement {
       #contents > ::slotted(*) {
         flex-grow: 1;
       }
-      #header > .disabled, #header > .disabled:hover {
-        display: none;
+      #header > a.disabled, #header > a.disabled:hover {
         color: #aaa;
         text-decoration: none;
         cursor: not-allowed;
+      }
+      #header > a.hidden {
+        display: none;
       }
       #contest-clock {
         position: fixed;
