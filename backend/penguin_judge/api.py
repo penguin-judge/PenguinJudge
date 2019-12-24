@@ -680,6 +680,7 @@ def upload_test_dataset(contest_id: str, problem_id: str) -> Response:
 
 def _get_test_data(contest_id: str, problem_id: str, test_id: str,
                    is_input: bool) -> Response:
+    zctx = ZstdDecompressor()
     from io import BytesIO
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
@@ -689,7 +690,7 @@ def _get_test_data(contest_id: str, problem_id: str, test_id: str,
             TestCase.id == test_id).first()
         if not tc:
             abort(404)
-        f = BytesIO(tc.input if is_input else tc.output)
+        f = BytesIO(zctx.decompress(tc.input if is_input else tc.output))
         return send_file(
             f, as_attachment=True, attachment_filename='{}.{}'.format(
                 test_id, 'in' if is_input else 'out'))
