@@ -1,4 +1,4 @@
-import { Subscription, zip } from 'rxjs';
+import { Subscription, merge } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { router, session } from '../state';
 
@@ -8,7 +8,7 @@ export class AppContestTasksElement extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = zip(
+    this.subscription = merge(
       session.contest_subject,
       session.current_user,
     ).subscribe(_ => {
@@ -29,6 +29,9 @@ export class AppContestTasksElement extends LitElement {
     const contest = session.contest!;
     if (!contest)
       return html``;  // 404?
+    if (!contest.problems) {
+      return html`<div>コンテスト開催前です</div>`;
+    }
     const dom_problems: Array<Object> = [];
     if (contest.problems) {
       contest.problems.forEach((problem) => {
