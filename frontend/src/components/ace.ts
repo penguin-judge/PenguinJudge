@@ -12,9 +12,7 @@ export class AceEditor extends LitElement {
     return this._editor!.getValue();
   }
 
-  get editor(): AceAjax.Editor {
-    if (!this._editor)
-      throw 'not initialized';
+  get editor(): AceAjax.Editor | null {
     return this._editor;
   }
 
@@ -32,9 +30,9 @@ export class AceEditor extends LitElement {
         mode_name = 'c_cpp';
         break
       }
+      mode_name = 'text';
     } while (false);
-    if (mode_name)
-      this._editor.session.setMode('ace/mode/' + mode_name);
+    this._editor.session.setMode('ace/mode/' + mode_name);
   }
 
   updated(changedProperties: any) {
