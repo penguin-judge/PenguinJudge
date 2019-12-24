@@ -4,6 +4,7 @@ services:
     build: backend/
     ports:
       - 5000:5000
+      - 8000:5000
     volumes:
       - ./.docker-compose:/mnt:ro
     command: /bin/sh -c "python /mnt/prepare.py && penguin_judge api -c /mnt/config.ini"
