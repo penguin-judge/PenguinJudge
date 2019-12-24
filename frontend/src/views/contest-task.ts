@@ -2,6 +2,7 @@ import { Subscription, merge } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API } from '../api';
 import { router, session } from '../state';
+import { AceEditor } from '../components/ace';
 
 @customElement('x-contest-task')
 export class AppContestTaskElement extends LitElement {
@@ -16,6 +17,9 @@ export class AppContestTaskElement extends LitElement {
     ).subscribe(_ => {
       this.requestUpdate();
     });
+    this.updateComplete.then(() => {
+      this.langChanged();
+    });
   }
 
   disconnectedCallback() {
@@ -29,7 +33,7 @@ export class AppContestTaskElement extends LitElement {
   post() {
     if (!this.shadowRoot || !session.contest || !session.task_id) return;
     const env = (<HTMLSelectElement>this.shadowRoot.getElementById("env")).value;
-    const code = (<HTMLTextAreaElement>this.shadowRoot.getElementById("code")).value;
+    const code = (<AceEditor>this.shadowRoot.getElementById("code")).value;
     if (localStorage)
       localStorage.setItem('lang.id', env);
     API.submit({
@@ -60,6 +64,13 @@ export class AppContestTaskElement extends LitElement {
         console.error(e);
       });
     }
+  }
+
+  langChanged() {
+    const env = <HTMLSelectElement>this.shadowRoot!.getElementById("env");
+    const code = <AceEditor>this.shadowRoot!.getElementById("code");
+    if (!env || !code || env.selectedOptions.length == 0) return;
+    code.setModeFromAmbiguous(env.selectedOptions[0].textContent!);
   }
 
   render() {
@@ -100,11 +111,11 @@ ${task.description}
       </div>
       <div id="submission">
         <div id="submission-header">
-          <select id="env">${dom_langs}</select>
+          <select id="env" @click="${this.langChanged}">${dom_langs}</select>
           <button @click="${this.post}">提出</button>
         </div>
         <div id="submission-codearea">
-          <textarea id="code"></textarea>
+          <x-ace-editor id="code"></x-ace-editor>
         </div>
       </div>
     `
@@ -142,10 +153,11 @@ ${task.description}
     }
     #submission-codearea {
       flex-grow: 1;
+      display: flex;
+      padding-top: 1ex;
     }
-    textarea {
-      width: 100%;
-      height: 100%;
+    #code {
+      flex-grow: 1;
     }
     #admin-links {}
     #admin-links a {
