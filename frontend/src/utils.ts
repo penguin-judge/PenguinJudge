@@ -28,17 +28,25 @@ export function format_datetime_detail(s: string | Date): string {
 }
 
 export function format_timespan(ts: number): string {
-  ts = Math.floor(ts / (60 * 1000)); // tsはミリ秒なので分未満は切り捨て
-  const m = ts % 60;
-  const h = Math.floor((ts / 60) % 24);
-  const days = Math.floor(ts / 1440);
+  // 秒の部分を削除して返却
+  return format_timespan_detail(ts).slice(0, -3);
+}
+
+export function format_timespan_detail(ts: number): string {
+  ts = Math.floor(ts / 1000); // tsはミリ秒なので秒未満は切り捨て
+  const s = ts % 60;
+  const m = Math.floor(ts / 60) % 60;
+  const h = Math.floor(ts / 3600) % 24;
+  const days = Math.floor(ts / 86400);
   let ret = '';
   if (days >= 1) {
     ret = days.toString() + ' days ';
     if (h === 0)
       return ret.trim();
   }
-  ret += h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
+  ret += h.toString().padStart(2, '0')
+    + ':' + m.toString().padStart(2, '0')
+    + ':' + s.toString().padStart(2, '0');
   return ret;
 }
 

@@ -85,6 +85,24 @@ class Session {
   get contest() {
     return this._contest.value;
   }
+  try_update_problems(): Promise<Contest> {
+    const contest = this.contest;
+    return new Promise((resolve, reject) => {
+      if (!contest || contest.problems) {
+        reject();
+        return;
+      }
+      API.list_problems(contest.id).then(problems => {
+        if (this.contest && this.contest.id === contest.id) {
+          this.contest.problems = problems;
+          resolve(this.contest!);
+          this._contest.next(this.contest);
+        } else {
+          reject();
+        }
+      }, reject);
+    });
+  }
   get contest_subject() { return this._contest; }
   task_id: string | null = null;
 

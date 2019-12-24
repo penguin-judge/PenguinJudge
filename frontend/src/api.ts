@@ -301,6 +301,10 @@ export class API {
     });
   }
 
+  static list_problems(contest_id: string): Promise<Array<Problem>> {
+    return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems');
+  }
+
   static get_problem(contest_id: string, problem_id: string): Promise<Problem> {
     return API._fetch('/api/contests/' + encodeURIComponent(contest_id) + '/problems/' + encodeURIComponent(problem_id));
   }

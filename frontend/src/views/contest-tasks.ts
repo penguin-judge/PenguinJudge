@@ -1,4 +1,4 @@
-import { Subscription, zip } from 'rxjs';
+import { Subscription, merge } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { router, session } from '../state';
 
@@ -8,7 +8,7 @@ export class AppContestTasksElement extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.subscription = zip(
+    this.subscription = merge(
       session.contest_subject,
       session.current_user,
     ).subscribe(_ => {
