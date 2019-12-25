@@ -130,6 +130,7 @@ export class PenguinJudgeContestFrame extends LitElement {
 
   static get styles() {
     // #header > * の line-height は (40 - border-top-width - border-bottom-width)
+    // #headerのz-indexは5未満だとace-editorの行番号表示エリアに負ける
     return css`
       :host {
         display: flex;
@@ -147,6 +148,7 @@ export class PenguinJudgeContestFrame extends LitElement {
         right: 0;
         height: 40px;
         background-color: #eee;
+        z-index: 5;
       }
       #header > * {
         padding-left: 2ex;
