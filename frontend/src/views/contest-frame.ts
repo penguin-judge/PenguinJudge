@@ -97,7 +97,9 @@ export class PenguinJudgeContestFrame extends LitElement {
     if (!c) return html``;
     const [tabName] = session.current_path.split('/').slice(2);
 
-    const contest_not_started = !(session.contest && session.contest.problems);
+    let contest_not_started = !(session.contest && session.contest.problems);
+    if (session.current_user.value && session.current_user.value.admin)
+      contest_not_started = false;  // 管理者は常にコンテストにアクセスできる
     const tabs = [
       ['トップ', router.generate('contest-top', { id: c.id }), undefined, false],
       ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks', contest_not_started],
@@ -128,6 +130,7 @@ export class PenguinJudgeContestFrame extends LitElement {
 
   static get styles() {
     // #header > * の line-height は (40 - border-top-width - border-bottom-width)
+    // #headerのz-indexは5未満だとace-editorの行番号表示エリアに負ける
     return css`
       :host {
         display: flex;
@@ -145,6 +148,7 @@ export class PenguinJudgeContestFrame extends LitElement {
         right: 0;
         height: 40px;
         background-color: #eee;
+        z-index: 5;
       }
       #header > * {
         padding-left: 2ex;
@@ -190,7 +194,7 @@ export class PenguinJudgeContestFrame extends LitElement {
       }
       #contest-clock {
         position: fixed;
-        right: 1ex;
+        left: 1ex;
         bottom: 1ex;
         border: 2px solid #888;
         border-radius: 10px;
@@ -199,6 +203,9 @@ export class PenguinJudgeContestFrame extends LitElement {
         background-color: #fdfdfd;
       }
       #contest-clock.hidden {
+        display: none;
+      }
+      #contest-clock:hover, #contest-clock *:hover {
         display: none;
       }
     `;
