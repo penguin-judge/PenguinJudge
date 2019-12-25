@@ -124,7 +124,8 @@ ${task.description}
   static get styles() {
     return css`
     :host {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
     }
     #title {
       font-size: 120%;
@@ -139,17 +140,18 @@ ${task.description}
       text-align: right;
     }
     #problem {
-      flex-grow: 1;
       margin-right: 1em;
     }
     #submission {
       display: flex;
       flex-direction: column;
-      flex-grow: 1;
     }
     #submission-header {
       display: flex;
       justify-content: space-between;
+    }
+    #submission-header * {
+      white-space: nowrap;
     }
     #submission-codearea {
       flex-grow: 1;
