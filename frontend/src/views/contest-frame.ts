@@ -97,7 +97,9 @@ export class PenguinJudgeContestFrame extends LitElement {
     if (!c) return html``;
     const [tabName] = session.current_path.split('/').slice(2);
 
-    const contest_not_started = !(session.contest && session.contest.problems);
+    let contest_not_started = !(session.contest && session.contest.problems);
+    if (session.current_user.value && session.current_user.value.admin)
+      contest_not_started = false;  // 管理者は常にコンテストにアクセスできる
     const tabs = [
       ['トップ', router.generate('contest-top', { id: c.id }), undefined, false],
       ['問題', router.generate('contest-tasks', { id: c.id }), 'tasks', contest_not_started],
