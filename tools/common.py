@@ -4,6 +4,8 @@ import requests
 from env import ADMIN_USER, ADMIN_PASS, URL
 
 _AUTH_COOKIE = None
+if URL.endswith('/'):
+    URL = URL[:-1]
 
 
 def get(path):
@@ -37,13 +39,32 @@ def upload_test_dataset(contest_id, problem_id, zip_binary):
     )
 
 
-def login():
-    r = post_json('/auth', {'id': ADMIN_USER, 'password': ADMIN_PASS})
+def set_cookie(c):
+    global _AUTH_COOKIE
+    _AUTH_COOKIE = c
+
+
+def login(user_id = None, password = None):
+    if not user_id or not password:
+        user_id = ADMIN_USER
+        password = ADMIN_PASS
+    r = post_json('/auth', {'id': user_id, 'password': password})
     assert r.status_code == 200
     global _AUTH_COOKIE
     _AUTH_COOKIE = r.cookies
+    return r
 
 
 def logout():
     r = requests.delete(URL + '/auth', cookies=_AUTH_COOKIE)
     assert r.status_code == 204
+
+
+def register(user_id, user_name, password):
+    r = post_json('/users', {
+        'id': user_id,
+        'name': user_name,
+        'password': password
+    })
+    assert r.status_code == 201
+    return r
