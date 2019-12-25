@@ -104,7 +104,7 @@ export class AppContestTaskElement extends LitElement {
     return html`
       <div id="problem">
         <div id="title">${task.title}${admin_links}</div>
-        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB</div>
+        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB／配点: ${task.score}点</div>
         <wc-markdown>
 ${task.description}
 </wc-markdown>
