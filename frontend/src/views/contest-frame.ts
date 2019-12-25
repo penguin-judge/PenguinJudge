@@ -192,7 +192,7 @@ export class PenguinJudgeContestFrame extends LitElement {
       }
       #contest-clock {
         position: fixed;
-        right: 1ex;
+        left: 1ex;
         bottom: 1ex;
         border: 2px solid #888;
         border-radius: 10px;
@@ -201,6 +201,9 @@ export class PenguinJudgeContestFrame extends LitElement {
         background-color: #fdfdfd;
       }
       #contest-clock.hidden {
+        display: none;
+      }
+      #contest-clock:hover, #contest-clock *:hover {
         display: none;
       }
     `;
