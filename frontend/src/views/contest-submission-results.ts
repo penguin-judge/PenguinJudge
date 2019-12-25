@@ -74,7 +74,7 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
     });
     return html`
       ${pagenation}
-      <table>
+      <table id="submission_list">
         <thead><tr><td>提出日時</td><td>問題</td><td>ユーザ</td><td>言語</td><td>結果</td><td></td></tr></thead>
         <tbody>${nodes}</tbody>
       </table>`;
@@ -82,6 +82,10 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
 
   static get styles() {
     return css`
+    #submission_list {
+      border-collapse:collapse;
+      margin: auto;
+    }
     table {
       border-collapse:collapse;
     }
