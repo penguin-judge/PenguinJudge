@@ -1,4 +1,3 @@
-import { from, Subscription } from 'rxjs';
 import { customElement, LitElement, html, css } from 'lit-element';
 import { MainAreaPaddingPx } from './consts';
 import { API } from '../api';
@@ -6,37 +5,21 @@ import { router, session } from '../state';
 
 @customElement('x-login')
 export class AppHomeElement extends LitElement {
-  subscription: Subscription | null = null;
   errorStr: String | null = null;
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
-  }
 
   post(e: Event) {
     if (!this.shadowRoot) return;
     const userid = (<HTMLInputElement>this.shadowRoot.getElementById("userid")).value;
     const password = (<HTMLInputElement>this.shadowRoot.getElementById("password")).value;
 
-    this.subscription = from(API.login(userid, password)).subscribe(
-      _ => {
-        session.update_current_user();
-      },
-      err => {
-        if (err.status === 404 || err.status === 400) this.errorStr = 'ユーザIDまたはパスワードが違います';
-        if (err.status >= 500 && err.status <= 503) this.errorStr = 'サーバ側のエラーです';
-        this.requestUpdate();
-      },
-      () => {
-        // redirect
-        router.navigate('contests');
-      }
-    );
-
+    API.login(userid, password).then(_ => {
+      session.update_current_user();
+      router.navigate('home');  // redirect
+    }, err => {
+      if (err.status === 404 || err.status === 400) this.errorStr = 'ユーザIDまたはパスワードが違います';
+      if (err.status >= 500 && err.status <= 503) this.errorStr = 'サーバ側のエラーです';
+      this.requestUpdate();
+    });
     e.preventDefault();
   }
 
