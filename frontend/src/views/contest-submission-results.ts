@@ -86,9 +86,6 @@ export class PenguinJudgeContestSubmissionResults extends LitElement {
       border-collapse:collapse;
       margin: auto;
     }
-    table {
-      border-collapse:collapse;
-    }
     td {
       border: 1px solid #bbb;
       padding: 0.5ex 1ex;
