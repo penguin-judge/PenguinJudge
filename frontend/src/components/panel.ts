@@ -24,6 +24,7 @@ export class PanelElement extends LitElement {
         border-bottom: 1px solid #ddd;
         padding: 10px;
         font-size: 110%;
+        font-weight: bold; 
       }
       #contents {
         padding: 1em;

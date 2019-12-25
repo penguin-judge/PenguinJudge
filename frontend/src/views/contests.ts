@@ -19,7 +19,7 @@ export class AppContentsElement extends LitElement {
 
   render() {
     this._table.setItems(this._contests);
-    return html`${this._table}`;
+    return html`<h2>コンテスト一覧</h2>${this._table}`;
   }
 
   static get styles() {
