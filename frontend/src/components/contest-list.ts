@@ -16,7 +16,7 @@ export class ContestListElement extends LitElement {
     const elements: TemplateResult[] = [];
     this._items.forEach(c => {
       const href= router.generate('contest-top', { id: c.id });
-      elements.push(html`<tr @click="${() => router.navigate(href)}">
+      elements.push(html`<tr class="row_contests" @click="${() => router.navigate(href)}">
         <td><a is="router-link" href="${href}">${format_datetime(c.start_time)}</a></td>
         <td><a is="router-link" href="${href}">${c.title}</a></td>
         <td>${format_timespan(Date.parse(c.end_time) - Date.parse(c.start_time))}</td>
@@ -38,7 +38,7 @@ export class ContestListElement extends LitElement {
       cursor: pointer;
     }
 
-    table tr:hover{
+    table tr.row_contests:hover{
       background-color: #f0f8ff;
     }
 
