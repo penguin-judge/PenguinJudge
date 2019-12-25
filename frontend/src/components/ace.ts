@@ -1,7 +1,8 @@
-import { LitElement, customElement, html, css } from 'lit-element';
+import { LitElement, customElement, html, css, property } from 'lit-element';
 
 @customElement('x-ace-editor')
 export class AceEditor extends LitElement {
+  @property( { type : Boolean }  ) autofocus = false;
   _editor: AceAjax.Editor | null = null;
 
   render() {
@@ -50,6 +51,8 @@ export class AceEditor extends LitElement {
     // @ts-ignore
     this._editor.renderer.attachToShadowRoot();
     this._editor.resize();
+    if (this.autofocus)
+      this._editor.focus();
   }
 
   static get styles() {

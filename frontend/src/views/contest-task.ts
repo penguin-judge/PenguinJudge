@@ -115,7 +115,7 @@ ${task.description}
           <button @click="${this.post}">提出</button>
         </div>
         <div id="submission-codearea">
-          <x-ace-editor id="code"></x-ace-editor>
+          <x-ace-editor id="code" autofocus></x-ace-editor>
         </div>
       </div>
     `

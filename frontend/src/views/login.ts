@@ -7,6 +7,16 @@ import { router, session } from '../state';
 export class AppHomeElement extends LitElement {
   errorStr: String | null = null;
 
+  constructor() {
+    super();
+    this.updateComplete.then(_ => {
+      const e = <HTMLInputElement>this.shadowRoot!.querySelector('#userid');
+      if (e) {
+        e.focus();
+      }
+    });
+  }
+
   post(e: Event) {
     if (!this.shadowRoot) return;
     const userid = (<HTMLInputElement>this.shadowRoot.getElementById("userid")).value;

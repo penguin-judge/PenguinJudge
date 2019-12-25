@@ -8,8 +8,14 @@ export class RegisterElement extends LitElement {
   errorMsg: String | null = null;
   isWaitingResponce: boolean = false;
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
+  constructor() {
+    super();
+    this.updateComplete.then(_ => {
+      const e = <HTMLInputElement>this.shadowRoot!.querySelector('#userid');
+      if (e) {
+        e.focus();
+      }
+    });
   }
 
   async post(e: Event) {
