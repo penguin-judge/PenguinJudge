@@ -48,13 +48,16 @@ class Worker(object):
             self._conn.close()
 
     def start(self) -> None:
+        self._connect()
+        asyncio.get_event_loop().call_soon_threadsafe(self._update_status)
+        asyncio.get_event_loop().run_forever()
+
+    def _connect(self) -> None:
         self._conn = AsyncioConnection(
             parameters=get_mq_conn_params(),
             on_open_callback=self._conn_on_open,
             on_open_error_callback=self._conn_on_open_error,
             on_close_callback=self._conn_on_close)
-        asyncio.get_event_loop().call_soon_threadsafe(self._update_status)
-        asyncio.get_event_loop().run_forever()
 
     def _schedule_update_status(self) -> None:
         asyncio.get_event_loop().call_later(
@@ -98,10 +101,12 @@ class Worker(object):
 
     def _conn_on_open_error(self, _: AsyncioConnection,
                             err: AMQPError) -> None:
-        pass  # TODO
+        print('Cannot open RabbitMQ connection. retrying...')
+        asyncio.get_event_loop().call_later(uniform(1, 5), self._connect)
 
     def _conn_on_close(self, _: AsyncioConnection, reason: AMQPError) -> None:
-        pass  # TODO
+        print('RabbitMQ connection closed. retrying...')
+        asyncio.get_event_loop().call_later(uniform(1, 5), self._connect)
 
     def _ch_on_open(self, ch: Channel) -> None:
         self._ch = ch
@@ -110,7 +115,6 @@ class Worker(object):
             queue=self._queue_name, callback=self._on_queue_declared)
 
     def _ch_on_close(self, ch: Channel, reason: AMQPError) -> None:
-        # TODO
         try:
             self._conn.close()
         except Exception:
@@ -126,6 +130,7 @@ class Worker(object):
     def _start_consuming(self) -> None:
         self._ch.basic_consume(
             self._queue_name, on_message_callback=self._recv_message)
+        print('Worker started')
 
     def _recv_message(
             self,
@@ -193,7 +198,6 @@ class Worker(object):
 
 def _initializer(db_config: dict) -> None:
     from penguin_judge.models import configure
-    print('[worker:child] init {}'.format(db_config), flush=True)
     configure(**db_config)
 
 
