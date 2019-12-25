@@ -89,10 +89,10 @@ export function implementsAccepted(arg: any): arg is AcceptedProblem {
 
 export interface Standing {
   user_id: string;
-  score: number;
-  penalties: number;
-  time: number;
-  adjusted_time: number;
+  score?: number;
+  penalties?: number;
+  time?: number;
+  adjusted_time?: number;
   ranking: number;
   problems: {
     [index: string]: AcceptedProblem | UnacceptedProblem;
