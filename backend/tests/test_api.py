@@ -467,7 +467,8 @@ class TestAPI(unittest.TestCase):
                     id='user{}'.format(i), name='User{}'.format(i), salt=salt,
                     password=passwd))
 
-        self.assertEquals([], app.get('/contests/abc000/rankings').json)
+        # 未提出者もランキングに載せるようにした
+        # self.assertEquals([], app.get('/contests/abc000/rankings').json)
 
         with transaction() as s:
             problem_kwargs = [dict(
@@ -501,7 +502,8 @@ class TestAPI(unittest.TestCase):
                             created=start + d * t, **problem_kwargs[i]))
 
         ret = app.get('/contests/abc000/rankings').json
-        self.assertEquals(4, len(ret))
+        # 未提出者もランキングに載せるようにした
+        # self.assertEquals(4, len(ret))
         self.assertEquals(ret[0]['user_id'], 'user0')
         self.assertEquals(ret[1]['user_id'], 'user1')
         self.assertEquals(ret[2]['user_id'], 'user2')

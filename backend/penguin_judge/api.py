@@ -543,6 +543,11 @@ def list_rankings(contest_id: str) -> Response:
             Problem.id, Problem.score).filter(Problem.contest_id == contest_id)
         }
 
+        # 一度も提出していない人をランキングに載せるために利用
+        users_never_submitted = {
+            u.id: u.to_summary_dict()
+            for u in s.query(User).filter(User.admin.is_(False))}
+
         q = s.query(
             Submission.user_id, Submission.problem_id,
             Submission.status, Submission.created,
@@ -556,6 +561,7 @@ def list_rankings(contest_id: str) -> Response:
         for (uid, pid, st, t) in q:
             if uid not in users:
                 users[uid] = []
+                users_never_submitted.pop(uid, None)
             users[uid].append((pid, t - contest.start_time, st))
 
     results = []
@@ -591,6 +597,13 @@ def list_rankings(contest_id: str) -> Response:
     results.sort(key=lambda x: (-x['score'], x['adjusted_time']))
     for i, r in enumerate(results):
         r['ranking'] = i + 1
+
+    # 一度も提出していない人をランキング末尾に同じ順位で追加
+    last_ranking = len(results) + 1
+    for u in users_never_submitted.values():
+        results.append(dict(
+            ranking=last_ranking, user_id=u['id'], problems={}))
+
     return jsonify(results)
 
 

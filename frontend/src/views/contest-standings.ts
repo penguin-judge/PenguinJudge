@@ -71,12 +71,12 @@ export class PenguinJudgeContestStandings extends LitElement {
         })}
             </tr>
         </thead>
-        <tbody>${this.standings.filter((_, i) => isInCurrentPage(i)).map((user) => html`<tr>
+        <tbody>${this.standings.filter((_, i) => isInCurrentPage(i)).map((user) => html`<tr class="${user.score === undefined ? 'never-submitted' : ''}">
             <td class="rank">${user.ranking}</td>
             <td class="user-id">${user.user_id}</td>
             <td class="score-time">
-                <div class="score">${user.score}</div>
-                <div class="time">${formatElapsedTime(user.adjusted_time)}</div>        
+                <div class="score">${user.score !== undefined ? user.score : '-'}</div>
+                <div class="time">${user.adjusted_time !== undefined ? formatElapsedTime(user.adjusted_time) : '--:--'}</div>
             </td>
             ${
             this.problems.map(s => {
@@ -120,6 +120,9 @@ export class PenguinJudgeContestStandings extends LitElement {
       font-weight: bold;
       text-align: center;
       min-width: 60px;
+    }
+    tr.never-submitted {
+      color: darkgrey;
     }
     .user-id {
         font-weight: bold;
