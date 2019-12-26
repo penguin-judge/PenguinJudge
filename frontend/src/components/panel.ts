@@ -23,8 +23,10 @@ export class PanelElement extends LitElement {
         background-color: #f5f5f5;
         border-bottom: 1px solid #ddd;
         padding: 10px;
+        padding-top: 0px;
+        margin-top: 10px;
         font-size: 110%;
-        font-weight: bold; 
+        font-weight: bold;
       }
       #contents {
         padding: 1em;
