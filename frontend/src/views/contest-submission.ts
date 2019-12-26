@@ -73,7 +73,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
     return html`
       <h2>提出: #${this.submission.id} <span>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</span></h2>
       <div id="container">
-        <div id="left-pane">
+        <div id="left-pane" class="${new Date() < new Date(session.contest!.end_time) ? 'ongoing' : ''}">
           <div class="info">
             <div>
               <label>提出日時:</label>
@@ -159,6 +159,9 @@ export class PenguinJudgeContestSubmission extends LitElement {
       .testcase td:nth-child(n+3) {
         text-align: right;
       }
+      .testcase td, .testcase th {
+        white-space: nowrap;
+      }
       td .AC, td.WA { margin-right: 2px }
       .AC, .WA { vertical-align: middle; }
       .AC {
@@ -166,6 +169,9 @@ export class PenguinJudgeContestSubmission extends LitElement {
       }
       .WA {
         color: red;
+      }
+      .ongoing {
+        margin-bottom: 5em;
       }
     `;
   }
