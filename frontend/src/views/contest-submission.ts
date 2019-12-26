@@ -159,6 +159,9 @@ export class PenguinJudgeContestSubmission extends LitElement {
       .testcase td:nth-child(n+3) {
         text-align: right;
       }
+      .testcase td, .testcase th {
+        white-space: nowrap;
+      }
       td .AC, td.WA { margin-right: 2px }
       .AC, .WA { vertical-align: middle; }
       .AC {
