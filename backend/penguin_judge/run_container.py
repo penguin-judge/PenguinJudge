@@ -67,8 +67,19 @@ class DockerJudgeDriver(JudgeDriver):
             ),
         )
         if task['environment'].get('compile_image_name'):
+            # TODO(*): 冗長なのを見直す
+            compile_cfg = dict(
+                stdin_open=True,
+                network_disabled=True,
+                host_config=self.client.create_host_config(
+                    auto_remove=True,
+                    cap_drop=['ALL'],
+                    mem_limit=2**30,  # TODO(*): 1GB上限
+                    memswap_limit=2**30,  # TODO(*): 1GB上限
+                ),
+            )
             self.compile_container = self.client.create_container(
-                task['environment'].get('compile_image_name'), **common_cfg)
+                task['environment'].get('compile_image_name'), **compile_cfg)
             self.client.start(self.compile_container)
         self.test_container = self.client.create_container(
             task['environment']['test_image_name'], **common_cfg)
@@ -90,12 +101,11 @@ class DockerJudgeDriver(JudgeDriver):
                 params={'stdin': 1, 'stdout': 1, 'stream': 1})
             reader = BufferedReader(DockerStdoutReader(s))
             writer = BufferedWriter(DockerStdinWriter(s))
-            # TODO(*): コンパイルのタイムアウト/メモリ上限はどうする?
             self._send(writer, {
                 'type': 'Compilation',
                 'code': task['code'],
-                'time_limit': self.time_limit,
-                'memory_limit': self.memory_limit,
+                'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
+                'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
             })
             resp = self._recv(reader)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
