@@ -539,6 +539,7 @@ def list_rankings(contest_id: str) -> Response:
         if not contest.is_begun():
             abort(403)
         contest_penalty = contest.penalty
+        contest_start_time = contest.start_time
 
         problems = {p.id: p.score for p in s.query(
             Problem.id, Problem.score).filter(Problem.contest_id == contest_id)
@@ -563,12 +564,12 @@ def list_rankings(contest_id: str) -> Response:
             if uid not in users:
                 users[uid] = []
                 users_never_submitted.pop(uid, None)
-            users[uid].append((pid, t - contest.start_time, st))
+            users[uid].append((pid, t, st))
 
     results = []
     for uid, all_submission in users.items():
         all_submission.sort(key=lambda x: (x[0], x[1]))
-        total_time = timedelta()
+        max_time = contest_start_time
         total_score = 0
         total_penalties = 0
         ret = dict(user_id=uid, problems={})
@@ -578,9 +579,9 @@ def list_rankings(contest_id: str) -> Response:
             tmp: Dict[str, Union[float, int, timedelta]] = {}
             for (_, submit_time, submit_status) in submissions:
                 if submit_status == JudgeStatus.Accepted:
-                    time = tmp['time'] = submit_time
+                    tmp['time'] = submit_time - contest_start_time
                     score = tmp['score'] = problems[problem_id]
-                    total_time += time
+                    max_time = max(max_time, submit_time)
                     total_score += score
                     total_penalties += n_penalties
                     break
@@ -590,6 +591,7 @@ def list_rankings(contest_id: str) -> Response:
                     n_penalties += 1
             tmp['penalties'] = n_penalties
             ret['problems'][problem_id] = tmp
+        total_time = max_time - contest_start_time
         ret.update(dict(
             time=total_time, score=total_score, penalties=total_penalties,
             adjusted_time=total_time + total_penalties * contest_penalty))
