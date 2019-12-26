@@ -303,7 +303,8 @@ def get_contest(contest_id: str) -> Response:
         ret = contest.to_dict()
         if contest.is_begun() or (u and u['admin']):
             problems = s.query(Problem).filter(
-                Problem.contest_id == contest_id).all()
+                Problem.contest_id == contest_id
+            ).order_by(Problem.id).all()
             if problems:
                 ret['problems'] = [p.to_dict() for p in problems]
     return jsonify(ret)
@@ -319,7 +320,7 @@ def list_problems(contest_id: str) -> Response:
         if not (contest.is_begun() or (u and u['admin'])):
             abort(403)
         ret = [p.to_summary_dict() for p in s.query(Problem).filter(
-            Problem.contest_id == contest_id).all()]
+            Problem.contest_id == contest_id).order_by(Problem.id).all()]
     return jsonify(ret)
 
 
