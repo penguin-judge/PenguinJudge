@@ -595,14 +595,17 @@ def list_rankings(contest_id: str) -> Response:
         results.append(ret)
 
     results.sort(key=lambda x: (-x['score'], x['adjusted_time']))
+    ranking = 0
     for i, r in enumerate(results):
-        r['ranking'] = i + 1
+        if i == 0 or results[i - 1]['score'] != 0:  # 0点の人は同じ順位とする
+            ranking += 1
+        r['ranking'] = ranking
 
     # 一度も提出していない人をランキング末尾に同じ順位で追加
-    last_ranking = len(results) + 1
+    ranking += 1
     for u in users_never_submitted.values():
         results.append(dict(
-            ranking=last_ranking, user_id=u['id'], problems={}))
+            ranking=ranking, user_id=u['id'], problems={}))
 
     return jsonify(results)
 
