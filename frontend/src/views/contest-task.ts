@@ -104,8 +104,8 @@ export class AppContestTaskElement extends LitElement {
     return html`
       <div id="problem">
         <div id="title">${task.title}${admin_links}</div>
-        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB</div>
-        <wc-markdown>
+        <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB／配点: ${task.score}点</div>
+        <wc-markdown class="${new Date() < new Date(session.contest.end_time) ? 'ongoing' : ''}">
 ${task.description}
 </wc-markdown>
       </div>
@@ -168,6 +168,9 @@ ${task.description}
     }
     #admin-links a:hover {
       background-color: #ddd;
+    }
+    wc-markdown.ongoing {
+      margin-bottom: 5em;
     }
     `
   }
