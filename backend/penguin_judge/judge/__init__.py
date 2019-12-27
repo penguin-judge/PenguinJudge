@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from io import BufferedIOBase
 import struct
-from typing import Any, Union, Tuple, Optional, List, NamedTuple, Type, TypeVar
+from typing import (
+    Any, Callable, Union, Optional, List, NamedTuple, Type, TypeVar)
 
 import msgpack  # type: ignore
 
@@ -29,6 +30,7 @@ class JudgeTask(object):
     time_limit: int
     memory_limit: int
     tests: List[JudgeTestInfo]
+    compile_time: Optional[timedelta] = None
 
 
 class AgentCompilationResult(NamedTuple):
@@ -47,6 +49,9 @@ class AgentError(NamedTuple):
 
 
 T = TypeVar('T')
+TStartTestCallback = Callable[[str], None]
+TJudgeCallback = Callable[
+    [JudgeTestInfo, Union[AgentTestResult, AgentError]], None]
 CompileResult = AgentCompilationResult
 
 
@@ -59,8 +64,9 @@ class JudgeDriver(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def tests(self, task: JudgeTask) -> Tuple[
-            JudgeStatus, Optional[timedelta], Optional[int]]:
+    def tests(self, task: JudgeTask,
+              start_test_callback: TStartTestCallback,
+              judge_complete_callback: TJudgeCallback) -> None:
         raise NotImplementedError
 
     def __enter__(self) -> 'JudgeDriver':

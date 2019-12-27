@@ -1,17 +1,15 @@
-from datetime import timedelta
 import os
 from io import RawIOBase, BufferedReader, BufferedWriter
-from typing import Any, Union, Tuple, Optional, MutableSequence
+from typing import Any, Union, MutableSequence
 import struct
 from logging import getLogger
 
 import docker  # type: ignore
 
-from penguin_judge.models import JudgeStatus, JudgeResult, transaction
-from penguin_judge.check_result import equal_binary
+from penguin_judge.models import JudgeStatus
 from penguin_judge.judge import (
-    JudgeDriver, JudgeTask,
-    AgentCompilationResult, AgentTestResult, CompileResult)
+    JudgeDriver, JudgeTask, TStartTestCallback, TJudgeCallback,
+    AgentCompilationResult, CompileResult)
 
 LOGGER = getLogger(__name__)
 
@@ -82,84 +80,29 @@ class DockerJudgeDriver(JudgeDriver):
         except Exception:
             return JudgeStatus.InternalError
 
-    def tests(self, task: JudgeTask) -> Tuple[
-            JudgeStatus, Optional[timedelta], Optional[int]]:
-        max_time: Optional[timedelta] = None
-        max_memory: Optional[int] = None
-
-        def _update_status(test_id: str, st: JudgeStatus,
-                           time: Optional[timedelta] = None,
-                           memory_kb: Optional[int] = None) -> None:
-            updates: dict = {JudgeResult.status: st}
-            if time is not None:
-                updates[JudgeResult.time] = time
-            if memory_kb is not None:
-                updates[JudgeResult.memory] = memory_kb
-            with transaction() as s:
-                s.query(JudgeResult).filter(
-                    JudgeResult.contest_id == task.contest_id,
-                    JudgeResult.problem_id == task.problem_id,
-                    JudgeResult.submission_id == task.id,
-                    JudgeResult.test_id == test_id,
-                ).update(updates, synchronize_session=False)
-
-        try:
-            s = self.client.attach_socket(
-                self.test_container,
-                params={'stdin': 1, 'stdout': 1, 'stream': 1})
-            reader = BufferedReader(DockerStdoutReader(s))
-            writer = BufferedWriter(DockerStdinWriter(s))
+    def tests(self, task: JudgeTask,
+              start_test_callback: TStartTestCallback,
+              judge_complete_callback: TJudgeCallback) -> None:
+        s = self.client.attach_socket(
+            self.test_container,
+            params={'stdin': 1, 'stdout': 1, 'stream': 1})
+        reader = BufferedReader(DockerStdoutReader(s))
+        writer = BufferedWriter(DockerStdinWriter(s))
+        self._send(writer, {
+            'type': 'Preparation',
+            'code': task.code,
+            'time_limit': task.time_limit,
+            'memory_limit': task.memory_limit,
+            'output_limit': 1,
+        })
+        for test in task.tests:
+            start_test_callback(test.id)
             self._send(writer, {
-                'type': 'Preparation',
-                'code': task.code,
-                'time_limit': task.time_limit,
-                'memory_limit': task.memory_limit,
-                'output_limit': 1,
+                'type': 'Test',
+                'input': test.input
             })
-
-            status_set = set()
-            for test in task.tests:
-                _update_status(test.id, JudgeStatus.Running)
-                self._send(writer, {
-                    'type': 'Test',
-                    'input': test.input
-                })
-                resp = self._recv_test_result(reader)
-                time_raw: Optional[float] = None
-                mem_raw: Optional[int] = None
-                if isinstance(resp, AgentTestResult):
-                    time_raw, mem_raw = resp.time, resp.memory_bytes
-                    if equal_binary(test.output, resp.output):
-                        status = JudgeStatus.Accepted
-                    else:
-                        status = JudgeStatus.WrongAnswer
-                else:
-                    status = JudgeStatus.from_str(resp.kind)
-                time: Optional[timedelta] = None
-                mem: Optional[int] = None
-                if time_raw is not None:
-                    time = timedelta(seconds=time_raw)
-                if mem_raw is not None:
-                    mem = mem_raw // 1024
-                _update_status(test.id, status, time, mem)
-                if time is not None and (max_time is None or max_time < time):
-                    max_time = time
-                if mem is not None and (
-                        max_memory is None or max_memory < mem):
-                    max_memory = mem
-                status_set.add(status)
-
-            if len(status_set) == 1:
-                return list(status_set)[0], max_time, max_memory
-            for x in (JudgeStatus.InternalError, JudgeStatus.RuntimeError,
-                      JudgeStatus.WrongAnswer, JudgeStatus.MemoryLimitExceeded,
-                      JudgeStatus.TimeLimitExceeded,
-                      JudgeStatus.OutputLimitExceeded):
-                if x in status_set:
-                    return x, max_time, max_memory
-            raise RuntimeError  # 未知のkindの場合はInternalError
-        except Exception:
-            return JudgeStatus.InternalError, max_time, max_memory
+            resp = self._recv_test_result(reader)
+            judge_complete_callback(test, resp)
 
 
 class DockerStdoutReader(RawIOBase):
