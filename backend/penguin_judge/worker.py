@@ -20,6 +20,7 @@ from penguin_judge.models import (
     Environment, Problem, Submission, JudgeStatus, JudgeResult, TestCase,
     Worker as WorkerTable, transaction)
 from penguin_judge.mq import get_mq_conn_params
+from penguin_judge.judge import JudgeTask, JudgeTestInfo
 from penguin_judge.judge.docker import DockerJudgeDriver
 from penguin_judge.judge.main import run
 
@@ -198,10 +199,17 @@ class Worker(object):
                         JudgeResult.problem_id == problem_id,
                         JudgeResult.submission_id == submission_id)}
 
-            task = submission.to_dict()
-            task['environment'] = env.to_dict()
-            task['problem'] = problem.to_dict()
-            task['tests'] = []
+            task = JudgeTask(
+                id=submission_id,
+                contest_id=contest_id,
+                problem_id=problem_id,
+                user_id=submission.user_id,
+                code=submission.code,
+                compile_image_name=env.compile_image_name,
+                test_image_name=env.test_image_name,
+                time_limit=problem.time_limit,
+                memory_limit=problem.memory_limit,
+                tests=[])
             submission.status = JudgeStatus.Running
             testcases = s.query(TestCase).filter(
                 TestCase.contest_id == contest_id,
@@ -215,10 +223,11 @@ class Worker(object):
                 if not jr or jr.status in (
                         JudgeStatus.Waiting, JudgeStatus.Running,
                         JudgeStatus.InternalError):
-                    task['tests'].append(test.to_dict())
+                    task.tests.append(JudgeTestInfo(
+                        id=test.id, input=test.input, output=test.output))
 
         # テストの実行順序をシャッフルする
-        shuffle(task['tests'])
+        shuffle(task.tests)
 
         def _submit() -> None:
             LOGGER.info('submit to child process (submission.id={})'.format(

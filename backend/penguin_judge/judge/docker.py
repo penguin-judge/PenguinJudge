@@ -9,7 +9,7 @@ import docker  # type: ignore
 
 from penguin_judge.models import JudgeStatus, JudgeResult, transaction
 from penguin_judge.check_result import equal_binary
-from penguin_judge.judge import JudgeDriver
+from penguin_judge.judge import JudgeDriver, JudgeTask, CompileResult
 
 LOGGER = getLogger(__name__)
 
@@ -19,13 +19,9 @@ class DockerJudgeDriver(JudgeDriver):
         self.client = docker.APIClient()
         self.compile_container = None
         self.test_container = None
-        self.time_limit = 0
-        self.memory_limit = 0
 
-    def prepare(self, task: dict) -> None:
-        self.time_limit = task['problem']['time_limit']
-        self.memory_limit = task['problem']['memory_limit']
-        mem_limit = self.memory_limit * (2**20)
+    def prepare(self, task: JudgeTask) -> None:
+        mem_limit = task.memory_limit * (2**20)
         common_cfg = dict(
             stdin_open=True,
             network_disabled=True,
@@ -36,7 +32,7 @@ class DockerJudgeDriver(JudgeDriver):
                 memswap_limit=mem_limit,
             ),
         )
-        if task['environment'].get('compile_image_name'):
+        if task.compile_image_name:
             # TODO(*): 冗長なのを見直す
             compile_cfg = dict(
                 stdin_open=True,
@@ -49,10 +45,10 @@ class DockerJudgeDriver(JudgeDriver):
                 ),
             )
             self.compile_container = self.client.create_container(
-                task['environment'].get('compile_image_name'), **compile_cfg)
+                task.compile_image_name, **compile_cfg)
             self.client.start(self.compile_container)
         self.test_container = self.client.create_container(
-            task['environment']['test_image_name'], **common_cfg)
+            task.test_image_name, **common_cfg)
         self.client.start(self.test_container)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -64,7 +60,7 @@ class DockerJudgeDriver(JudgeDriver):
             except Exception:
                 pass
 
-    def compile(self, task: dict) -> Union[JudgeStatus, Tuple[bytes, float]]:
+    def compile(self, task: JudgeTask) -> Union[JudgeStatus, CompileResult]:
         try:
             s = self.client.attach_socket(
                 self.compile_container,
@@ -73,18 +69,18 @@ class DockerJudgeDriver(JudgeDriver):
             writer = BufferedWriter(DockerStdinWriter(s))
             self._send(writer, {
                 'type': 'Compilation',
-                'code': task['code'],
+                'code': task.code,
                 'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
                 'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
             })
             resp = self._recv(reader)
             if isinstance(resp, dict) and resp.get('type') == 'Compilation':
-                return (resp['binary'], resp['time'])
+                return CompileResult(binary=resp['binary'], time=resp['time'])
             return JudgeStatus.CompilationError
         except Exception:
             return JudgeStatus.InternalError
 
-    def tests(self, task: dict) -> Tuple[
+    def tests(self, task: JudgeTask) -> Tuple[
             JudgeStatus, Optional[timedelta], Optional[int]]:
         max_time: Optional[timedelta] = None
         max_memory: Optional[int] = None
@@ -99,9 +95,9 @@ class DockerJudgeDriver(JudgeDriver):
                 updates[JudgeResult.memory] = memory_kb
             with transaction() as s:
                 s.query(JudgeResult).filter(
-                    JudgeResult.contest_id == task['contest_id'],
-                    JudgeResult.problem_id == task['problem_id'],
-                    JudgeResult.submission_id == task['id'],
+                    JudgeResult.contest_id == task.contest_id,
+                    JudgeResult.problem_id == task.problem_id,
+                    JudgeResult.submission_id == task.id,
                     JudgeResult.test_id == test_id,
                 ).update(updates, synchronize_session=False)
 
@@ -113,26 +109,25 @@ class DockerJudgeDriver(JudgeDriver):
             writer = BufferedWriter(DockerStdinWriter(s))
             self._send(writer, {
                 'type': 'Preparation',
-                'code': task['code'],
-                'time_limit': self.time_limit,
-                'memory_limit': self.memory_limit,
+                'code': task.code,
+                'time_limit': task.time_limit,
+                'memory_limit': task.memory_limit,
                 'output_limit': 1,
             })
 
             status_set = set()
-            for test in task['tests']:
-                _update_status(test['id'], JudgeStatus.Running)
+            for test in task.tests:
+                _update_status(test.id, JudgeStatus.Running)
                 self._send(writer, {
                     'type': 'Test',
-                    'input': test['input']
+                    'input': test.input
                 })
                 resp = self._recv(reader)
                 typ = resp.get('type')
                 kind = resp.get('kind')
                 if typ == 'Test':
-                    assert isinstance(test['output'], bytes)
                     assert isinstance(resp['output'], bytes)
-                    if equal_binary(test['output'], resp['output']):
+                    if equal_binary(test.output, resp['output']):
                         status = JudgeStatus.Accepted
                     else:
                         status = JudgeStatus.WrongAnswer
@@ -145,7 +140,7 @@ class DockerJudgeDriver(JudgeDriver):
                     time = timedelta(seconds=time_raw)
                 if mem_raw is not None:
                     mem = mem_raw // 1024
-                _update_status(test['id'], status, time, mem)
+                _update_status(test.id, status, time, mem)
                 if time is not None and (max_time is None or max_time < time):
                     max_time = time
                 if mem is not None and (
