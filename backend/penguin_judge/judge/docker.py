@@ -22,33 +22,38 @@ class DockerJudgeDriver(JudgeDriver):
 
     def prepare(self, task: JudgeTask) -> None:
         mem_limit = task.memory_limit * (2**20)
+        common_host_cfg = dict(
+            auto_remove=True,
+            cap_drop=['ALL'])
         common_cfg = dict(
             stdin_open=True,
             network_disabled=True,
-            host_config=self.client.create_host_config(
-                auto_remove=True,
-                cap_drop=['ALL'],
-                mem_limit=mem_limit,
-                memswap_limit=mem_limit,
-            ),
         )
         if task.compile_image_name:
-            # TODO(*): 冗長なのを見直す
             compile_cfg = dict(
-                stdin_open=True,
-                network_disabled=True,
-                host_config=self.client.create_host_config(
-                    auto_remove=True,
-                    cap_drop=['ALL'],
+                host_config=self.client.create_host_config(**dict(
                     mem_limit=2**30,  # TODO(*): 1GB上限
                     memswap_limit=2**30,  # TODO(*): 1GB上限
-                ),
+                    **common_host_cfg)),
+                **common_cfg,
             )
             self.compile_container = self.client.create_container(
                 task.compile_image_name, **compile_cfg)
             self.client.start(self.compile_container)
+
+        # pids_limit:
+        #    go-langは7, nodejsは8, jdk14は17程度, それ以外は3が最低限。
+        #    余裕を見て20を指定しておく
+        test_cfg = dict(
+            host_config=self.client.create_host_config(**dict(
+                mem_limit=mem_limit,
+                memswap_limit=mem_limit,
+                pids_limit=20,
+                **common_host_cfg)),
+            **common_cfg,
+        )
         self.test_container = self.client.create_container(
-            task.test_image_name, **common_cfg)
+            task.test_image_name, **test_cfg)
         self.client.start(self.test_container)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
