@@ -66,24 +66,21 @@ class DockerJudgeDriver(JudgeDriver):
                 pass
 
     def compile(self, task: JudgeTask) -> Union[JudgeStatus, CompileResult]:
-        try:
-            s = self.client.attach_socket(
-                self.compile_container,
-                params={'stdin': 1, 'stdout': 1, 'stream': 1})
-            reader = BufferedReader(DockerStdoutReader(s))
-            writer = BufferedWriter(DockerStdinWriter(s))
-            self._send(writer, {
-                'type': 'Compilation',
-                'code': task.code,
-                'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
-                'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
-            })
-            resp = self._recv_compile_result(reader)
-            if isinstance(resp, AgentCompilationResult):
-                return resp
-            return JudgeStatus.CompilationError
-        except Exception:
-            return JudgeStatus.InternalError
+        s = self.client.attach_socket(
+            self.compile_container,
+            params={'stdin': 1, 'stdout': 1, 'stream': 1})
+        reader = BufferedReader(DockerStdoutReader(s))
+        writer = BufferedWriter(DockerStdinWriter(s))
+        self._send(writer, {
+            'type': 'Compilation',
+            'code': task.code,
+            'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
+            'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
+        })
+        resp = self._recv_compile_result(reader)
+        if isinstance(resp, AgentCompilationResult):
+            return resp
+        return JudgeStatus.CompilationError
 
     def tests(self, task: JudgeTask,
               start_test_callback: TStartTestCallback,

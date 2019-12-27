@@ -54,7 +54,11 @@ def _prepare(judge: JudgeDriver, task: JudgeTask) -> Union[JudgeStatus, None]:
 
 
 def _compile(judge: JudgeDriver, task: JudgeTask) -> Union[JudgeStatus, None]:
-    ret = judge.compile(task)
+    try:
+        ret = judge.compile(task)
+    except Exception:
+        LOGGER.warning('compile failed', exc_info=True)
+        ret = JudgeStatus.InternalError
     if isinstance(ret, JudgeStatus):
         with transaction() as s:
             _update_submission_status(s, task, ret)
