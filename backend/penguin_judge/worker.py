@@ -20,7 +20,8 @@ from penguin_judge.models import (
     Environment, Problem, Submission, JudgeStatus, JudgeResult, TestCase,
     Worker as WorkerTable, transaction)
 from penguin_judge.mq import get_mq_conn_params
-from penguin_judge.run_container import run
+from penguin_judge.judge.docker import DockerJudgeDriver
+from penguin_judge.judge.main import run
 
 LOGGER = getLogger(__name__)
 
@@ -222,7 +223,7 @@ class Worker(object):
         def _submit() -> None:
             LOGGER.info('submit to child process (submission.id={})'.format(
                 submission_id))
-            future = self._executor.submit(run, task)
+            future = self._executor.submit(run, DockerJudgeDriver, task)
             future.add_done_callback(_done)
         asyncio.get_event_loop().call_soon_threadsafe(_submit)
 
