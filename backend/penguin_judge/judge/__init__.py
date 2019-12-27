@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from io import BufferedIOBase
 import struct
-from typing import Any, Union, Tuple, Optional, List, NamedTuple
+from typing import Any, Union, Tuple, Optional, List, NamedTuple, Type, TypeVar
 
 import msgpack  # type: ignore
 
@@ -31,9 +31,23 @@ class JudgeTask(object):
     tests: List[JudgeTestInfo]
 
 
-class CompileResult(NamedTuple):
+class AgentCompilationResult(NamedTuple):
     binary: bytes
     time: float
+
+
+class AgentTestResult(NamedTuple):
+    output: bytes
+    time: float
+    memory_bytes: int
+
+
+class AgentError(NamedTuple):
+    kind: str
+
+
+T = TypeVar('T')
+CompileResult = AgentCompilationResult
 
 
 class JudgeDriver(metaclass=ABCMeta):
@@ -61,6 +75,24 @@ class JudgeDriver(metaclass=ABCMeta):
         strm.write(b)
         strm.flush()
 
-    def _recv(self, strm: BufferedIOBase) -> dict:
+    def __recv(self, strm: BufferedIOBase) -> dict:
         sz = struct.unpack('<I', strm.read(4))[0]
         return msgpack.unpackb(strm.read(sz), raw=False)
+
+    def __recv_agent_resp(
+            self, strm: BufferedIOBase, cls: Type[T]) -> Union[T, AgentError]:
+        o = self.__recv(strm)
+        if not isinstance(o, dict) or 'type' not in o:
+            raise ValueError('invalid agent response')
+        if o['type'] == 'Error':
+            return AgentError(kind=o['kind'])
+        args = [o[n] for n in cls._fields]  # type: ignore
+        return cls(*args)
+
+    def _recv_compile_result(self, strm: BufferedIOBase) -> Union[
+            AgentCompilationResult, AgentError]:
+        return self.__recv_agent_resp(strm, AgentCompilationResult)
+
+    def _recv_test_result(self, strm: BufferedIOBase) -> Union[
+            AgentTestResult, AgentError]:
+        return self.__recv_agent_resp(strm, AgentTestResult)

@@ -9,7 +9,9 @@ import docker  # type: ignore
 
 from penguin_judge.models import JudgeStatus, JudgeResult, transaction
 from penguin_judge.check_result import equal_binary
-from penguin_judge.judge import JudgeDriver, JudgeTask, CompileResult
+from penguin_judge.judge import (
+    JudgeDriver, JudgeTask,
+    AgentCompilationResult, AgentTestResult, CompileResult)
 
 LOGGER = getLogger(__name__)
 
@@ -73,9 +75,9 @@ class DockerJudgeDriver(JudgeDriver):
                 'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
                 'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
             })
-            resp = self._recv(reader)
-            if isinstance(resp, dict) and resp.get('type') == 'Compilation':
-                return CompileResult(binary=resp['binary'], time=resp['time'])
+            resp = self._recv_compile_result(reader)
+            if isinstance(resp, AgentCompilationResult):
+                return resp
             return JudgeStatus.CompilationError
         except Exception:
             return JudgeStatus.InternalError
@@ -122,20 +124,19 @@ class DockerJudgeDriver(JudgeDriver):
                     'type': 'Test',
                     'input': test.input
                 })
-                resp = self._recv(reader)
-                typ = resp.get('type')
-                kind = resp.get('kind')
-                if typ == 'Test':
-                    assert isinstance(resp['output'], bytes)
-                    if equal_binary(test.output, resp['output']):
+                resp = self._recv_test_result(reader)
+                time_raw: Optional[float] = None
+                mem_raw: Optional[int] = None
+                if isinstance(resp, AgentTestResult):
+                    time_raw, mem_raw = resp.time, resp.memory_bytes
+                    if equal_binary(test.output, resp.output):
                         status = JudgeStatus.Accepted
                     else:
                         status = JudgeStatus.WrongAnswer
-                elif typ == 'Error' and isinstance(kind, str):
-                    status = JudgeStatus.from_str(kind)
+                else:
+                    status = JudgeStatus.from_str(resp.kind)
                 time: Optional[timedelta] = None
                 mem: Optional[int] = None
-                time_raw, mem_raw = resp.get('time'), resp.get('memory_bytes')
                 if time_raw is not None:
                     time = timedelta(seconds=time_raw)
                 if mem_raw is not None:
