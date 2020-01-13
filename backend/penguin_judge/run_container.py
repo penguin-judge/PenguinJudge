@@ -4,6 +4,7 @@ import os
 from io import RawIOBase, BufferedIOBase, BufferedReader, BufferedWriter
 from typing import Any, Union, Tuple, Optional, MutableSequence
 import struct
+from logging import getLogger
 
 import docker  # type: ignore
 from zstandard import ZstdDecompressor  # type: ignore
@@ -12,6 +13,8 @@ import msgpack  # type: ignore
 from penguin_judge.models import (
     JudgeStatus, Submission, JudgeResult, transaction, scoped_session)
 from penguin_judge.check_result import equal_binary
+
+LOGGER = getLogger(__name__)
 
 
 class JudgeDriver(ABC):
@@ -242,11 +245,10 @@ class DockerStdinWriter(RawIOBase):
 
 
 def run(task: dict) -> JudgeStatus:
-    print('judge start with below id')
-    print('  contest_id: {}'.format(task['contest_id']))
-    print('  problem_id: {}'.format(task['problem_id']))
-    print('  submission_id: {}'.format(task['id']))
-    print('  user_id: {}'.format(task['user_id']), flush=True)
+    LOGGER.info('judge start (contest_id: {}, problem_id: {}, '
+                'submission_id: {}, user_id: {}'.format(
+                    task['contest_id'], task['problem_id'], task['id'],
+                    task['user_id']))
 
     def update_submission_status(
             s: scoped_session, status: JudgeStatus) -> JudgeStatus:
@@ -264,6 +266,7 @@ def run(task: dict) -> JudgeStatus:
             test['input'] = zctx.decompress(test['input'])
             test['output'] = zctx.decompress(test['output'])
     except Exception:
+        LOGGER.warning('decompress failed', exc_info=True)
         with transaction() as s:
             return update_submission_status(s, JudgeStatus.InternalError)
 
@@ -272,6 +275,7 @@ def run(task: dict) -> JudgeStatus:
         try:
             judge.prepare(task)
         except Exception:
+            LOGGER.warning('prepare failed', exc_info=True)
             with transaction() as s:
                 return update_submission_status(s, JudgeStatus.InternalError)
         if task['environment'].get('compile_image_name'):
@@ -285,7 +289,8 @@ def run(task: dict) -> JudgeStatus:
                         JudgeResult.submission_id == task['id']
                     ).update({
                         JudgeResult.status: ret}, synchronize_session=False)
-                print('judge failed: {}'.format(ret), flush=True)
+                LOGGER.info('judge failed (submission_id={}): {}'.format(
+                    task['id'], ret))
                 return ret
             task['code'], compile_time = ret[0], timedelta(seconds=ret[1])
         ret, max_time, max_memory = judge.tests(task)
@@ -300,5 +305,6 @@ def run(task: dict) -> JudgeStatus:
                 Submission.max_time: max_time,
                 Submission.max_memory: max_memory,
             }, synchronize_session=False)
-        print('judge finished: {}'.format(ret), flush=True)
+        LOGGER.info('judge finished (submission_id={}): {}'.format(
+            task['id'], ret))
         return ret
