@@ -29,7 +29,7 @@ class Session {
     API.get_current_user().then(user => {
       if (user)
         this._user.next(user);
-    });
+    }, default_api_error_handler);
   }
   logout(): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -41,10 +41,14 @@ class Session {
   }
 
   // Environment
-  private _envs = new BehaviorSubject<Array<Environment>>([]);
+  private _envs = new BehaviorSubject<Array<Environment> | null>(null);
   private _env_map = new BehaviorSubject<NumKeyDictionary<Environment>>({});
   get environment_subject() { return this._envs; }
-  get environments() { return this._envs.value; }
+  get environments() {
+    if (this._envs.value === null)
+      return [];
+    return this._envs.value;
+  }
   get environment_mapping_subject() { return this._env_map; }
   get environment_mapping() { return this._env_map.value; }
   update_environments() {
@@ -56,7 +60,7 @@ class Session {
           return obj;
         }, {}));
       }
-    });
+    }, default_api_error_handler);
   }
 
   // Contest
@@ -113,3 +117,9 @@ class Session {
   }
 }
 export const session = new Session();
+
+export function default_api_error_handler(e: any) {
+  if (e.status == 401) {
+    router.navigate('login');
+  }
+}

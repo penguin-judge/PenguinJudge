@@ -1,11 +1,14 @@
 import { customElement, LitElement, html, css } from 'lit-element';
+import { Subscription } from 'rxjs';
 import { MainAreaPaddingPx } from './consts';
 import { API } from '../api';
 import { router, session } from '../state';
 
 @customElement('x-login')
 export class AppHomeElement extends LitElement {
+  enableUserCreationLink = false;
   errorStr: String | null = null;
+  subscription: Subscription | null = null;
 
   constructor() {
     super();
@@ -15,6 +18,22 @@ export class AppHomeElement extends LitElement {
         e.focus();
       }
     });
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.subscription = session.environment_subject.subscribe(envs => {
+      // HACK: 環境が取得できていればアカウントの作成が有効
+      this.enableUserCreationLink = (envs !== null);
+      this.requestUpdate();
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
   }
 
   post(e: Event) {
@@ -50,7 +69,8 @@ export class AppHomeElement extends LitElement {
         </div>
       </form>
       <div class="form-footer">
-        <p><a is="router-link" href="${router.generate('register')}">Create a new account</a></p>
+        ${this.enableUserCreationLink ?
+          html`<p><a is="router-link" href="${router.generate('register')}">Create a new account</a></p>` : html``}
         ${this.errorStr !== null ?
         html`
             <p style="color:red;">
