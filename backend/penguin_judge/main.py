@@ -30,8 +30,13 @@ def _load_config(args: Namespace, name: str,
 
 def _configure_app(config: Mapping[str, str]) -> None:
     from penguin_judge.api import app
+
+    def bool_parser(s: str) -> bool:
+        return s.lower() == 'true'
+
     defines = [
         ('user_judge_queue_limit', '10', int),
+        ('auth_required', 'False', bool_parser),
     ]
     for name, default_value, parser in defines:
         app.config[name] = parser(config.get(name, default_value))

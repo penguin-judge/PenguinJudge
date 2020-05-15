@@ -55,9 +55,26 @@ def _validate_request() -> Tuple[Any, Any]:
     return ret.parameters, ret.body
 
 
+def _config_auth_required() -> bool:
+    return app.config.get('auth_required', False)
+
+
+def _validate_token_if_auth_required_config_is_enabled(
+        s: Optional[scoped_session] = None) -> None:
+    if not _config_auth_required():
+        return
+    _validate_token(s)
+
+
 def _validate_token(
         s: Optional[scoped_session] = None, required: bool = False,
-        admin_required: bool = False) -> Optional[dict]:
+        admin_required: bool = False,
+        ignore_auth_required_config: bool = False) -> Optional[dict]:
+    # コンフィグの認証必須オプションを無視する指示がされていない場合は
+    # 認証必須オプションによってrequiredの値を上書きする
+    if not ignore_auth_required_config and _config_auth_required():
+        required = True
+
     token = request.headers.get('X-Auth-Token')
     if not token:
         items = request.headers.get('Authorization', '').split(' ', maxsplit=1)
@@ -141,6 +158,7 @@ def get_current_user() -> Response:
 @app.route('/users/<user_id>')
 def get_user(user_id: str) -> Response:
     with transaction() as s:
+        _validate_token_if_auth_required_config_is_enabled(s)
         user = s.query(User).filter(User.id == user_id).first()
         if not user:
             abort(404)
@@ -533,6 +551,7 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
 def list_rankings(contest_id: str) -> Response:
     params, _ = _validate_request()
     with transaction() as s:
+        _validate_token_if_auth_required_config_is_enabled(s)
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not contest:
             abort(404)

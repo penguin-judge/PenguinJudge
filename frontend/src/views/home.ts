@@ -1,5 +1,6 @@
 import { customElement, LitElement, html, css } from 'lit-element';
 import { API, Contest } from '../api';
+import { default_api_error_handler } from '../state';
 import { ContestListElement } from '../components/contest-list';
 import { MainAreaPaddingPx } from './consts';
 
@@ -28,7 +29,7 @@ export class AppHomeElement extends LitElement {
         }
       });
       this.requestUpdate();
-    });
+    }, default_api_error_handler);
   }
 
   render() {

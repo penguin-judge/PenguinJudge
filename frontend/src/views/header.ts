@@ -5,12 +5,21 @@ import { DropDownMenuElement } from '../components/dropdown-menu';
 
 @customElement('penguin-judge-header')
 export class PenguinJudgeHeaderElement extends LitElement {
+  showToolbar = false;
+  enableUserCreationLink = false;
+
   constructor() {
     super();
     session.contest_subject.subscribe(_ => {
       this.requestUpdate();
     });
     session.current_user.subscribe(_ => {
+      this.requestUpdate();
+    });
+    session.environment_subject.subscribe(envs => {
+      // HACK: 環境が取得できていればアカウントの作成が有効
+      this.enableUserCreationLink = (envs !== null);
+      this.showToolbar = this.enableUserCreationLink;
       this.requestUpdate();
     });
   }
@@ -59,7 +68,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
       }
     } else {
       user_area = html`
-        <span><a is="router-link" href="${router.generate('register')}">登録</a></span>
+        ${this.enableUserCreationLink ? html`<span><a is="router-link" href="${router.generate('register')}">登録</a></span>` : html``}
         <span><a is="router-link" href="${router.generate('login')}">ログイン</a></span>
       `
     }
@@ -71,7 +80,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
         <a href="${title_link}" is="router-link">${title}</a>
       </span>
       <span id="extra">
-        ${admin_area}
+        ${admin_area}${this.showToolbar ? html`
         <span tabindex="0">
           <a is="router-link" href="${router.generate('home')}" title="ホームに戻る">
             <x-icon>home</x-icon>
@@ -81,7 +90,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
           <a is="router-link" href="${router.generate('contests')}" title="コンテスト一覧">
             <x-icon>insert_chart_outlined</x-icon>
           </a>
-        </span>
+        </span>` : html``}
         ${user_area}
       </span>
       <x-dropdown-menu tabindex="0">${menus}</x-dropdown-menu>
