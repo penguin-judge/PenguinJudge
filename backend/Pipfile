@@ -23,7 +23,7 @@ msgpack = "*"
 gunicorn = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [scripts]
 check = "flake8 penguin_judge tests; mypy penguin_judge"
