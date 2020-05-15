@@ -2,6 +2,10 @@
 sqlalchemy.url = postgresql://user:password@localhost:5432/penguin_judge
 mq.url = amqp://guest:guest@localhost:5672/penguin_judge
 
+[api]
+# user_judge_queue_limit = 10
+# auth_required = False
+
 [worker]
 # max_processes = 2
 
