@@ -42,7 +42,7 @@ export class AppHomeElement extends LitElement {
     const password = (<HTMLInputElement>this.shadowRoot.getElementById("password")).value;
 
     API.login(userid, password).then(_ => {
-      session.update_current_user();
+      session.init();
       router.navigate('home');  // redirect
     }, err => {
       if (err.status === 404 || err.status === 400) this.errorStr = 'ユーザIDまたはパスワードが違います';

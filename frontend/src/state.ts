@@ -29,12 +29,13 @@ class Session {
     API.get_current_user().then(user => {
       if (user)
         this._user.next(user);
-    }, default_api_error_handler);
+    });
   }
   logout(): Promise<any> {
     return new Promise((resolve, reject) => {
       API.logout().then(_ => {
         this._user.next(null);
+        this.update_environments();
         resolve();
       }, reject);
     });
@@ -60,7 +61,11 @@ class Session {
           return obj;
         }, {}));
       }
-    }, default_api_error_handler);
+    }, (e) => {
+      if (e.status == 401)
+        this._envs.next(null);
+      default_api_error_handler(e);
+    });
   }
 
   // Contest
