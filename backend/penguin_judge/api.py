@@ -105,6 +105,7 @@ def _validate_token(
             abort(401)
         tmp = ret[1].to_summary_dict()
         tmp['_token_bytes'] = token_bytes
+        tmp['login_id'] = ret[1].login_id
         return tmp
     if s:
         return _check(s)
@@ -119,12 +120,12 @@ def authenticate() -> Response:
     expires_in = 365 * 24 * 60 * 60
     expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     with transaction() as s:
-        u = s.query(User).filter(User.id == body.id).first()
+        u = s.query(User).filter(User.login_id == body.login_id).first()
         if not u:
             abort(404)
         if u.password != _kdf(body.password, u.salt):
             abort(404)
-        s.add(Token(token=token, user_id=body.id, expires=expires))
+        s.add(Token(token=token, user_id=u.id, expires=expires))
     encoded_token = b64encode(token).decode('ascii')
     headers = {
         'Set-Cookie': 'AuthToken={}; Max-Age={}'.format(
@@ -157,9 +158,13 @@ def get_current_user() -> Response:
 
 @app.route('/users/<user_id>')
 def get_user(user_id: str) -> Response:
+    try:
+        user_id_int = int(user_id)
+    except Exception:
+        abort(400)
     with transaction() as s:
         _validate_token_if_auth_required_config_is_enabled(s)
-        user = s.query(User).filter(User.id == user_id).first()
+        user = s.query(User).filter(User.id == user_id_int).first()
         if not user:
             abort(404)
         return jsonify(user.to_summary_dict())
@@ -175,13 +180,14 @@ def create_user() -> Response:
         admin: bool = getattr(body, 'admin', False)
         if not u or not u['admin']:
             admin = False  # 管理者のみ管理者ユーザを作成できる
-        if s.query(User).filter(User.id == body.id).first():
+        if s.query(User).filter(User.login_id == body.login_id).first():
             abort(409)
-        user = User(id=body.id, password=password, name=body.name, salt=salt,
-                    admin=admin)
+        user = User(login_id=body.login_id, password=password, name=body.name,
+                    salt=salt, admin=admin)
         s.add(user)
         s.flush()
         resp = user.to_summary_dict()
+        resp['login_id'] = user.login_id
     return jsonify(resp, status=201)
 
 
@@ -437,7 +443,7 @@ def list_submissions(contest_id: str) -> Response:
             ('problem_id', Submission.problem_id.__eq__),
             ('environment_id', Submission.environment_id.__eq__),
             ('status', Submission.status.__eq__),
-            ('user_id', Submission.user_id.contains),
+            ('user_id', Submission.user_id.__eq__),
         ]
         for key, expr in filters:
             v = params.query.get(key)
@@ -578,7 +584,7 @@ def list_rankings(contest_id: str) -> Response:
             Submission.created < contest.end_time,
         )
 
-        users: Dict[str, List[Tuple[str, timedelta, JudgeStatus]]] = {}
+        users: Dict[int, List[Tuple[str, timedelta, JudgeStatus]]] = {}
         for (uid, pid, st, t) in q:
             if uid not in users:
                 users[uid] = []
