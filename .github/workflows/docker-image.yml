@@ -1,0 +1,59 @@
+name: Docker images
+
+on: [push]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: azure/docker-login@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+    - name: Build backend docker image
+      run: |
+        component="backend"
+        ref_short=$(basename ${{ github.ref }})
+        echo component "$component"
+        echo ref_short "$ref_short"
+        # build
+        cd ./$component
+        docker build -t "$component:latest" .
+        # tag and push SHA1
+        docker tag "$component:latest" "penguinjudge/$component:${{ github.sha }}"
+        docker push "penguinjudge/$component:${{ github.sha }}"
+        # tag and push ref name
+        docker tag "$component:latest" "penguinjudge/$component:$ref_short"
+        docker push "penguinjudge/$component:$ref_short"
+        # tag and push latest if this action is running on master
+        if [ "$ref_short" = "master" ]; then
+          docker push "penguinjudge/$component:latest"
+        fi
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: azure/docker-login@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+    - name: Build frontend docker image
+      run: |
+        component="frontend"
+        ref_short=$(basename ${{ github.ref }})
+        echo component "$component"
+        echo ref_short "$ref_short"
+        # build
+        cd ./$component
+        docker build -t "$component:latest" .
+        # tag and push SHA1
+        docker tag "$component:latest" "penguinjudge/$component:${{ github.sha }}"
+        docker push "penguinjudge/$component:${{ github.sha }}"
+        # tag and push ref name
+        docker tag "$component:latest" "penguinjudge/$component:$ref_short"
+        docker push "penguinjudge/$component:$ref_short"
+        # tag and push latest if this action is running on master
+        if [ "$ref_short" = "master" ]; then
+          docker push "penguinjudge/$component:latest"
+        fi
