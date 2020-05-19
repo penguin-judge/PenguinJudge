@@ -59,3 +59,14 @@ README.mdの最初の一行はコンテストおよび問題のタイトルと�
 # load_test.py
 
 負荷試験ツール
+
+# reset_password.py
+
+パスワードリセットツール
+
+環境変数 PENGUIN_DB_URL に DSN をセットし、 `./reset_password.py admin` とやれば admin のパスワードを変更できる
+
+```
+$ ./reset_password.py admin
+New Passowrd: 
+```
