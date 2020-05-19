@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 from os import sched_getaffinity
-from typing import Any, Mapping
+from typing import Any, Callable, List, Mapping, Tuple
 
 from penguin_judge.models import configure, get_db_config
 from penguin_judge.mq import configure as configure_mq
@@ -34,7 +34,7 @@ def _configure_app(config: Mapping[str, str]) -> None:
     def bool_parser(s: str) -> bool:
         return s.lower() == 'true'
 
-    defines = [
+    defines: List[Tuple[str, str, Callable[[str], Any]]] = [
         ('user_judge_queue_limit', '10', int),
         ('auth_required', 'False', bool_parser),
     ]
