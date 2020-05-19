@@ -492,27 +492,32 @@ components:
         expires_in:
           type: integer
     UserID:
+      type: integer
+    UserName:
       type: string
-      pattern: '\w{3,15}'
+      minLength: 3
+      maxLength: 256
     Login:
       type: object
       required:
-        - id
+        - login_id
         - password
       properties:
-        id:
-          $ref: "#/components/schemas/UserID"
+        login_id:
+          type: string
+          minLength: 3
+          maxLength: 256
         password:
           type: string
-          pattern: "\\S{8,}"
+          minLength: 6
+          maxLength: 256
     User:
       type: object
       properties:
         id:
           $ref: "#/components/schemas/UserID"
         name:
-          type: string
-          minLength: 1
+          $ref: "#/components/schemas/UserName"
         created:
           type: string
           format: date-time
@@ -638,7 +643,7 @@ components:
         id:
           type: integer
         user_id:
-          type: string
+          $ref: "#/components/schemas/UserID"
         environment_id:
           type: integer
         status:
@@ -677,9 +682,9 @@ components:
         ranking:
           type: integer
         user_id:
-          type: string
+          $ref: "#/components/schemas/UserID"
         user_name:
-          type: string
+          $ref: "#/components/schemas/UserName"
         score:
           type: integer
         time:
@@ -772,7 +777,7 @@ components:
       in: path
       required: true
       schema:
-        type: string
+        $ref: "#/components/schemas/UserID"
     ContestID:
       name: contest_id
       in: path
@@ -846,7 +851,7 @@ components:
       name: user_id
       in: query
       schema:
-        type: string
+        $ref: "#/components/schemas/UserID"
     SubmissionSortKey:
       name: sort
       in: query
