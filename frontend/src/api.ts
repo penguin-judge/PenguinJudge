@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  id: number;
   name: string;
   admin: boolean;
   created: string;
@@ -57,7 +57,7 @@ export interface Submission extends PartialSubmission {
   id: number;
   status: string;
   created: string;
-  user_id: string;
+  user_id: number;
   tests: Array<TestResult>;
 }
 
@@ -88,7 +88,7 @@ export function implementsAccepted(arg: any): arg is AcceptedProblem {
 }
 
 export interface Standing {
-  user_id: string;
+  user_id: number;
   score?: number;
   penalties?: number;
   time?: number;
@@ -234,13 +234,13 @@ export class API {
       '/submissions/' + encodeURIComponent(submission_id));
   }
 
-  static login(id: string, password: string): Promise<Token> {
+  static login(login_id: string, password: string): Promise<Token> {
     return API._fetch('/api/auth', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id,
+        login_id,
         password,
       })
     });
@@ -252,13 +252,13 @@ export class API {
     });
   }
 
-  static register(id: string, name: string, password: string): Promise<User> {
+  static register(login_id: string, name: string, password: string): Promise<User> {
     return API._fetch('/api/users', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id,
+        login_id,
         name,
         password,
       })
