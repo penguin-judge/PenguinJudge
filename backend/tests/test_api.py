@@ -33,13 +33,15 @@ class TestAPI(unittest.TestCase):
         with transaction() as s:
             for t in tables:
                 s.query(t).delete(synchronize_session=False)
-            s.add(User(
-                id='admin', name='Administrator', salt=salt, admin=True,
-                password=passwd))
+            admin_user = User(
+                login_id='admin', name='Administrator', salt=salt, admin=True,
+                password=passwd)
+            s.add(admin_user)
             s.flush()
             s.add(Token(
-                token=admin_token, user_id='admin',
+                token=admin_token, user_id=admin_user.id,
                 expires=datetime.now(tz=timezone.utc) + timedelta(hours=1)))
+            self.admin_id = admin_user.id
         self.admin_token = b64encode(admin_token).decode('ascii')
         self.admin_headers = {'X-Auth-Token': self.admin_token}
 
@@ -49,22 +51,26 @@ class TestAPI(unittest.TestCase):
             app.post_json('/users', body, headers=headers,
                           status=status if setup_token else 401)
         _invalid({})
-        _invalid({'id': 'abc', 'name': 'penguin'})
-        _invalid({'id': 'abc', 'password': 'penguinpenguin'})
+        _invalid({'login_id': 'abc', 'name': 'penguin'})
+        _invalid({'login_id': 'abc', 'password': 'penguinpenguin'})
         _invalid({'name': 'abc', 'password': 'penguinpenguin'})
-        _invalid({'id': 'pe', 'name': 'ぺんぎん', 'password': 'penguinpenguin'})
-        _invalid({'id': 'penguin', 'name': 'ぺんぎん', 'password': 'pen'})
-        _invalid({'id': 'penguin', 'name': '', 'password': 'penguinpenguin'})
+        _invalid({'login_id': 'pe', 'name': 'ぺんぎん',
+                  'password': 'penguinpenguin'})
+        _invalid({'login_id': 'penguin', 'name': 'ぺんぎん',
+                  'password': 'pen'})
+        _invalid({'login_id': 'penguin', 'name': '',
+                  'password': 'penguinpenguin'})
         resp = app.post_json('/users', {
-            'id': 'penguin', 'name': 'ぺんぎん', 'password': 'penguinpenguin'
+            'login_id': 'penguin', 'name': 'ぺんぎん', 'password': 'penguinpenguin'
         }, status=201, headers=self.admin_headers).json
-        self.assertEqual(len(list(resp.keys())), 4)
-        self.assertEqual(resp['id'], 'penguin')
+        self.assertEqual(len(list(resp.keys())), 5)
+        self.assertIsInstance(resp['id'], int)
+        self.assertEqual(resp['login_id'], 'penguin')
         self.assertEqual(resp['name'], 'ぺんぎん')
         self.assertEqual(resp['admin'], False)
         self.assertIn('created', resp)
-        _invalid({'id': 'penguin', 'name': 'same', 'password': 'hogehoge'},
-                 status=409)
+        _invalid({'login_id': 'penguin', 'name': 'same',
+                  'password': 'hogehoge'}, status=409)
 
     def test_auth(self):
         def _invalid(body, status=400):
@@ -72,26 +78,27 @@ class TestAPI(unittest.TestCase):
 
         _notfound = partial(_invalid, status=404)
         uid, pw = 'penguin', 'password'
-        app.post_json('/users', {'id': uid, 'name': '🐧', 'password': pw},
-                      headers=self.admin_headers)
+        app.post_json(
+            '/users', {'login_id': uid, 'name': 'ABC', 'password': pw},
+            headers=self.admin_headers)
         _invalid({})
-        _invalid({'id': uid})
+        _invalid({'login_id': uid})
         _invalid({'password': pw})
-        _invalid({'id': 'a', 'password': pw})
-        _invalid({'id': uid, 'password': 'a'})
-        _notfound({'id': uid, 'password': 'wrong password'})
-        _notfound({'id': 'invalid', 'password': pw})
-        resp = app.post_json('/auth', {'id': uid, 'password': pw}).json
+        _invalid({'login_id': 'a', 'password': pw})
+        _invalid({'login_id': uid, 'password': 'a'})
+        _notfound({'login_id': uid, 'password': 'wrong password'})
+        _notfound({'login_id': 'invalid', 'password': pw})
+        resp = app.post_json('/auth', {'login_id': uid, 'password': pw}).json
         self.assertIsInstance(resp['token'], str)
         self.assertIsInstance(resp['expires_in'], int)
 
     def test_get_current_user(self):
-        uid, pw, name = 'penguin', 'password', '🐧'
+        uid, pw, name = 'penguin', 'password', 'ABC'
         u = app.post_json(
-            '/users', {'id': uid, 'name': name, 'password': pw},
+            '/users', {'login_id': uid, 'name': name, 'password': pw},
             headers=self.admin_headers).json
         token = app.post_json(
-            '/auth', {'id': uid, 'password': pw}).json['token']
+            '/auth', {'login_id': uid, 'password': pw}).json['token']
         self.assertEqual(u, app.get('/user').json)
         app.reset()
         app.authorization = ('Bearer', token)
@@ -107,14 +114,15 @@ class TestAPI(unittest.TestCase):
         app.get('/user', headers={'X-Auth-Token': b'Z'}, status=401)
 
         with transaction() as s:
-            s.query(Token).filter(Token.user_id == uid).update({
+            s.query(Token).filter(Token.user_id == u['id']).update({
                 'expires': datetime.now(tz=timezone.utc)})
         app.get('/user', headers={'X-Auth-Token': token}, status=401)
 
     def test_get_user(self):
-        app.get('/users/invalid_user', status=404)
-        u = app.get('/users/admin').json
-        self.assertEqual(u['id'], 'admin')
+        app.get('/users/invalid_user', status=400)
+        app.get('/users/9999999', status=404)
+        u = app.get('/users/{}'.format(self.admin_id)).json
+        self.assertEqual(u['name'], 'Administrator')
         self.assertTrue(u['admin'])
 
     def test_list_environments(self):
@@ -410,7 +418,7 @@ class TestAPI(unittest.TestCase):
             s.flush()
             for i in range(100):
                 submission = Submission(
-                    contest_id='id0', problem_id='A', user_id='admin',
+                    contest_id='id0', problem_id='A', user_id=self.admin_id,
                     code=b'dummy', code_bytes=1, environment_id=env.id)
                 s.add(submission)
                 s.flush()
@@ -462,10 +470,14 @@ class TestAPI(unittest.TestCase):
                     contest_id='abc000', id=id, title='Problem {}'.format(id),
                     description='', time_limit=1, memory_limit=1024,
                     score=(i + 1) * 100))
+            user_mapping = {}
             for i in range(10):
-                s.add(User(
-                    id='user{}'.format(i), name='User{}'.format(i), salt=salt,
-                    password=passwd))
+                u = User(
+                    login_id='user{}'.format(i), name='User{}'.format(i),
+                    salt=salt, password=passwd)
+                s.add(u)
+                s.flush()
+                user_mapping['user{}'.format(i)] = u.id
 
         # 未提出者もランキングに載せるようにした
         # self.assertEquals([], app.get('/contests/abc000/rankings').json)
@@ -494,20 +506,21 @@ class TestAPI(unittest.TestCase):
                         else:
                             tmp = i + j + 1
                         s.add(Submission(
-                            user_id=u, status=JudgeStatus.WrongAnswer,
+                            user_id=user_mapping[u],
+                            status=JudgeStatus.WrongAnswer,
                             created=start + d * tmp, **problem_kwargs[i]))
                     if n_ac > 0:
                         s.add(Submission(
-                            user_id=u, status=JudgeStatus.Accepted,
+                            user_id=user_mapping[u],
+                            status=JudgeStatus.Accepted,
                             created=start + d * t, **problem_kwargs[i]))
 
         ret = app.get('/contests/abc000/rankings').json
         # 未提出者もランキングに載せるようにした
         # self.assertEquals(4, len(ret))
-        self.assertEquals(ret[0]['user_id'], 'user0')
-        self.assertEquals(ret[1]['user_id'], 'user1')
-        self.assertEquals(ret[2]['user_id'], 'user2')
-        self.assertEquals(ret[3]['user_id'], 'user3')
+        for i in range(4):
+            self.assertEquals(ret[i]['user_id'], user_mapping['user{}'.format(i)])
+            self.assertEquals(ret[i]['user_name'], 'User{}'.format(i))
         self.assertEquals(ret[0]['ranking'], 1)
         self.assertEquals(ret[0]['score'], 1500)
         self.assertEquals(ret[0]['penalties'], 0)

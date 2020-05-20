@@ -73,7 +73,29 @@ paths:
         - $ref: "#/components/parameters/UserID"
       responses:
         '200':
-          description: Responses user list 
+          description: Responses user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '404':
+          description: not found
+    patch:
+      operationId: updateUser
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        '200':
+          description: Responses user info
           content:
             application/json:
               schema:
@@ -492,27 +514,36 @@ components:
         expires_in:
           type: integer
     UserID:
+      type: integer
+    LoginID:
       type: string
-      pattern: '\w{3,15}'
+      minLength: 3
+      maxLength: 256
+    Password:
+      type: string
+      minLength: 6
+      maxLength: 256
+    UserName:
+      type: string
+      minLength: 3
+      maxLength: 256
     Login:
       type: object
       required:
-        - id
+        - login_id
         - password
       properties:
-        id:
-          $ref: "#/components/schemas/UserID"
+        login_id:
+          $ref: "#/components/schemas/LoginID"
         password:
-          type: string
-          pattern: "\\S{8,}"
+          $ref: "#/components/schemas/Password"
     User:
       type: object
       properties:
         id:
           $ref: "#/components/schemas/UserID"
         name:
-          type: string
-          minLength: 1
+          $ref: "#/components/schemas/UserName"
         created:
           type: string
           format: date-time
@@ -528,6 +559,17 @@ components:
         - $ref: "#/components/schemas/Login"
         - required:
           - name
+    UserUpdate:
+      type: object
+      properties:
+        login_id:
+          $ref: "#/components/schemas/LoginID"
+        old_password:
+          $ref: "#/components/schemas/Password"
+        new_password:
+          $ref: "#/components/schemas/Password"
+        name:
+          $ref: "#/components/schemas/UserName"
     Environment:
       type: object
       properties:
@@ -638,7 +680,9 @@ components:
         id:
           type: integer
         user_id:
-          type: string
+          $ref: "#/components/schemas/UserID"
+        user_name:
+          $ref: "#/components/schemas/UserName"
         environment_id:
           type: integer
         status:
@@ -677,9 +721,11 @@ components:
         ranking:
           type: integer
         user_id:
-          type: string
+          $ref: "#/components/schemas/UserID"
         user_name:
-          type: string
+          $ref: "#/components/schemas/UserName"
+        user_name:
+          $ref: "#/components/schemas/UserName"
         score:
           type: integer
         time:
@@ -772,7 +818,7 @@ components:
       in: path
       required: true
       schema:
-        type: string
+        $ref: "#/components/schemas/UserID"
     ContestID:
       name: contest_id
       in: path
@@ -846,7 +892,7 @@ components:
       name: user_id
       in: query
       schema:
-        type: string
+        $ref: "#/components/schemas/UserID"
     SubmissionSortKey:
       name: sort
       in: query

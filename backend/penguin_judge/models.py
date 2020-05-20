@@ -55,8 +55,9 @@ class _Exportable(object):
 class User(Base, _Exportable):
     __tablename__ = 'users'
     __summary_keys__ = ['id', 'name', 'created', 'admin']
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    login_id = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False, unique=True)
     salt = Column(LargeBinary(32), nullable=False)
     password = Column(LargeBinary(32), nullable=False)
     admin = Column(Boolean, server_default='False')
@@ -67,7 +68,7 @@ class User(Base, _Exportable):
 class Token(Base, _Exportable):
     __tablename__ = 'tokens'
     token = Column(LargeBinary(32), primary_key=True)
-    user_id = Column(String, nullable=False)
+    user_id = Column(Integer, nullable=False)
     expires = Column(DateTime(timezone=True), nullable=False)
     __table_args__ = (
         ForeignKeyConstraint([user_id], [User.id]),  # type: ignore
@@ -150,7 +151,7 @@ class Submission(Base, _Exportable):
     id = Column(Integer, primary_key=True, autoincrement=True)
     contest_id = Column(String, nullable=False)
     problem_id = Column(String, nullable=False)
-    user_id = Column(String, nullable=False)
+    user_id = Column(Integer, nullable=False)
     code = Column(LargeBinary, nullable=False)
     code_bytes = Column(Integer, nullable=False)
     environment_id = Column(Integer, nullable=False)
@@ -177,7 +178,7 @@ class Submission(Base, _Exportable):
                       user_info: Optional[dict]) -> bool:
         if contest.is_finished() or (user_info and user_info['admin']):
             return True
-        return self.user_id == (user_info['id'] if user_info else '')
+        return self.user_id == (user_info['id'] if user_info else None)
 
 
 class JudgeResult(Base, _Exportable):
@@ -255,5 +256,5 @@ def _insert_initial_data() -> None:
     with transaction() as s:
         if s.query(User).count() == 0:
             salt = token_bytes()
-            s.add(User(id='admin', name='Administrator', salt=salt, admin=True,
-                       password=_kdf('penguinpenguin', salt)))
+            s.add(User(login_id='admin', name='Administrator', salt=salt,
+                       admin=True, password=_kdf('penguinpenguin', salt)))

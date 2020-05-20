@@ -23,7 +23,7 @@ class JudgeTask(object):
     id: int
     contest_id: str
     problem_id: str
-    user_id: str
+    user_id: int
     code: bytes
     compile_image_name: Optional[str]
     test_image_name: str

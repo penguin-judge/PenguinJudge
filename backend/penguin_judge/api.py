@@ -15,6 +15,7 @@ from openapi_core.shortcuts import RequestValidator  # type: ignore
 from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from penguin_judge.models import (
     transaction, scoped_session, Contest, Environment, JudgeResult,
@@ -105,6 +106,7 @@ def _validate_token(
             abort(401)
         tmp = ret[1].to_summary_dict()
         tmp['_token_bytes'] = token_bytes
+        tmp['login_id'] = ret[1].login_id
         return tmp
     if s:
         return _check(s)
@@ -119,12 +121,12 @@ def authenticate() -> Response:
     expires_in = 365 * 24 * 60 * 60
     expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     with transaction() as s:
-        u = s.query(User).filter(User.id == body.id).first()
+        u = s.query(User).filter(User.login_id == body.login_id).first()
         if not u:
             abort(404)
         if u.password != _kdf(body.password, u.salt):
             abort(404)
-        s.add(Token(token=token, user_id=body.id, expires=expires))
+        s.add(Token(token=token, user_id=u.id, expires=expires))
     encoded_token = b64encode(token).decode('ascii')
     headers = {
         'Set-Cookie': 'AuthToken={}; Max-Age={}'.format(
@@ -157,11 +159,40 @@ def get_current_user() -> Response:
 
 @app.route('/users/<user_id>')
 def get_user(user_id: str) -> Response:
+    try:
+        user_id_int = int(user_id)
+    except Exception:
+        abort(400)
     with transaction() as s:
         _validate_token_if_auth_required_config_is_enabled(s)
-        user = s.query(User).filter(User.id == user_id).first()
+        user = s.query(User).filter(User.id == user_id_int).first()
         if not user:
             abort(404)
+        return jsonify(user.to_summary_dict())
+
+
+@app.route('/users/<user_id>', methods=['PATCH'])
+def update_user(user_id: int) -> Response:
+    params, body = _validate_request()
+    user_id = params.path['user_id']
+    with transaction() as s:
+        u = _validate_token(s)
+        if not u or (u['id'] != user_id and not u['admin']):
+            abort(401)
+        user = s.query(User).filter(User.id == user_id).first()
+        assert(user)
+        if hasattr(body, 'name'):
+            user.name = body.name
+        if hasattr(body, 'old_password') and hasattr(body, 'new_password'):
+            if not u['admin']:
+                if user.password != _kdf(body.old_password, user.salt):
+                    abort(401)
+            user.salt = secrets.token_bytes()
+            user.password = _kdf(body.new_password, user.salt)
+        try:
+            s.commit()
+        except IntegrityError:
+            abort(409)
         return jsonify(user.to_summary_dict())
 
 
@@ -175,13 +206,14 @@ def create_user() -> Response:
         admin: bool = getattr(body, 'admin', False)
         if not u or not u['admin']:
             admin = False  # 管理者のみ管理者ユーザを作成できる
-        if s.query(User).filter(User.id == body.id).first():
+        if s.query(User).filter(User.login_id == body.login_id).first():
             abort(409)
-        user = User(id=body.id, password=password, name=body.name, salt=salt,
-                    admin=admin)
+        user = User(login_id=body.login_id, password=password, name=body.name,
+                    salt=salt, admin=admin)
         s.add(user)
         s.flush()
         resp = user.to_summary_dict()
+        resp['login_id'] = user.login_id
     return jsonify(resp, status=201)
 
 
@@ -426,7 +458,9 @@ def list_submissions(contest_id: str) -> Response:
         if not (contest.is_begun() or is_admin):
             abort(403)
 
-        q = s.query(Submission).filter(Submission.contest_id == contest_id)
+        q = s.query(Submission, User.name).filter(
+            Submission.contest_id == contest_id,
+            Submission.user_id == User.id)
         if not (contest.is_finished() or is_admin):
             if not u:
                 # 未ログイン時は開催中コンテストの投稿一覧は見えない
@@ -437,7 +471,7 @@ def list_submissions(contest_id: str) -> Response:
             ('problem_id', Submission.problem_id.__eq__),
             ('environment_id', Submission.environment_id.__eq__),
             ('status', Submission.status.__eq__),
-            ('user_id', Submission.user_id.contains),
+            ('user_id', Submission.user_id.__eq__),
         ]
         for key, expr in filters:
             v = params.query.get(key)
@@ -458,8 +492,10 @@ def list_submissions(contest_id: str) -> Response:
         else:
             q = q.order_by(Submission.created)
 
-        for c in q.offset((page - 1) * per_page).limit(per_page):
-            ret.append(c.to_summary_dict())
+        for c, name in q.offset((page - 1) * per_page).limit(per_page):
+            tmp = c.to_summary_dict()
+            tmp['user_name'] = name
+            ret.append(tmp)
     return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
@@ -494,6 +530,7 @@ def post_submission(contest_id: str) -> Response:
         s.add(submission)
         s.flush()
         ret = submission.to_summary_dict()
+        ret['user_name'] = u['name']
 
     conn = pika.BlockingConnection(get_mq_conn_params())
     ch = conn.channel()
@@ -515,14 +552,17 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        submission = s.query(Submission).filter(
+        tmp = s.query(Submission, User.name).filter(
             Submission.contest_id == contest_id,
-            Submission.id == submission_id).first()
-        if not submission:
+            Submission.id == submission_id,
+            Submission.user_id == User.id).first()
+        if not tmp:
             abort(404)
+        submission, user_name = tmp
         if not submission.is_accessible(contest, u):
             abort(404)
         ret = submission.to_dict()
+        ret['user_name'] = user_name
         ret['tests'] = []
         for t_raw in s.query(JudgeResult).filter(
                 JudgeResult.submission_id == submission_id).order_by(
@@ -578,12 +618,16 @@ def list_rankings(contest_id: str) -> Response:
             Submission.created < contest.end_time,
         )
 
-        users: Dict[str, List[Tuple[str, timedelta, JudgeStatus]]] = {}
+        users: Dict[int, List[Tuple[str, timedelta, JudgeStatus]]] = {}
         for (uid, pid, st, t) in q:
             if uid not in users:
                 users[uid] = []
                 users_never_submitted.pop(uid, None)
             users[uid].append((pid, t, st))
+
+        user_names = {}
+        for id, name in s.query(User.id, User.name):
+            user_names[id] = name
 
     results = []
     for uid, all_submission in users.items():
@@ -591,7 +635,7 @@ def list_rankings(contest_id: str) -> Response:
         max_time = contest_start_time
         total_score = 0
         total_penalties = 0
-        ret = dict(user_id=uid, problems={})
+        ret = dict(user_id=uid, user_name=user_names[uid], problems={})
         for problem_id, submissions in groupby(
                 all_submission, key=lambda x: x[0]):
             n_penalties = 0
