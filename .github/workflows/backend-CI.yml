@@ -60,18 +60,6 @@ jobs:
       run: |
         cd ./frontend
         webpack -p
-  docker-image:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Build backend docker image
-      run: |
-        cd ./backend
-        docker build .
-    - name: Build frontend docker image
-      run: |
-        cd ./frontend
-        docker build .
   agent:
     runs-on: ubuntu-latest
     steps:
