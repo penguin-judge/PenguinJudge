@@ -1,5 +1,5 @@
 import { customElement, LitElement, html, css } from 'lit-element';
-import { Subscription, merge } from 'rxjs';
+import { Subscription, zip, timer } from 'rxjs';
 import { API, Submission } from '../api';
 import { router, session } from '../state';
 import { format_datetime_detail, getSubmittionStatusMark } from '../utils';
@@ -8,33 +8,36 @@ import { AceEditor } from '../components/ace';
 @customElement('penguin-judge-contest-submission')
 export class PenguinJudgeContestSubmission extends LitElement {
   subscription: Subscription | null = null;
+  updateSubscription: Subscription | null = null;
   submission: Submission | null = null;
 
   constructor() {
     super();
-    this.subscription = merge(
+    this.subscription = zip(
       session.environment_mapping_subject,
       session.contest_subject
     ).subscribe(_ => {
       // ２つのsubjectが解決できれば
       // session.contest/session.environment_mapping経由でアクセスできる
       const s = session.contest;
-      if (s && session.environments) {
-        const submission_id = location.hash.split('/').pop() || '';
+      if (!s) return;
+      const submission_id = location.hash.split('/').pop() || '';
+      this.updateSubscription = timer(0, 1000).subscribe(_ => {
         API.get_submission(s.id, submission_id).then((submission) => {
           this.submission = submission;
+          if (!['Waiting', 'Running'].includes(submission.status)) {
+            if (this.updateSubscription) {
+              this.updateSubscription.unsubscribe();
+              this.updateSubscription = null;
+            }
+          }
           this.requestUpdate();
         });
-      }
-    });
-    this.updateComplete.then(() => {
-      this.updated(null);
+      });
     });
   }
 
-  updated(changedProperties: any) {
-    if (changedProperties !== null)
-      super.updated(changedProperties);
+  ace_initialized() {
     const code = <AceEditor>this.shadowRoot!.getElementById("code");
     if (code && code.editor && this.submission) {
       code.editor.setReadOnly(true);
@@ -48,6 +51,10 @@ export class PenguinJudgeContestSubmission extends LitElement {
     if (this.subscription) {
       this.subscription.unsubscribe();
       this.subscription = null;
+    }
+    if (this.updateSubscription) {
+      this.updateSubscription.unsubscribe();
+      this.updateSubscription = null;
     }
   }
 
@@ -71,7 +78,8 @@ export class PenguinJudgeContestSubmission extends LitElement {
         problem_title = p.title;
     }
     return html`
-      <h2>提出: #${this.submission.id} <span>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</span></h2>
+      <div class="title"><h2>提出: #${this.submission.id} <span>${getSubmittionStatusMark(this.submission.status)}${this.submission.status}</span></h2>
+      ${['Waiting', 'Running'].includes(this.submission.status) ? html`<div class="spinner"></div>` : html``}</div>
       <div id="container">
         <div id="left-pane" class="${new Date() < new Date(session.contest!.end_time) ? 'ongoing' : ''}">
           <div class="info">
@@ -93,7 +101,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
             </div>
           </div>
           <h3>ソースコード</h3>
-          <x-ace-editor id="code"></x-ace-editor>
+          <x-ace-editor id="code" @initialized="${this.ace_initialized}"></x-ace-editor>
         </div>
         <div id="right-pane">
           <h3>テストケース</h3>
@@ -119,7 +127,6 @@ export class PenguinJudgeContestSubmission extends LitElement {
         display: flex;
       }
       h2 { margin: 0; font-size: x-large; }
-      h2 span { vertical-align: middle; }
       h3 { margin: 1ex 0; }
       #left-pane {
         display: flex;
@@ -172,6 +179,27 @@ export class PenguinJudgeContestSubmission extends LitElement {
       }
       .ongoing {
         margin-bottom: 5em;
+      }
+
+      div.title {
+        display: flex;
+        align-items: center;
+      }
+      div.title h2 {
+        margin-right: 1ex;
+      }
+      .spinner {
+        display: inline-block;
+        border: 5px solid #eee;
+        border-top: 5px solid #3498db;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
     `;
   }
