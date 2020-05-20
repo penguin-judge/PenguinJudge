@@ -48,7 +48,7 @@ def login(user_id = None, password = None):
     if not user_id or not password:
         user_id = ADMIN_USER
         password = ADMIN_PASS
-    r = post_json('/auth', {'id': user_id, 'password': password})
+    r = post_json('/auth', {'login_id': user_id, 'password': password})
     assert r.status_code == 200
     global _AUTH_COOKIE
     _AUTH_COOKIE = r.cookies
@@ -60,11 +60,12 @@ def logout():
     assert r.status_code == 204
 
 
-def register(user_id, user_name, password):
+def register(user_id, user_name, password, *, ignore_error = False):
     r = post_json('/users', {
-        'id': user_id,
+        'login_id': user_id,
         'name': user_name,
         'password': password
     })
-    assert r.status_code == 201
+    if not ignore_error:
+        assert r.status_code == 201
     return r
