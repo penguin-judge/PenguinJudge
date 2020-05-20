@@ -46,7 +46,7 @@ export class AppHomeElement extends LitElement {
       })();
       panels.push(html`<x-panel header="${title}">${body}</x-panel>`);
     };
-    panels.push(html`<x-panel header="Welcome!"><div>ようこそ！<br>コーディングチャレンジ2019です。</div></x-panel>`);
+    panels.push(html`<x-panel header="Welcome!"><div>ようこそ！<br>コーディングチャレンジ2020です。</div></x-panel>`);
     build_table('開催中のコンテスト', this._runnings);
     build_table('開催予定のコンテスト', this._scheduleds);
     build_table('終了したコンテスト', this._finisheds);
