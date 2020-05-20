@@ -21,17 +21,17 @@ if (db_url == None):
     exit(1)
 
 if (len(sys.argv) != 2):
-    print("Usage: %s <target_uid>" % sys.argv[0])
+    print("Usage: %s <target_login_id>" % sys.argv[0])
     exit(1)
 
 db_opts = parse_dsn(db_url)
-target_uid = sys.argv[1]
+target_login_id = sys.argv[1]
 new_password = getpass(prompt='New Password: ')
 salt = secrets.token_bytes()
 hashed_pw = _kdf(new_password, salt)
 
 #print("db_url", db_url)
-#print("target_uid", target_uid)
+#print("target_login_id", target_login_id)
 #print("new_password", new_password)
 #print("salt", salt)
 #print("hashed_pw", hashed_pw)
@@ -43,13 +43,13 @@ hashed_pw = _kdf(new_password, salt)
 
 conn = psycopg2.connect(user = db_opts['user'], host = db_opts['host'], password = db_opts['password'], dbname = db_opts['dbname'])
 cur = conn.cursor()
-cur.execute("SELECT id from users WHERE id = %s;", [target_uid])
+cur.execute("SELECT login_id from users WHERE login_id = %s;", [target_login_id])
 fetched = cur.fetchone()
 if (fetched == None):
-    print("No such user:", target_uid)
+    print("No such user:", target_login_id)
     exit(1)
 
-cur.execute("UPDATE users SET salt = %s, password = %s WHERE id = %s;", [salt, hashed_pw, target_uid])
+cur.execute("UPDATE users SET salt = %s, password = %s WHERE login_id = %s;", [salt, hashed_pw, target_login_id])
 conn.commit()
 cur.close()
 conn.close()
