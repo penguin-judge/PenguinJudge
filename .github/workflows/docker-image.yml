@@ -28,6 +28,7 @@ jobs:
         docker push "penguinjudge/$component:$ref_short"
         # tag and push latest if this action is running on master
         if [ "$ref_short" = "master" ]; then
+          docker tag "$component:latest" "penguinjudge/$component:latest"
           docker push "penguinjudge/$component:latest"
         fi
   frontend:
@@ -55,5 +56,6 @@ jobs:
         docker push "penguinjudge/$component:$ref_short"
         # tag and push latest if this action is running on master
         if [ "$ref_short" = "master" ]; then
+          docker tag "$component:latest" "penguinjudge/$component:latest"
           docker push "penguinjudge/$component:latest"
         fi
