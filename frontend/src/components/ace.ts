@@ -53,6 +53,7 @@ export class AceEditor extends LitElement {
     this._editor.resize();
     if (this.autofocus)
       this._editor.focus();
+    this.dispatchEvent(new CustomEvent('initialized', {detail: {}}));
   }
 
   static get styles() {

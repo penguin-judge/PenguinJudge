@@ -47,19 +47,29 @@ export enum JudgeStatus {
   InternalError = 'InternalError',
 }
 
-export interface PartialSubmission {
+export interface PostSubmission {
   contest_id: string;
   problem_id: string;
   code: string;
   environment_id: number;
 }
 
-export interface Submission extends PartialSubmission {
+export interface SubmissionSummary {
+  contest_id: string;
+  problem_id: string;
   id: number;
-  status: string;
-  created: string;
   user_id: number;
   user_name: string;
+  environment_id: number;
+  status: string;
+  code_bytes: number;
+  max_time: number;
+  max_memory: number;
+  created: string;
+}
+
+export interface Submission extends SubmissionSummary {
+  code: string;
   tests: Array<TestResult>;
 }
 
@@ -213,7 +223,7 @@ export class API {
     });
   }
 
-  static submit(submission: PartialSubmission): Promise<Submission> {
+  static submit(submission: PostSubmission): Promise<Submission> {
     const contest_id = submission.contest_id;
     delete submission.contest_id;
     const path = '/api/contests/' + encodeURIComponent(contest_id) + '/submissions';
@@ -224,10 +234,15 @@ export class API {
     });
   }
 
-  static list_submissions(contest_id: string, page?: number): Promise<[Array<Submission>, Response]> {
+  static list_submissions(contest_id: string, query?: Map<string, string>): Promise<[Array<Submission>, Response]> {
     let path = '/api/contests/' + encodeURIComponent(contest_id) + '/submissions';
-    if (page !== undefined)
-      path += '?page=' + page.toString();
+    if (query) {
+      const tmp: Array<string> = [];
+      query.forEach((v, k) => {
+        tmp.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+      });
+      path += '?' + tmp.join('&');
+    }
     return API._fetch2(path);
   }
 

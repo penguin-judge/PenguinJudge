@@ -242,7 +242,7 @@ paths:
         - $ref: "#/components/parameters/ProblemFilter"
         - $ref: "#/components/parameters/EnvironmentFilter"
         - $ref: "#/components/parameters/JudgeStatusFilter"
-        - $ref: "#/components/parameters/UserIDFilter"
+        - $ref: "#/components/parameters/UserNameFilter"
         - $ref: "#/components/parameters/SubmissionSortKey"
       responses:
         '200':
@@ -888,11 +888,11 @@ components:
       in: query
       schema:
         $ref: "#/components/schemas/JudgeStatus"
-    UserIDFilter:
-      name: user_id
+    UserNameFilter:
+      name: user_name
       in: query
       schema:
-        $ref: "#/components/schemas/UserID"
+        $ref: "#/components/schemas/UserName"
     SubmissionSortKey:
       name: sort
       in: query
