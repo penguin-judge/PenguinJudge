@@ -89,7 +89,7 @@ export class PenguinJudgeContestSubmission extends LitElement {
             </div>
             <div>
               <label>ユーザー:</label>
-              <span>${this.submission.user_id}</span>
+              <span>${this.submission.user_name}</span>
             </div>
           </div>
           <h3>ソースコード</h3>

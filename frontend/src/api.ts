@@ -1,5 +1,6 @@
 export interface User {
   id: number;
+  login_id?: string;
   name: string;
   admin: boolean;
   created: string;
@@ -58,6 +59,7 @@ export interface Submission extends PartialSubmission {
   status: string;
   created: string;
   user_id: number;
+  user_name: string;
   tests: Array<TestResult>;
 }
 
@@ -89,6 +91,7 @@ export function implementsAccepted(arg: any): arg is AcceptedProblem {
 
 export interface Standing {
   user_id: number;
+  user_name: string;
   score?: number;
   penalties?: number;
   time?: number;

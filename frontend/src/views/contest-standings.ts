@@ -73,7 +73,7 @@ export class PenguinJudgeContestStandings extends LitElement {
         </thead>
         <tbody>${this.standings.filter((_, i) => isInCurrentPage(i)).map((user) => html`<tr class="${user.score === undefined ? 'never-submitted' : ''}">
             <td class="rank">${user.ranking}</td>
-            <td class="user-id">${user.user_id}</td>
+            <td class="user-id">${user.user_name}</td>
             <td class="score-time">
                 <div class="score">${user.score !== undefined ? user.score : '-'}</div>
                 <div class="time">${user.adjusted_time !== undefined ? formatElapsedTime(user.adjusted_time) : '--:--'}</div>

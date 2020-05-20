@@ -518,10 +518,9 @@ class TestAPI(unittest.TestCase):
         ret = app.get('/contests/abc000/rankings').json
         # 未提出者もランキングに載せるようにした
         # self.assertEquals(4, len(ret))
-        self.assertEquals(ret[0]['user_id'], user_mapping['user0'])
-        self.assertEquals(ret[1]['user_id'], user_mapping['user1'])
-        self.assertEquals(ret[2]['user_id'], user_mapping['user2'])
-        self.assertEquals(ret[3]['user_id'], user_mapping['user3'])
+        for i in range(4):
+            self.assertEquals(ret[i]['user_id'], user_mapping['user{}'.format(i)])
+            self.assertEquals(ret[i]['user_name'], 'User{}'.format(i))
         self.assertEquals(ret[0]['ranking'], 1)
         self.assertEquals(ret[0]['score'], 1500)
         self.assertEquals(ret[0]['penalties'], 0)

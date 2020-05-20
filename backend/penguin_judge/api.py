@@ -432,7 +432,9 @@ def list_submissions(contest_id: str) -> Response:
         if not (contest.is_begun() or is_admin):
             abort(403)
 
-        q = s.query(Submission).filter(Submission.contest_id == contest_id)
+        q = s.query(Submission, User.name).filter(
+            Submission.contest_id == contest_id,
+            Submission.user_id == User.id)
         if not (contest.is_finished() or is_admin):
             if not u:
                 # 未ログイン時は開催中コンテストの投稿一覧は見えない
@@ -464,8 +466,10 @@ def list_submissions(contest_id: str) -> Response:
         else:
             q = q.order_by(Submission.created)
 
-        for c in q.offset((page - 1) * per_page).limit(per_page):
-            ret.append(c.to_summary_dict())
+        for c, name in q.offset((page - 1) * per_page).limit(per_page):
+            tmp = c.to_summary_dict()
+            tmp['user_name'] = name
+            ret.append(tmp)
     return jsonify(ret, headers=pagination_header(count, page, per_page))
 
 
@@ -500,6 +504,7 @@ def post_submission(contest_id: str) -> Response:
         s.add(submission)
         s.flush()
         ret = submission.to_summary_dict()
+        ret['user_name'] = u['name']
 
     conn = pika.BlockingConnection(get_mq_conn_params())
     ch = conn.channel()
@@ -521,14 +526,17 @@ def get_submission(contest_id: str, submission_id: str) -> Response:
         contest = s.query(Contest).filter(Contest.id == contest_id).first()
         if not (contest and contest.is_accessible(u)):
             abort(404)
-        submission = s.query(Submission).filter(
+        tmp = s.query(Submission, User.name).filter(
             Submission.contest_id == contest_id,
-            Submission.id == submission_id).first()
-        if not submission:
+            Submission.id == submission_id,
+            Submission.user_id == User.id).first()
+        if not tmp:
             abort(404)
+        submission, user_name = tmp
         if not submission.is_accessible(contest, u):
             abort(404)
         ret = submission.to_dict()
+        ret['user_name'] = user_name
         ret['tests'] = []
         for t_raw in s.query(JudgeResult).filter(
                 JudgeResult.submission_id == submission_id).order_by(
@@ -591,13 +599,17 @@ def list_rankings(contest_id: str) -> Response:
                 users_never_submitted.pop(uid, None)
             users[uid].append((pid, t, st))
 
+        user_names = {}
+        for id, name in s.query(User.id, User.name):
+            user_names[id] = name
+
     results = []
     for uid, all_submission in users.items():
         all_submission.sort(key=lambda x: (x[0], x[1]))
         max_time = contest_start_time
         total_score = 0
         total_penalties = 0
-        ret = dict(user_id=uid, problems={})
+        ret = dict(user_id=uid, user_name=user_names[uid], problems={})
         for problem_id, submissions in groupby(
                 all_submission, key=lambda x: x[0]):
             n_penalties = 0
