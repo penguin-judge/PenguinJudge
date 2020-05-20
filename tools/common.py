@@ -60,11 +60,12 @@ def logout():
     assert r.status_code == 204
 
 
-def register(user_id, user_name, password):
+def register(user_id, user_name, password, *, ignore_error = False):
     r = post_json('/users', {
-        'id': user_id,
+        'login_id': user_id,
         'name': user_name,
         'password': password
     })
-    assert r.status_code == 201
+    if not ignore_error:
+        assert r.status_code == 201
     return r
