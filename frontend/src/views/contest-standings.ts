@@ -1,4 +1,5 @@
 import { customElement, LitElement, html, css } from 'lit-element';
+import { Subscription, timer } from 'rxjs';
 import { API, Submission, Standing, implementsAccepted } from '../api';
 import { router, session } from '../state';
 import './pagenation';
@@ -17,6 +18,7 @@ export class PenguinJudgeContestStandings extends LitElement {
     problems: string[] = [];
     userPerPage = 20;
     page = 1;
+    autoreload_subscription: Subscription | null = null;
 
     constructor() {
         super();
@@ -27,15 +29,13 @@ export class PenguinJudgeContestStandings extends LitElement {
             // コンテスト開催前等で問題情報が読み込めていない
             return;
         }
-
-        API.get_standings(session.contest.id).then(standings => {
-            this.standings = standings;
-            this.requestUpdate();
-        }).catch(err => {
-            console.log(err);
-        })
-
+        this._reload_standings();
         this.problems = session!.contest!.problems!.map((problem) => problem.id);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this._clear_autoreload_timer();
     }
 
     changePage(e: CustomEvent) {
@@ -43,10 +43,40 @@ export class PenguinJudgeContestStandings extends LitElement {
         this.requestUpdate();
     }
 
+    _reload_standings() {
+        if (!session.contest || !session.contest.id)
+            return
+        API.get_standings(session.contest.id).then(standings => {
+            this.standings = standings;
+            this.requestUpdate();
+        }).catch(err => {
+            console.log(err);
+        })
+    }
+
+    _setup_autoreload(e: Event) {
+        const interval_value = (<HTMLSelectElement>e.target).value;
+        this._clear_autoreload_timer();
+        if (interval_value === '')
+            return;
+        const interval = parseInt(interval_value) * 1000;
+        this.autoreload_subscription = timer(0, interval).subscribe(_ => {
+            this._reload_standings();
+        });
+    }
+
+    _clear_autoreload_timer() {
+        if (!this.autoreload_subscription)
+            return
+        this.autoreload_subscription.unsubscribe();
+        this.autoreload_subscription = null;
+    }
+
     render() {
         if (this.problems.length == 0) {
             return html`<div>コンテスト開催前です</div>`;
         }
+        const contest_ended = (session.contest && new Date(session.contest.end_time) <= new Date());
 
         const pageNum = Math.floor((this.standings.length + this.userPerPage - 1) / this.userPerPage);
         const index = this.page;
@@ -99,6 +129,15 @@ export class PenguinJudgeContestStandings extends LitElement {
             }).map(s => html`<td>${s}</td>`)
             }</tr>`)}</tbody>
         </table>
+        ${contest_ended ? html`` : html`
+        <div id="reload-ctrl">
+          <button @click="${this._reload_standings}"><x-icon>refresh</x-icon></button>
+          <select @change="${this._setup_autoreload}">
+            <option value="">手動更新</option>
+            <option value="10">10秒間隔</option>
+            <option value="60">60秒間隔</option>
+          </select>
+        </div>`}
         `;
     }
 
@@ -157,6 +196,23 @@ export class PenguinJudgeContestStandings extends LitElement {
     .page.disable {
         opacity: 0.5;
         pointer-events: none;
+    }
+    #reload-ctrl {
+        position: absolute;
+        bottom: 1em;
+        right: 1em;
+        display: flex;
+    }
+    #reload-ctrl * {
+        font-size: x-small;
+    }
+    #reload-ctrl button {
+        border: 1px solid grey;
+        border-radius: 4px;
+    }
+    #reload-ctrl button x-icon {
+        font-size: medium;
+        vertical-align: top;
     }
     `;
     }
