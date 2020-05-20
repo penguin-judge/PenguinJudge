@@ -141,13 +141,13 @@ export class ProfilePageElement extends LitElement {
   static get styles() {
     return css`
       .container { display: flex; flex-direction: column; align-items: center; }
-      .item { display: flex; flex-direction: column; }
-      .item, h1 { max-width: 30em; }
-      h1 { font-size: large; margin-top: 1em; margin-bottom: 0}
+      .item { display: flex; flex-direction: column; width: 20em; }
+      h1 { font-size: large; margin-top: 1em; margin-bottom: 0; }
       label { font-size: 90%; margin-top: 0.5ex; }
       .container:last-of-type { margin-top: 1em; }
       input:invalid { box-shadow: 0 0 5px 1px red; }
       input:focus:invalid { box-shadow: none; }
+      input:read-only { background-color: #eee; border: 1px solid #ccc; }
     `;
   }
 }
