@@ -268,6 +268,14 @@ export class API {
     });
   }
 
+  static update_user(user_id: number, patch: any): Promise<User> {
+    return API._fetch('/api/users/' + encodeURIComponent(user_id), {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(patch),
+    });
+  }
+
   static get_standings(contest_id: string): Promise<Array<Standing>> {
     return API._fetch(`/api/contests/${contest_id}/rankings`);
   }

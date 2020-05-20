@@ -15,6 +15,7 @@ from openapi_core.shortcuts import RequestValidator  # type: ignore
 from openapi_core.contrib.flask import FlaskOpenAPIRequest  # type: ignore
 import yaml
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from penguin_judge.models import (
     transaction, scoped_session, Contest, Environment, JudgeResult,
@@ -167,6 +168,31 @@ def get_user(user_id: str) -> Response:
         user = s.query(User).filter(User.id == user_id_int).first()
         if not user:
             abort(404)
+        return jsonify(user.to_summary_dict())
+
+
+@app.route('/users/<user_id>', methods=['PATCH'])
+def update_user(user_id: int) -> Response:
+    params, body = _validate_request()
+    user_id = params.path['user_id']
+    with transaction() as s:
+        u = _validate_token(s)
+        if not u or (u['id'] != user_id and not u['admin']):
+            abort(401)
+        user = s.query(User).filter(User.id == user_id).first()
+        assert(user)
+        if hasattr(body, 'name'):
+            user.name = body.name
+        if hasattr(body, 'old_password') and hasattr(body, 'new_password'):
+            if not u['admin']:
+                if user.password != _kdf(body.old_password, user.salt):
+                    abort(401)
+            user.salt = secrets.token_bytes()
+            user.password = _kdf(body.new_password, user.salt)
+        try:
+            s.commit()
+        except IntegrityError:
+            abort(409)
         return jsonify(user.to_summary_dict())
 
 

@@ -73,7 +73,29 @@ paths:
         - $ref: "#/components/parameters/UserID"
       responses:
         '200':
-          description: Responses user list 
+          description: Responses user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '404':
+          description: not found
+    patch:
+      operationId: updateUser
+      security:
+        - BearerAuth: []
+        - ApiToken: []
+        - CookieToken: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        '200':
+          description: Responses user info
           content:
             application/json:
               schema:
@@ -493,6 +515,14 @@ components:
           type: integer
     UserID:
       type: integer
+    LoginID:
+      type: string
+      minLength: 3
+      maxLength: 256
+    Password:
+      type: string
+      minLength: 6
+      maxLength: 256
     UserName:
       type: string
       minLength: 3
@@ -504,13 +534,9 @@ components:
         - password
       properties:
         login_id:
-          type: string
-          minLength: 3
-          maxLength: 256
+          $ref: "#/components/schemas/LoginID"
         password:
-          type: string
-          minLength: 6
-          maxLength: 256
+          $ref: "#/components/schemas/Password"
     User:
       type: object
       properties:
@@ -533,6 +559,17 @@ components:
         - $ref: "#/components/schemas/Login"
         - required:
           - name
+    UserUpdate:
+      type: object
+      properties:
+        login_id:
+          $ref: "#/components/schemas/LoginID"
+        old_password:
+          $ref: "#/components/schemas/Password"
+        new_password:
+          $ref: "#/components/schemas/Password"
+        name:
+          $ref: "#/components/schemas/UserName"
     Environment:
       type: object
       properties:

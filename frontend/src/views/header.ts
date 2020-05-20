@@ -46,6 +46,7 @@ export class PenguinJudgeHeaderElement extends LitElement {
     let menus = [];
     if (session.current_user.value) {
       is_admin = session.current_user.value.admin;
+      menus.push(html`<a is="router-link" href="${router.generate('profile')}">プロフィール</b>`);
       menus.push(html`<a is="router-link" href="${router.generate('logout')}">ログアウト</b>`);
       if (is_admin) {
         menus.push(html`<hr>`);

@@ -57,7 +57,7 @@ class User(Base, _Exportable):
     __summary_keys__ = ['id', 'name', 'created', 'admin']
     id = Column(Integer, primary_key=True, autoincrement=True)
     login_id = Column(String, nullable=False, unique=True)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     salt = Column(LargeBinary(32), nullable=False)
     password = Column(LargeBinary(32), nullable=False)
     admin = Column(Boolean, server_default='False')

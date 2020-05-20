@@ -18,6 +18,7 @@ import './views/contest-task-edit';
 import './views/contest-submission-results';
 import './views/contest-submission';
 import './views/contest-standings';
+import './views/profile';
 import './components/ace';
 import './components/anchor';
 import './components/contest-list';
@@ -51,6 +52,7 @@ export class AppRootElement extends LitElement {
       ['login', 'login', html`<x-login></x-login>`, null],
       ['logout', 'logout', html`<x-logout></x-logout>`, null],
       ['register', 'register', html`<x-register></x-register>`, null],
+      ['profile', 'profile', html`<x-profile></x-profile>`, null],
       ['admin/environments', 'admin-environments', html`<x-admin-environments></x-admin-environments>`, null],
       ['admin/status', 'admin-status', html`<x-admin-status></x-admin-status>`, null],
       ['', 'home', html`<x-home></x-home>`, null],
