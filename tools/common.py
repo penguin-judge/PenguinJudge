@@ -48,7 +48,7 @@ def login(user_id = None, password = None):
     if not user_id or not password:
         user_id = ADMIN_USER
         password = ADMIN_PASS
-    r = post_json('/auth', {'id': user_id, 'password': password})
+    r = post_json('/auth', {'login_id': user_id, 'password': password})
     assert r.status_code == 200
     global _AUTH_COOKIE
     _AUTH_COOKIE = r.cookies
