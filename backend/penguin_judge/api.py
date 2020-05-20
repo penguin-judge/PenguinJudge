@@ -471,13 +471,17 @@ def list_submissions(contest_id: str) -> Response:
             ('problem_id', Submission.problem_id.__eq__),
             ('environment_id', Submission.environment_id.__eq__),
             ('status', Submission.status.__eq__),
-            ('user_id', Submission.user_id.__eq__),
         ]
         for key, expr in filters:
             v = params.query.get(key)
             if v is None:
                 continue
             q = q.filter(expr(v))  # type: ignore
+
+        if params.query.get('user_name'):
+            user_id = s.query(User.id).filter(
+                User.name == params.query.get('user_name')).first()
+            q = q.filter(Submission.user_id == user_id)
 
         count = q.count()
 
