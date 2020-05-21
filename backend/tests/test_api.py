@@ -519,7 +519,8 @@ class TestAPI(unittest.TestCase):
         # 未提出者もランキングに載せるようにした
         # self.assertEquals(4, len(ret))
         for i in range(4):
-            self.assertEquals(ret[i]['user_id'], user_mapping['user{}'.format(i)])
+            self.assertEquals(ret[i]['user_id'],
+                              user_mapping['user{}'.format(i)])
             self.assertEquals(ret[i]['user_name'], 'User{}'.format(i))
         self.assertEquals(ret[0]['ranking'], 1)
         self.assertEquals(ret[0]['score'], 1500)
