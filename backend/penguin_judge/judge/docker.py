@@ -95,7 +95,7 @@ class DockerJudgeDriver(JudgeDriver):
             'code': task.code,
             'time_limit': task.time_limit,
             'memory_limit': task.memory_limit,
-            'output_limit': 1,
+            'output_limit': 16,  # TODO(*): ハードコードじゃなく制御できるようにする
         })
         for test in task.tests:
             start_test_callback(test.id)
