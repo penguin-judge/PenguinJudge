@@ -141,6 +141,7 @@ ${task.description}
     }
     #problem {
       margin-right: 1em;
+      overflow: auto;
     }
     #submission {
       display: flex;
