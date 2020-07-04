@@ -5,15 +5,15 @@
   "devDependencies": {
     "@types/ace": "0.0.43",
     "@types/navigo": "^7.0.1",
-    "@vanillawc/wc-markdown": "^1.5.4",
+    "@vanillawc/wc-markdown": "1.5.12",
     "lit-element": "^2.3.1",
     "lit-html": "^1.2.1",
     "navigo": "^7.1.2",
-    "rxjs": "^6.5.5",
-    "ts-loader": "^7.0.4",
-    "typescript": "^3.9.2",
+    "rxjs": "^6.6.0",
+    "ts-loader": "^7.0.5",
+    "typescript": "^3.9.6",
     "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11",
+    "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
   }
 }
