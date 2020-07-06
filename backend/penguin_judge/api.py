@@ -479,9 +479,7 @@ def list_submissions(contest_id: str) -> Response:
             q = q.filter(expr(v))  # type: ignore
 
         if params.query.get('user_name'):
-            user_id = s.query(User.id).filter(
-                User.name == params.query.get('user_name')).first()
-            q = q.filter(Submission.user_id == user_id)
+            q = q.filter(User.name.contains(params.query.get('user_name')))
 
         count = q.count()
 
