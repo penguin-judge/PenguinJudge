@@ -10,6 +10,12 @@ module.exports = {
       options: {
         configFile: 'tsconfig.json',
       },
+    }, {
+      test: /\.css$/i,
+      loader: 'css-loader',
+      options: {
+        url: false,
+      },
     }],
   },
   resolve: {

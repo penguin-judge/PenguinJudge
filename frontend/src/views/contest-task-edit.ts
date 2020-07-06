@@ -19,7 +19,7 @@ export class AppContestTaskEditElement extends LitElement {
       this.previewSubscription = interval(500).subscribe(_ => {
         const root = this.shadowRoot!;
         (<HTMLDivElement>root.querySelector('#title'))!.textContent = (<HTMLInputElement>root.querySelector('input[name=title]')).value;
-        (<any>root.querySelector('wc-markdown')).value = (<HTMLTextAreaElement>root.querySelector('textarea')).value;
+        (<any>root.querySelector('x-markdown')).value = (<HTMLTextAreaElement>root.querySelector('textarea')).value;
       });
     });
     API.list_test_dataset(session.contest.id, session.task_id).then(test_dataset => {
@@ -106,10 +106,8 @@ export class AppContestTaskEditElement extends LitElement {
       return html``;
     }
 
-    // <wc-markdown>の後に改行が必要
     const md_preview = html`<div id="preview-pane">
-      <div id="title">${this.problem.title}</div><wc-markdown>
-${this.problem.description}</wc-markdown></div>`;
+      <div id="title">${this.problem.title}</div><x-markdown .value="${this.problem.description}" /></div>`;
 
     const href_base = '/api/contests/' +
       encodeURIComponent(session.contest!.id) + '/problems/' + encodeURIComponent(this.problem.id) + '/tests/'
