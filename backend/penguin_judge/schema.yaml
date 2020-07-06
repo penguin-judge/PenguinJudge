@@ -895,7 +895,7 @@ components:
       name: user_name
       in: query
       schema:
-        $ref: "#/components/schemas/UserName"
+        type: string
     SubmissionSortKey:
       name: sort
       in: query
