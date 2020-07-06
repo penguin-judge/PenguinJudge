@@ -53,11 +53,11 @@ export class AppContestTopElement extends LitElement {
     this.editing = true;
     this.requestUpdate();
 
-    // Markdownプレビューのために500ms間隔で編集内容をwc-markdownエレメントに反映させる
+    // Markdownプレビューのために500ms間隔で編集内容をmarkdownエレメントに反映させる
     this.previewSubscription = interval(500).subscribe(_ => {
       if (!this.editing) return;
       const root = this.shadowRoot!;
-      (<any>root.querySelector('wc-markdown')).value = (<HTMLTextAreaElement>root.querySelector('textarea')).value;
+      (<any>root.querySelector('x-markdown')).value = (<HTMLTextAreaElement>root.querySelector('textarea')).value;
     });
   }
 
@@ -102,10 +102,7 @@ export class AppContestTopElement extends LitElement {
       return html``
     }
 
-    // <wc-markdown>の後に改行が必要
-    const md_preview = html`<wc-markdown>
-${contest.description}</wc-markdown>`;
-    
+    const md_preview = html`<x-markdown .value="${contest.description}" />`;
     if (this.editing) {
       const start = split_datetime(contest.start_time);
       const end = split_datetime(contest.end_time);

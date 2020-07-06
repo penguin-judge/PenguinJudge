@@ -100,14 +100,11 @@ export class AppContestTaskElement extends LitElement {
       return html`<option value="${e.id}" ?selected=${e.id!.toString() === selected_lang_id}>${e.name}</option>`;
     });
 
-    // <wc-markdown>の後に改行が必要
     return html`
       <div id="problem">
         <div id="title">${task.title}${admin_links}</div>
         <div id="limitation">実行時間制限: ${task.time_limit}秒／メモリ制限: ${task.memory_limit}MiB／配点: ${task.score}点</div>
-        <wc-markdown class="${new Date() < new Date(session.contest.end_time) ? 'ongoing' : ''}">
-${task.description}
-</wc-markdown>
+        <x-markdown class="${new Date() < new Date(session.contest.end_time) ? 'ongoing' : ''}" .value="${task.description}" />
       </div>
       <div id="submission">
         <div id="submission-header">
@@ -170,7 +167,7 @@ ${task.description}
     #admin-links a:hover {
       background-color: #ddd;
     }
-    wc-markdown.ongoing {
+    x-markdown.ongoing {
       margin-bottom: 5em;
     }
     `
