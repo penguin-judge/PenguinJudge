@@ -1,0 +1,25 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - 'frontend/**'
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup node
+      uses: actions/setup-node@v1
+    - name: Install dependencies
+      run: |
+        cd ./frontend
+        npm ci
+    - name: Build test
+      run: |
+        cd ./frontend
+        webpack -p

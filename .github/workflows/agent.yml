@@ -1,0 +1,23 @@
+name: Agent CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - 'agent/**'
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build
+        run: |
+          cd ./agent
+          cargo build --verbose
+      - name: Run tests
+        run: |
+          cd ./agent
+          RUST_BACKTRACE=1 cargo test --verbose
