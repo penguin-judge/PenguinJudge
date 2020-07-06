@@ -33,7 +33,7 @@ _request_validator = RequestValidator(_spec)
 
 def response204() -> Response:
     resp = make_response((b'', 204))
-    resp.headers.pop('content-type')
+    resp.headers.pop(key='content-type')
     return resp
 
 
@@ -144,7 +144,7 @@ def deleteToken() -> Response:
             Token.token == u['_token_bytes']
         ).delete(synchronize_session=False)
     resp = make_response((b'', 204))
-    resp.headers.pop('content-type')
+    resp.headers.pop(key='content-type')
     resp.headers.add('Set-Cookie', 'AuthToken=; Max-Age=0')
     return resp
 
