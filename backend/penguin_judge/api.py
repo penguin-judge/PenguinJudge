@@ -643,7 +643,8 @@ def list_rankings(contest_id: str) -> Response:
         for problem_id, submissions in groupby(
                 all_submission, key=lambda x: x[0]):
             n_penalties = 0
-            tmp: Dict[str, Union[float, int, timedelta]] = {}
+            tmp: Dict[str, Union[float, int, timedelta, bool]] = {}
+            has_pending = False
             for (_, submit_time, submit_status) in submissions:
                 if submit_status == JudgeStatus.Accepted:
                     tmp['time'] = submit_time - contest_start_time
@@ -652,11 +653,16 @@ def list_rankings(contest_id: str) -> Response:
                     total_score += score
                     total_penalties += n_penalties
                     break
+                elif submit_status in (
+                        JudgeStatus.Waiting,
+                        JudgeStatus.Running):
+                    has_pending = True
                 elif submit_status not in (
                         JudgeStatus.CompilationError,
                         JudgeStatus.InternalError):
                     n_penalties += 1
             tmp['penalties'] = n_penalties
+            tmp['pending'] = has_pending
             ret['problems'][problem_id] = tmp
         total_time = max_time - contest_start_time
         ret.update(dict(
