@@ -1,6 +1,12 @@
-name: Python package
+name: Backend CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - 'backend/**'
 
 jobs:
   backend:
@@ -18,10 +24,10 @@ jobs:
           - 5672:5672
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: 3.8
     - name: Install/Upgrade pip/dependencies
       run: |
         cd ./backend
@@ -46,29 +52,3 @@ jobs:
         export PENGUIN_JUDGE_TEST_DB_URL=`grep sql .docker-compose/config.ini | cut -d ' ' -f 3`
         cd ./backend
         nose2 -v tests
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Setup node
-      uses: actions/setup-node@v1
-    - name: Install dependencies
-      run: |
-        cd ./frontend
-        npm ci
-    - name: Build test
-      run: |
-        cd ./frontend
-        webpack -p
-  agent:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Build
-        run: |
-          cd ./agent
-          cargo build --verbose
-      - name: Run tests
-        run: |
-          cd ./agent
-          RUST_BACKTRACE=1 cargo test --verbose

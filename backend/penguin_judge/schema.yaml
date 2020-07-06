@@ -750,6 +750,9 @@ components:
                 format: double
               penalties:
                 type: integer
+              pending:
+                description: ジャッジ中(Waiting/Running)の投稿がある場合はTrueとなる
+                type: boolean
     Rankings:
       type: array
       items:

@@ -539,9 +539,9 @@ class TestAPI(unittest.TestCase):
         self.assertEquals(ret[3]['penalties'], 0)
         self.assertEquals(ret[3]['time'], 0)
         self.assertEquals(ret[3]['problems'], {
-            'A': {'penalties': 1},
-            'B': {'penalties': 2},
-            'C': {'penalties': 1},
-            'D': {'penalties': 1},
-            'E': {'penalties': 1},
+            'A': {'penalties': 1, 'pending': False},
+            'B': {'penalties': 2, 'pending': False},
+            'C': {'penalties': 1, 'pending': False},
+            'D': {'penalties': 1, 'pending': False},
+            'E': {'penalties': 1, 'pending': False},
         })
