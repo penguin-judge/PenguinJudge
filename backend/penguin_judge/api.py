@@ -310,15 +310,19 @@ def create_contest() -> Response:
     _, body = _validate_request()
     if body.start_time >= body.end_time:
         abort(400, {'detail': 'start_time must be lesser than end_time'})
+    contest_values = dict(
+        id=body.id,
+        title=body.title,
+        description=body.description,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        published=getattr(body, 'published', None),
+    )
+    if getattr(body, 'penalty', None) is not None:
+        contest_values['penalty'] = timedelta(seconds=body.penalty)
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
-        contest = Contest(
-            id=body.id,
-            title=body.title,
-            description=body.description,
-            start_time=body.start_time,
-            end_time=body.end_time,
-            published=getattr(body, 'published', None))
+        contest = Contest(**contest_values)
         s.add(contest)
         s.flush()
         ret = contest.to_dict()
@@ -328,6 +332,8 @@ def create_contest() -> Response:
 @app.route('/contests/<contest_id>', methods=['PATCH'])
 def update_contest(contest_id: str) -> Response:
     _, body = _validate_request()
+    if getattr(body, 'penalty', None) is not None:
+        body.penalty = timedelta(seconds=body.penalty)
     with transaction() as s:
         _ = _validate_token(s, admin_required=True)
         c = s.query(Contest).filter(Contest.id == contest_id).first()

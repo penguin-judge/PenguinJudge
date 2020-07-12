@@ -615,6 +615,8 @@ components:
         end_time:
           type: string
           format: date-time
+        penalty:
+          type: number
         published:
           type: boolean
     Contests:
