@@ -11,15 +11,15 @@ class Environment(NamedTuple):
 
 
 ENVIRONMENTS = [
-    Environment('C (gcc 8.2)', 'penguin_judge_c_judge:8.2', 'penguin_judge_c_compile:8.2'),
-    Environment('C++ (gcc 8.2)', 'penguin_judge_cpp_judge:8.2', 'penguin_judge_cpp_compile:8.2'),
-    Environment('Python (3.7)', 'penguin_judge_python:3.7', None),
-    Environment('PyPy3.6 (7.2.0)', 'penguin_judge_pypy3.6:7.2.0', None),
-    Environment('Ruby (2.6.5)', 'penguin_judge_ruby:2.6.5', None),
-    Environment('Go (1.13.4)', 'penguin_judge_go_judge:1.13.4', 'penguin_judge_go_compile:1.13.4'),
-    Environment('Java (OpenJDK 14)', 'penguin_judge_java_judge:14', 'penguin_judge_java_compile:14'),
-    Environment('Node (12.13.0)', 'penguin_judge_node:12.13.0', None),
-    Environment('Rust (1.39.0)', 'penguin_judge_rust_judge:1.39.0', 'penguin_judge_rust_compile:1.39.0'),
+    Environment('C (gcc 8.2)', 'penguinjudge/agent_c_judge:8.2', 'penguinjudge/agent_c_compile:8.2'),
+    Environment('C++ (gcc 8.2)', 'penguinjudge/agent_cpp_judge:8.2', 'penguinjudge/agent_cpp_compile:8.2'),
+    Environment('Python (3.7)', 'penguinjudge/agent_python_judge:3.7', None),
+    Environment('PyPy3.6 (7.2)', 'penguinjudge/agent_pypy3.6_judge:7.2', None),
+    Environment('Ruby (2.6.5)', 'penguinjudge/agent_ruby_judge:2.6.5', None),
+    Environment('Go (1.13.4)', 'penguinjudge/agent_go_judge:1.13.4', 'penguinjudge/agent_go_compile:1.13.4'),
+    Environment('Java (OpenJDK 14)', 'penguinjudge/agent_java_judge:14', 'penguinjudge/agent_java_compile:14'),
+    Environment('Node (12.13.0)', 'penguinjudge/agent_node_judge:12.13.0', None),
+    Environment('Rust (1.39.0)', 'penguinjudge/agent_rust_judge:1.39.0', 'penguinjudge/agent_rust_compile:1.39.0'),
 ]
 
 items = {}

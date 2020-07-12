@@ -1,6 +1,7 @@
 version: '3'
 services:
   api:
+    image: penguinjudge/backend
     build: backend/
     ports:
       - 5000:5000
@@ -12,6 +13,7 @@ services:
       - mq
       - db
   worker:
+    image: penguinjudge/backend
     build: backend/
     volumes:
       - ./.docker-compose:/mnt:ro
@@ -20,7 +22,9 @@ services:
     depends_on:
       - mq
       - db
+      - puller
   gui:
+    image: penguinjudge/frontend
     build: frontend
     depends_on:
       - api
@@ -32,3 +36,9 @@ services:
     image: postgres:alpine
     environment:
       POSTGRES_PASSWORD: password
+  puller:
+    image: docker
+    volumes:
+      - ./container:/mnt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: /bin/sh -c "/mnt/pull.sh && while true; do sleep 86400; done"
