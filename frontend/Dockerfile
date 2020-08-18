@@ -5,8 +5,7 @@ RUN cd /work && npm ci
 ADD public /work/public/
 ADD src /work/src/
 RUN cd /work && node_modules/.bin/webpack -p && \
-    cp dist/* public/ && \
-    cp node_modules/katex/dist/fonts/* public/fonts/
+    cp dist/* public/
 
 FROM nginx:stable-alpine
 COPY --from=builder /work/public /usr/share/nginx/html
