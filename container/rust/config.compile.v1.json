@@ -1,0 +1,8 @@
+{
+    "compile": {
+        "path": "/work/src/main.rs",
+        "cmd": "cargo",
+        "args": ["build", "--release", "--offline"],
+        "output": "/work/target/release/penguin_test"
+    }
+}

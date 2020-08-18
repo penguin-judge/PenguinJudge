@@ -1,0 +1,7 @@
+{
+    "compile": {
+        "ext": ".cpp",
+        "cmd": "g++",
+        "args": ["-std=c++17", "-O2", "-o", "<output>", "<path>"]
+    }
+}

@@ -1,0 +1,4 @@
+FROM pypy:3.6-7.3.1-slim
+COPY config.json /
+COPY penguin_judge_agent /bin
+CMD ["/bin/penguin_judge_agent"]
