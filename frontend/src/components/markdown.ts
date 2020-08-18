@@ -31,6 +31,9 @@ export class MarkdownElement extends LitElement {
 
   static get styles() {
     return css`
+    :host {
+      display: block;
+    }
     pre {
       padding: 1em;
       border: 1px solid #ccc;

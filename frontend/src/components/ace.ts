@@ -31,6 +31,18 @@ export class AceEditor extends LitElement {
         mode_name = 'c_cpp';
         break
       }
+      if (name === 'go') {
+        mode_name = 'golang';
+        break;
+      }
+      if (name.startsWith('pypy')) {
+        mode_name = 'python';
+        break;
+      }
+      if (name.startsWith('node')) {
+        mode_name = 'javascript';
+        break;
+      }
       mode_name = 'text';
     } while (false);
     this._editor.session.setMode('ace/mode/' + mode_name);
