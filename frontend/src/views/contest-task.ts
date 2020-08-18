@@ -137,7 +137,8 @@ export class AppContestTaskElement extends LitElement {
       text-align: right;
     }
     #problem {
-      margin-right: 1em;
+      padding-right: 0.5em;
+      margin-right: 0.5em;
       overflow: auto;
     }
     #submission {

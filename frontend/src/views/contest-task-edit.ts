@@ -115,7 +115,7 @@ export class AppContestTaskEditElement extends LitElement {
       return html`<tr><td>${name}</td><td><a href="${href_base + name + '/in'}">Input</a></td><td><a href="${href_base + name + '/out'}">Output</a></td></tr>`;
     });
 
-    return html`<div id="edit-container">
+    return html`
       ${md_preview}
       <div id="edit-pane">
         <div>
@@ -144,17 +144,18 @@ export class AppContestTaskEditElement extends LitElement {
           <div id="test-io-list"><table><tbody>${test_dataset}</tbody></table></div>
         </div>
       </div>
-    </div>`;
+    `;
   }
 
   static get styles() {
     return css`
-      #edit-container {
-        display: flex;
-        height: 100%;
+     :host {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
       }
-      #edit-container > * {
-        flex-grow: 1;
+      #preview-pane {
+        margin-right: 1em;
+        overflow: auto;
       }
       #edit-pane {
         display: flex;
