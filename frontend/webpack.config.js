@@ -1,4 +1,6 @@
 const path = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
+const public_path = path.resolve(__dirname, 'public');
 
 module.exports = {
   entry: './src/index.ts',
@@ -35,4 +37,16 @@ module.exports = {
         }
       }
   },
+  plugins: [
+    new CopyPlugin({
+      patterns: [{
+        from: path.resolve(__dirname, 'node_modules/katex/dist/katex.min.css'),
+        to: public_path,
+      }, {
+        from: path.resolve(__dirname, 'node_modules/katex/dist/fonts/*'),
+        to: path.resolve(public_path, 'fonts'),
+        flatten: true,
+      }],
+    }),
+  ],
 };
