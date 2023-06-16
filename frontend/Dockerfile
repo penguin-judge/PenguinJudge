@@ -4,6 +4,7 @@ RUN cd /work && npm ci
 
 ADD public /work/public/
 ADD src /work/src/
+ENV NODE_OPTIONS --openssl-legacy-provider
 RUN cd /work && node_modules/.bin/webpack -p && \
     cp dist/* public/
 
