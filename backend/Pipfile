@@ -11,16 +11,16 @@ nose2 = {extras = ["coverage_plugin"],version = "*"}
 webtest = "*"
 
 [packages]
-sqlalchemy = "*"
-psycopg2-binary = "*"
-pika = "*"
-flask = "*"
-zstandard = "*"
-docker = "*"
+sqlalchemy = "1.3.18"
+psycopg2-binary = "2.8.5"
+pika = "1.1.0"
+flask = "1.1.4"
+zstandard = "0.14.0"
+docker = "4.2.2"
 openapi-core = {git = "https://github.com/kazuki/openapi-core.git"}
-pyyaml = "*"
-msgpack = "*"
-gunicorn = "*"
+pyyaml = "5.3.1"
+msgpack = "1.0.0"
+gunicorn = "20.0.4"
 
 [requires]
 python_version = "3.8"
