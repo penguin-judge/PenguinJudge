@@ -1,4 +1,4 @@
-import Marked from 'marked';
+import { marked } from 'marked';
 import { customElement, LitElement, property, html, css, unsafeCSS } from 'lit-element';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 
@@ -13,7 +13,7 @@ export class MarkdownElement extends LitElement {
   value = '';
 
   render() {
-    return html`${unsafeHTML(Marked(this.value))}`;
+    return html`${unsafeHTML(marked.parse(this.value))}`;
   }
 
   updated() {
