@@ -48,6 +48,8 @@ def _from_env() -> None:
         k = k.lower()
         if not k.startswith("penguin_"):
             continue
+        if k == "penguin_judge_test_db_url":
+            continue
         _update_config(k[8:], v)
     _Config(**config.dict())  # validate
 

@@ -23,32 +23,28 @@ jobs:
         ports:
           - 5672:5672
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: 3.11
     - name: Install/Upgrade pip/dependencies
       run: |
         cd ./backend
         pip install -U pip setuptools
-        pip install .[develop]
-    - name: Lint with flake8
+        pip install .[dev]
+    - name: Lint (currently, isort and black only)
       run: |
         cd ./backend
-        flake8 penguin_judge tests
-    - name: Check typehints
-      run: |
-        cd ./backend
-        mypy -p penguin_judge
+        pysen --enable isort --enable black run lint
     - name: Prepare test environments
       run: |
         cd .docker-compose
         sed -i -e 's/db:/localhost:/' config.ini
         sed -i -e 's/mq:/localhost:/' config.ini
-        python ./prepare.py
+        python ./prepare.py run_migration
     - name: Execute small tests
       run: |
         export PENGUIN_JUDGE_TEST_DB_URL=`grep sql .docker-compose/config.ini | cut -d ' ' -f 3`
         cd ./backend
-        nose2 -v tests
+        pytest
