@@ -1,14 +1,26 @@
-from typing import Optional
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, AsyncIterator, Tuple
 
-from pika import URLParameters  # type: ignore
+if TYPE_CHECKING:
+    from pika import URLParameters
 
-_mq_url: Optional[str] = None
+import aiormq
+
+from penguin_judge import config
+
+JUDGE_QUEUE_NAME = "judge_queue"
 
 
-def configure(**kwargs: str) -> None:
-    global _mq_url
-    _mq_url = kwargs['mq.url']
+@asynccontextmanager
+async def connect_mq() -> AsyncIterator[
+    Tuple[aiormq.abc.AbstractConnection, aiormq.abc.AbstractChannel]
+]:
+    async with await aiormq.connect(config.mq_url) as conn:
+        ch = await conn.channel()
+        yield conn, ch
 
 
-def get_mq_conn_params() -> URLParameters:
-    return URLParameters(_mq_url)
+def get_mq_conn_params_deprecated() -> "URLParameters":
+    from pika import URLParameters
+
+    return URLParameters(config.mq_url)

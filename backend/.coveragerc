@@ -1,5 +1,9 @@
 [run]
 branch = True
+concurrency =
+    greenlet
+    thread
+    multiprocessing
 
 [report]
 # Regexes for lines to exclude from consideration

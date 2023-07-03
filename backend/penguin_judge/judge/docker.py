@@ -1,15 +1,20 @@
 import os
-from io import RawIOBase, BufferedReader, BufferedWriter
-from typing import Any, Union, MutableSequence
 import struct
+from io import BufferedReader, BufferedWriter, RawIOBase
 from logging import getLogger
+from typing import Any, MutableSequence, Union
 
 import docker  # type: ignore
 
-from penguin_judge.models import JudgeStatus
 from penguin_judge.judge import (
-    JudgeDriver, JudgeTask, TStartTestCallback, TJudgeCallback,
-    AgentCompilationResult, CompileResult)
+    AgentCompilationResult,
+    CompileResult,
+    JudgeDriver,
+    JudgeTask,
+    TJudgeCallback,
+    TStartTestCallback,
+)
+from penguin_judge.models import JudgeStatus
 
 LOGGER = getLogger(__name__)
 
@@ -22,38 +27,44 @@ class DockerJudgeDriver(JudgeDriver):
 
     def prepare(self, task: JudgeTask) -> None:
         mem_limit = task.memory_limit * (2**20)
-        common_host_cfg = dict(
-            auto_remove=True,
-            cap_drop=['ALL'])
+        common_host_cfg = dict(auto_remove=True, cap_drop=["ALL"])
         common_cfg = dict(
             stdin_open=True,
             network_disabled=True,
         )
         if task.compile_image_name:
             compile_cfg = dict(
-                host_config=self.client.create_host_config(**dict(
-                    mem_limit=2**30,  # TODO(*): 1GB上限
-                    memswap_limit=2**30,  # TODO(*): 1GB上限
-                    **common_host_cfg)),
+                host_config=self.client.create_host_config(
+                    **dict(
+                        mem_limit=2**30,  # TODO(*): 1GB上限
+                        memswap_limit=2**30,  # TODO(*): 1GB上限
+                        **common_host_cfg,
+                    )
+                ),
                 **common_cfg,
             )
             self.compile_container = self.client.create_container(
-                task.compile_image_name, **compile_cfg)
+                task.compile_image_name, **compile_cfg
+            )
             self.client.start(self.compile_container)
 
         # pids_limit:
         #    go-langは7, nodejsは8, jdk14は17程度, それ以外は3が最低限。
         #    余裕を見て20を指定しておく
         test_cfg = dict(
-            host_config=self.client.create_host_config(**dict(
-                mem_limit=mem_limit,
-                memswap_limit=mem_limit,
-                pids_limit=20,
-                **common_host_cfg)),
+            host_config=self.client.create_host_config(
+                **dict(
+                    mem_limit=mem_limit,
+                    memswap_limit=mem_limit,
+                    pids_limit=20,
+                    **common_host_cfg,
+                )
+            ),
             **common_cfg,
         )
         self.test_container = self.client.create_container(
-            task.test_image_name, **test_cfg)
+            task.test_image_name, **test_cfg
+        )
         self.client.start(self.test_container)
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -67,42 +78,48 @@ class DockerJudgeDriver(JudgeDriver):
 
     def compile(self, task: JudgeTask) -> Union[JudgeStatus, CompileResult]:
         s = self.client.attach_socket(
-            self.compile_container,
-            params={'stdin': 1, 'stdout': 1, 'stream': 1})
+            self.compile_container, params={"stdin": 1, "stdout": 1, "stream": 1}
+        )
         reader = BufferedReader(DockerStdoutReader(s))
         writer = BufferedWriter(DockerStdinWriter(s))
-        self._send(writer, {
-            'type': 'Compilation',
-            'code': task.code,
-            'time_limit': 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
-            'memory_limit': 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
-        })
+        self._send(
+            writer,
+            {
+                "type": "Compilation",
+                "code": task.code,
+                "time_limit": 60,  # TODO(*): コンパイル時間の上限をえいやで1分に
+                "memory_limit": 1024,  # TODO(*): 1GB上限(docker側の制限とあわせる)
+            },
+        )
         resp = self._recv_compile_result(reader)
         if isinstance(resp, AgentCompilationResult):
             return resp
         return JudgeStatus.CompilationError
 
-    def tests(self, task: JudgeTask,
-              start_test_callback: TStartTestCallback,
-              judge_complete_callback: TJudgeCallback) -> None:
+    def tests(
+        self,
+        task: JudgeTask,
+        start_test_callback: TStartTestCallback,
+        judge_complete_callback: TJudgeCallback,
+    ) -> None:
         s = self.client.attach_socket(
-            self.test_container,
-            params={'stdin': 1, 'stdout': 1, 'stream': 1})
+            self.test_container, params={"stdin": 1, "stdout": 1, "stream": 1}
+        )
         reader = BufferedReader(DockerStdoutReader(s))
         writer = BufferedWriter(DockerStdinWriter(s))
-        self._send(writer, {
-            'type': 'Preparation',
-            'code': task.code,
-            'time_limit': task.time_limit,
-            'memory_limit': task.memory_limit,
-            'output_limit': 16,  # TODO(*): ハードコードじゃなく制御できるようにする
-        })
+        self._send(
+            writer,
+            {
+                "type": "Preparation",
+                "code": task.code,
+                "time_limit": task.time_limit,
+                "memory_limit": task.memory_limit,
+                "output_limit": 16,  # TODO(*): ハードコードじゃなく制御できるようにする
+            },
+        )
         for test in task.tests:
             start_test_callback(test.id)
-            self._send(writer, {
-                'type': 'Test',
-                'input': test.input
-            })
+            self._send(writer, {"type": "Test", "input": test.input})
             resp = self._recv_test_result(reader)
             judge_complete_callback(test, resp)
 
@@ -110,7 +127,7 @@ class DockerJudgeDriver(JudgeDriver):
 class DockerStdoutReader(RawIOBase):
     def __init__(self, raw: RawIOBase) -> None:
         self._raw = BufferedReader(raw)
-        self._cur = b''
+        self._cur = b""
         self._eos = False
 
     def readable(self) -> bool:
@@ -134,7 +151,7 @@ class DockerStdoutReader(RawIOBase):
                 return
             if len(header) != 8:
                 raise IOError
-            sz = struct.unpack('>I', header[4:])[0]
+            sz = struct.unpack(">I", header[4:])[0]
             body = self._raw.read(sz)
             if header[0] == 0x01:
                 self._cur = body
