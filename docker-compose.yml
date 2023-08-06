@@ -8,7 +8,7 @@ services:
       - 8000:5000
     volumes:
       - ./.docker-compose:/mnt:ro
-    command: /bin/sh -c "python /mnt/prepare.py && penguin_judge api -c /mnt/config.ini"
+    command: /bin/sh -c "python /mnt/prepare.py run_migration && penguin_judge api -c /mnt/config.ini --host 0.0.0.0 --port 5000"
     depends_on:
       - mq
       - db
@@ -18,11 +18,12 @@ services:
     volumes:
       - ./.docker-compose:/mnt:ro
       - /var/run/docker.sock:/var/run/docker.sock
-    command: /bin/sh -c "python /mnt/prepare.py && penguin_judge worker -c /mnt/config.ini"
+    command: /bin/sh -c "python /mnt/prepare.py wait_migration && penguin_judge worker -c /mnt/config.ini"
     depends_on:
       - mq
       - db
       - puller
+    user: root
   gui:
     image: penguinjudge/frontend
     build: frontend

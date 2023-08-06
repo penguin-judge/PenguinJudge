@@ -1,10 +1,9 @@
+import struct
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from io import BufferedIOBase
-import struct
-from typing import (
-    Any, Callable, Union, Optional, List, NamedTuple, Type, TypeVar)
+from typing import Any, Callable, List, NamedTuple, Optional, Type, TypeVar, Union
 
 import msgpack  # type: ignore
 
@@ -48,10 +47,9 @@ class AgentError(NamedTuple):
     kind: str
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 TStartTestCallback = Callable[[str], None]
-TJudgeCallback = Callable[
-    [JudgeTestInfo, Union[AgentTestResult, AgentError]], None]
+TJudgeCallback = Callable[[JudgeTestInfo, Union[AgentTestResult, AgentError]], None]
 CompileResult = AgentCompilationResult
 
 
@@ -64,12 +62,15 @@ class JudgeDriver(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def tests(self, task: JudgeTask,
-              start_test_callback: TStartTestCallback,
-              judge_complete_callback: TJudgeCallback) -> None:
+    def tests(
+        self,
+        task: JudgeTask,
+        start_test_callback: TStartTestCallback,
+        judge_complete_callback: TJudgeCallback,
+    ) -> None:
         raise NotImplementedError
 
-    def __enter__(self) -> 'JudgeDriver':
+    def __enter__(self) -> "JudgeDriver":
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -77,28 +78,31 @@ class JudgeDriver(metaclass=ABCMeta):
 
     def _send(self, strm: BufferedIOBase, obj: Any) -> None:
         b = msgpack.packb(obj, use_bin_type=True)
-        strm.write(struct.pack('<I', len(b)))
+        strm.write(struct.pack("<I", len(b)))
         strm.write(b)
         strm.flush()
 
-    def __recv(self, strm: BufferedIOBase) -> dict:
-        sz = struct.unpack('<I', strm.read(4))[0]
+    def __recv(self, strm: BufferedIOBase) -> dict[str, Any]:
+        sz = struct.unpack("<I", strm.read(4))[0]
         return msgpack.unpackb(strm.read(sz), raw=False)
 
     def __recv_agent_resp(
-            self, strm: BufferedIOBase, cls: Type[T]) -> Union[T, AgentError]:
+        self, strm: BufferedIOBase, cls: Type[T]
+    ) -> Union[T, AgentError]:
         o = self.__recv(strm)
-        if not isinstance(o, dict) or 'type' not in o:
-            raise ValueError('invalid agent response')
-        if o['type'] == 'Error':
-            return AgentError(kind=o['kind'])
+        if not isinstance(o, dict) or "type" not in o:
+            raise ValueError("invalid agent response")
+        if o["type"] == "Error":
+            return AgentError(kind=o["kind"])
         args = [o[n] for n in cls._fields]  # type: ignore
         return cls(*args)
 
-    def _recv_compile_result(self, strm: BufferedIOBase) -> Union[
-            AgentCompilationResult, AgentError]:
+    def _recv_compile_result(
+        self, strm: BufferedIOBase
+    ) -> Union[AgentCompilationResult, AgentError]:
         return self.__recv_agent_resp(strm, AgentCompilationResult)
 
-    def _recv_test_result(self, strm: BufferedIOBase) -> Union[
-            AgentTestResult, AgentError]:
+    def _recv_test_result(
+        self, strm: BufferedIOBase
+    ) -> Union[AgentTestResult, AgentError]:
         return self.__recv_agent_resp(strm, AgentTestResult)
